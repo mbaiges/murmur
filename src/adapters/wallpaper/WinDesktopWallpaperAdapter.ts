@@ -46,12 +46,12 @@ export class WinDesktopWallpaperAdapter implements IWallpaperRenderer {
     }
 
     try {
-      const psCommand = `
-        $wp = New-Object -ComObject DesktopWallpaper
-        $id = $wp.GetMonitorDevicePathAt(${index})
-        $wp.SetWallpaper($id, '${filePath.replace(/'/g, "''")}')
-      `
-      execSync(`powershell -NoProfile -Command "${psCommand.replace(/\n/g, ' ')}"`)
+      const psCommandLines = [
+        '$wp = New-Object -ComObject DesktopWallpaper',
+        `$id = $wp.GetMonitorDevicePathAt(${index})`,
+        `$wp.SetWallpaper($id, '${filePath.replace(/'/g, "''")}')`
+      ]
+      execSync(`powershell -NoProfile -Command "${psCommandLines.join('; ')}"`)
     } catch (error) {
       console.error(`WinDesktopWallpaperAdapter: Failed to set wallpaper via PowerShell`, error)
       throw error
@@ -63,17 +63,14 @@ export class WinDesktopWallpaperAdapter implements IWallpaperRenderer {
     if (existsSync(this.backupFile)) return
 
     try {
-      const psCommand = `
-        $wp = New-Object -ComObject DesktopWallpaper
-        $count = $wp.GetMonitorDevicePathCount()
-        $paths = @()
-        for ($i = 0; $i -lt $count; $i++) {
-          $id = $wp.GetMonitorDevicePathAt($i)
-          $paths += $wp.GetWallpaper($id)
-        }
-        $paths | ConvertTo-Json -Compress
-      `
-      const output = execSync(`powershell -NoProfile -Command "${psCommand.replace(/\n/g, ' ')}"`).toString().trim()
+      const psCommandLines = [
+        '$wp = New-Object -ComObject DesktopWallpaper',
+        '$count = $wp.GetMonitorDevicePathCount()',
+        '$paths = @()',
+        'for ($i = 0; $i -lt $count; $i++) { $id = $wp.GetMonitorDevicePathAt($i); $paths += $wp.GetWallpaper($id) }',
+        '$paths | ConvertTo-Json -Compress'
+      ]
+      const output = execSync(`powershell -NoProfile -Command "${psCommandLines.join('; ')}"`).toString().trim()
       if (output) {
         writeFileSync(this.backupFile, output, 'utf8')
         console.log('WinDesktopWallpaperAdapter: Wallpaper backup saved successfully')
@@ -96,10 +93,8 @@ export class WinDesktopWallpaperAdapter implements IWallpaperRenderer {
 
       backupData.forEach((path, i) => {
         if (path) {
-          psCommandLines.push(`
-            $id = $wp.GetMonitorDevicePathAt(${i})
-            $wp.SetWallpaper($id, '${path.replace(/'/g, "''")}')
-          `)
+          psCommandLines.push(`$id = $wp.GetMonitorDevicePathAt(${i})`)
+          psCommandLines.push(`$wp.SetWallpaper($id, '${path.replace(/'/g, "''")}')`)
         }
       })
 
