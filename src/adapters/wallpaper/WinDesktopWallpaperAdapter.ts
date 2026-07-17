@@ -63,6 +63,7 @@ export class WinDesktopWallpaperAdapter implements IWallpaperRenderer {
     }
 
     try {
+      // Try IDesktopWallpaper COM first
       const psCommandLines = [
         '$wp = New-Object -ComObject DesktopWallpaper',
         `$id = $wp.GetMonitorDevicePathAt(${index})`,
@@ -70,8 +71,19 @@ export class WinDesktopWallpaperAdapter implements IWallpaperRenderer {
       ]
       this.runPowerShell(psCommandLines)
     } catch (error) {
-      console.error(`WinDesktopWallpaperAdapter: Failed to set wallpaper via PowerShell`, error)
-      throw error
+      console.warn(`WinDesktopWallpaperAdapter: IDesktopWallpaper COM failed. Falling back to Win32 SystemParametersInfo.`)
+      try {
+        // Fallback to Win32 SystemParametersInfo API (SPI_SETDESKWALLPAPER = 0x0014)
+        const psCommandLines = [
+          `$code = '[DllImport("user32.dll", CharSet=CharSet.Auto)] public static extern int SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni);'`,
+          `Add-Type -MemberDefinition $code -Name "Win32Utils" -Namespace "Win32" -ErrorAction SilentlyContinue`,
+          `[Win32.Win32Utils]::SystemParametersInfo(0x0014, 0, '${filePath.replace(/'/g, "''")}', 3)`
+        ]
+        this.runPowerShell(psCommandLines)
+      } catch (fallbackError) {
+        console.error(`WinDesktopWallpaperAdapter: Fallback failed`, fallbackError)
+        throw fallbackError
+      }
     }
   }
 
@@ -93,7 +105,7 @@ export class WinDesktopWallpaperAdapter implements IWallpaperRenderer {
         console.log('WinDesktopWallpaperAdapter: Wallpaper backup saved successfully')
       }
     } catch (error) {
-      console.error('WinDesktopWallpaperAdapter: Backup failed', error)
+      console.warn('WinDesktopWallpaperAdapter: Backup failed, skipping COM backup')
     }
   }
 
@@ -103,20 +115,33 @@ export class WinDesktopWallpaperAdapter implements IWallpaperRenderer {
 
     try {
       const backupData = JSON.parse(readFileSync(this.backupFile, 'utf8')) as string[]
-      const psCommandLines = [
-        '$wp = New-Object -ComObject DesktopWallpaper',
-        `$backup = '${JSON.stringify(backupData).replace(/'/g, "''")}' | ConvertFrom-Json`
-      ]
+      
+      try {
+        const psCommandLines = [
+          '$wp = New-Object -ComObject DesktopWallpaper',
+          `$backup = '${JSON.stringify(backupData).replace(/'/g, "''")}' | ConvertFrom-Json`
+        ]
 
-      backupData.forEach((path, i) => {
-        if (path) {
-          psCommandLines.push(`$id = $wp.GetMonitorDevicePathAt(${i})`)
-          psCommandLines.push(`$wp.SetWallpaper($id, '${path.replace(/'/g, "''")}')`)
+        backupData.forEach((path, i) => {
+          if (path) {
+            psCommandLines.push(`$id = $wp.GetMonitorDevicePathAt(${i})`)
+            psCommandLines.push(`$wp.SetWallpaper($id, '${path.replace(/'/g, "''")}')`)
+          }
+        })
+
+        this.runPowerShell(psCommandLines)
+        console.log('WinDesktopWallpaperAdapter: Wallpaper restored successfully')
+      } catch (comError) {
+        if (backupData && backupData[0]) {
+          const psCommandLines = [
+            `$code = '[DllImport("user32.dll", CharSet=CharSet.Auto)] public static extern int SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni);'`,
+            `Add-Type -MemberDefinition $code -Name "Win32Utils" -Namespace "Win32" -ErrorAction SilentlyContinue`,
+            `[Win32.Win32Utils]::SystemParametersInfo(0x0014, 0, '${backupData[0].replace(/'/g, "''")}', 3)`
+          ]
+          this.runPowerShell(psCommandLines)
+          console.log('WinDesktopWallpaperAdapter: Wallpaper restored via Win32 fallback')
         }
-      })
-
-      this.runPowerShell(psCommandLines)
-      console.log('WinDesktopWallpaperAdapter: Wallpaper restored successfully')
+      }
     } catch (error) {
       console.error('WinDesktopWallpaperAdapter: Restore failed', error)
     }
