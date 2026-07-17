@@ -11,6 +11,9 @@ import { WinStartupAdapter } from '../adapters/startup/WinStartupAdapter'
 import { MurmurService } from '../domain/MurmurService'
 import { Scheduler } from '../domain/Scheduler'
 import { MurmurState } from '../domain/types'
+import { IRssFetcher } from '../ports/IRssFetcher'
+import { IPhraseGenerator } from '../ports/IPhraseGenerator'
+import { IWallpaperRenderer } from '../ports/IWallpaperRenderer'
 
 let settingsWindow: BrowserWindow | null = null
 let state: MurmurState = {
@@ -21,12 +24,36 @@ let state: MurmurState = {
 
 const configStore = new JsonConfigStoreAdapter()
 const historyStore = new JsonHistoryStoreAdapter()
-const rssFetcher = new FastXmlRssFetcherAdapter()
-const phraseGenerator = new GeminiPhraseGeneratorAdapter(configStore)
 const wallpaperPainter = new NodeCanvasWallpaperPainterAdapter()
-const wallpaperRenderer = new WinDesktopWallpaperAdapter()
 const trayAdapter = new ElectronTrayAdapter()
 const startupAdapter = new WinStartupAdapter()
+
+let rssFetcher: IRssFetcher
+let phraseGenerator: IPhraseGenerator
+let wallpaperRenderer: IWallpaperRenderer
+
+if (process.env.MURMUR_E2E === 'true') {
+  console.log('MURMUR: Running in Playwright E2E Mode with stubs')
+  rssFetcher = {
+    fetchAll: async () => [
+      { title: 'Stub Headline 1', source: 'Stub Source', feedUrl: 'http://stub.com' },
+      { title: 'Stub Headline 2', source: 'Stub Source', feedUrl: 'http://stub.com' }
+    ]
+  }
+  phraseGenerator = {
+    generate: async () => 'stubbed surreal phrase'
+  }
+  wallpaperRenderer = {
+    getScreens: async () => [{ id: 'stub-monitor', width: 800, height: 600 }],
+    set: async () => {},
+    backup: async () => {},
+    restore: async () => {}
+  }
+} else {
+  rssFetcher = new FastXmlRssFetcherAdapter()
+  phraseGenerator = new GeminiPhraseGeneratorAdapter(configStore)
+  wallpaperRenderer = new WinDesktopWallpaperAdapter()
+}
 
 const murmurService = new MurmurService(
   rssFetcher,
@@ -53,7 +80,7 @@ function createSettingsWindow() {
     width: 900,
     height: 700,
     webPreferences: {
-      preload: join(__dirname, '../preload/index.mjs'),
+      preload: join(__dirname, '../preload/index.js'),
       sandbox: false
     },
     autoHideMenuBar: true,
@@ -135,9 +162,10 @@ app.whenReady().then(async () => {
     }
   )
 
-  if (config.geminiApiKey) {
+  if (config.geminiApiKey || process.env.MURMUR_E2E === 'true') {
     scheduler.start(config.refreshIntervalMinutes)
-  } else {
+  }
+  if (!config.geminiApiKey || process.env.MURMUR_E2E === 'true') {
     createSettingsWindow()
   }
 })

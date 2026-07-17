@@ -6,8 +6,10 @@ import { PaintOptions } from '../../domain/types'
 
 export class NodeCanvasWallpaperPainterAdapter implements IWallpaperPainter {
   constructor() {
-    // Search both production built path and dev source path
+    // Search packaged paths, production built path, and dev source path
     const pathsToSearch = [
+      join(process.resourcesPath || '', 'fonts'),
+      join(process.resourcesPath || '', 'resources/fonts'),
       join(__dirname, '../../resources/fonts'),    // Production: out/main/ -> out/ -> root -> resources/fonts
       join(__dirname, '../../../resources/fonts')  // Dev/Test: src/adapters/canvas/ -> src/adapters/ -> src/ -> root -> resources/fonts
     ]
