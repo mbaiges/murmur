@@ -17,6 +17,23 @@ export class WinDesktopWallpaperAdapter implements IWallpaperRenderer {
     }
   }
 
+  private runPowerShell(psCommandLines: string[]): string {
+    const windir = process.env.windir || 'C:\\Windows'
+    const sysnative = join(windir, 'sysnative\\WindowsPowerShell\\v1.0\\powershell.exe')
+    const system32 = join(windir, 'System32\\WindowsPowerShell\\v1.0\\powershell.exe')
+    
+    let bin = 'powershell'
+    if (existsSync(sysnative)) {
+      bin = sysnative
+    } else if (existsSync(system32)) {
+      bin = system32
+    }
+
+    const commandString = psCommandLines.join('; ')
+    const cmdLine = `"${bin}" -NoProfile -Command "${commandString.replace(/"/g, '\\"')}"`
+    return execSync(cmdLine).toString()
+  }
+
   public async getScreens(): Promise<{ id: string; width: number; height: number }[]> {
     const displays = screen.getAllDisplays()
     return displays.map((d) => {
@@ -51,7 +68,7 @@ export class WinDesktopWallpaperAdapter implements IWallpaperRenderer {
         `$id = $wp.GetMonitorDevicePathAt(${index})`,
         `$wp.SetWallpaper($id, '${filePath.replace(/'/g, "''")}')`
       ]
-      execSync(`powershell -NoProfile -Command "${psCommandLines.join('; ')}"`)
+      this.runPowerShell(psCommandLines)
     } catch (error) {
       console.error(`WinDesktopWallpaperAdapter: Failed to set wallpaper via PowerShell`, error)
       throw error
@@ -70,7 +87,7 @@ export class WinDesktopWallpaperAdapter implements IWallpaperRenderer {
         'for ($i = 0; $i -lt $count; $i++) { $id = $wp.GetMonitorDevicePathAt($i); $paths += $wp.GetWallpaper($id) }',
         '$paths | ConvertTo-Json -Compress'
       ]
-      const output = execSync(`powershell -NoProfile -Command "${psCommandLines.join('; ')}"`).toString().trim()
+      const output = this.runPowerShell(psCommandLines).trim()
       if (output) {
         writeFileSync(this.backupFile, output, 'utf8')
         console.log('WinDesktopWallpaperAdapter: Wallpaper backup saved successfully')
@@ -98,7 +115,7 @@ export class WinDesktopWallpaperAdapter implements IWallpaperRenderer {
         }
       })
 
-      execSync(`powershell -NoProfile -Command "${psCommandLines.join('; ')}"`)
+      this.runPowerShell(psCommandLines)
       console.log('WinDesktopWallpaperAdapter: Wallpaper restored successfully')
     } catch (error) {
       console.error('WinDesktopWallpaperAdapter: Restore failed', error)
