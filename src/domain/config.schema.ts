@@ -7,7 +7,7 @@ export const MonitorConfigSchema = z.object({
 })
 
 export const MurmurConfigSchema = z.object({
-  geminiApiKey: z.string().min(1),
+  geminiApiKey: z.string().default(''),
   feeds: z.array(z.string().url()).min(1),
   refreshIntervalMinutes: z.number().int().min(5).max(1440).default(60),
   language: z.string().default('auto'),

@@ -8,7 +8,7 @@ export default defineConfig({
   },
   reporter: [['html', { outputFolder: 'playwright-report' }]],
   use: {
-    screenshot: 'only-on-failure',
+    screenshot: 'on',
     video: 'retain-on-failure',
     trace: 'on-first-retry'
   }

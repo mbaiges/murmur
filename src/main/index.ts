@@ -1,8 +1,47 @@
-import { app, BrowserWindow, Tray, Menu } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
+import { FastXmlRssFetcherAdapter } from '../adapters/rss/FastXmlRssFetcherAdapter'
+import { GeminiPhraseGeneratorAdapter } from '../adapters/gemini/GeminiPhraseGeneratorAdapter'
+import { NodeCanvasWallpaperPainterAdapter } from '../adapters/canvas/NodeCanvasWallpaperPainterAdapter'
+import { WinDesktopWallpaperAdapter } from '../adapters/wallpaper/WinDesktopWallpaperAdapter'
+import { JsonConfigStoreAdapter } from '../adapters/config/JsonConfigStoreAdapter'
+import { JsonHistoryStoreAdapter } from '../adapters/history/JsonHistoryStoreAdapter'
+import { ElectronTrayAdapter } from '../adapters/tray/ElectronTrayAdapter'
+import { WinStartupAdapter } from '../adapters/startup/WinStartupAdapter'
+import { MurmurService } from '../domain/MurmurService'
+import { Scheduler } from '../domain/Scheduler'
+import { MurmurState } from '../domain/types'
 
-let tray: Tray | null = null
 let settingsWindow: BrowserWindow | null = null
+let state: MurmurState = {
+  isPaused: false,
+  lastRefreshTime: undefined,
+  lastPhrases: {}
+}
+
+const configStore = new JsonConfigStoreAdapter()
+const historyStore = new JsonHistoryStoreAdapter()
+const rssFetcher = new FastXmlRssFetcherAdapter()
+const phraseGenerator = new GeminiPhraseGeneratorAdapter(configStore)
+const wallpaperPainter = new NodeCanvasWallpaperPainterAdapter()
+const wallpaperRenderer = new WinDesktopWallpaperAdapter()
+const trayAdapter = new ElectronTrayAdapter()
+const startupAdapter = new WinStartupAdapter()
+
+const murmurService = new MurmurService(
+  rssFetcher,
+  phraseGenerator,
+  wallpaperPainter,
+  wallpaperRenderer,
+  configStore,
+  historyStore,
+  trayAdapter
+)
+
+const scheduler = new Scheduler(async () => {
+  if (state.isPaused) return
+  await murmurService.refresh()
+})
 
 function createSettingsWindow() {
   if (settingsWindow) {
@@ -11,14 +50,16 @@ function createSettingsWindow() {
   }
 
   settingsWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 900,
+    height: 700,
     webPreferences: {
       preload: join(__dirname, '../preload/index.mjs'),
       sandbox: false
     },
+    autoHideMenuBar: true,
     show: false,
-    autoHideMenuBar: true
+    resizable: true,
+    title: 'Murmur Settings'
   })
 
   if (process.env.ELECTRON_RENDERER_URL) {
@@ -36,26 +77,83 @@ function createSettingsWindow() {
   })
 }
 
-function createTray() {
-  // Use a base64 loaded or fallback icon in production.
-  // Here we load the bundled placeholder icon.png
-  tray = new Tray(join(__dirname, '../../resources/icon.png'))
-  const contextMenu = Menu.buildFromTemplate([
-    { label: 'Refresh Now', click: () => console.log('Refresh triggered') },
-    { label: 'Pause Refresh', type: 'checkbox', click: () => console.log('Pause toggled') },
-    { type: 'separator' },
-    { label: 'Settings', click: createSettingsWindow },
-    { label: 'Quit', click: () => app.quit() }
-  ])
-  tray.setToolTip('Murmur Wallpaper')
-  tray.setContextMenu(contextMenu)
+function setupIpc() {
+  ipcMain.handle('config:get', () => configStore.get())
+  ipcMain.handle('config:save', async (_event, config) => {
+    const prevConfig = await configStore.get()
+    await configStore.set(config)
+    const newConfig = await configStore.get()
+
+    if (newConfig.launchAtLogin !== prevConfig.launchAtLogin) {
+      if (newConfig.launchAtLogin) {
+        await startupAdapter.enable()
+      } else {
+        await startupAdapter.disable()
+      }
+    }
+
+    if (
+      newConfig.refreshIntervalMinutes !== prevConfig.refreshIntervalMinutes ||
+      (newConfig.geminiApiKey && !prevConfig.geminiApiKey)
+    ) {
+      if (newConfig.geminiApiKey) {
+        scheduler.start(newConfig.refreshIntervalMinutes)
+      } else {
+        scheduler.stop()
+      }
+    }
+  })
+
+  ipcMain.handle('history:get', (_event, monitorId) => historyStore.get(monitorId))
+  ipcMain.handle('history:clear', (_event, monitorId) => historyStore.clear(monitorId))
+  ipcMain.handle('action:refresh', () => murmurService.refresh())
+  ipcMain.handle('action:previewTheme', (_event, monitorId, theme) =>
+    murmurService.previewTheme(monitorId, theme)
+  )
+  ipcMain.handle('state:get', () => state)
 }
 
-app.whenReady().then(() => {
-  createTray()
-  createSettingsWindow()
+app.whenReady().then(async () => {
+  setupIpc()
+  await wallpaperRenderer.backup()
+
+  const config = await configStore.get()
+  
+  const customTrayAdapterUpdate = trayAdapter.updateState.bind(trayAdapter)
+  trayAdapter.updateState = (newState: MurmurState) => {
+    state = { ...state, ...newState }
+    customTrayAdapterUpdate(state)
+    settingsWindow?.webContents.send('state:updated', state)
+  }
+
+  trayAdapter.init(
+    async () => {
+      await murmurService.refresh()
+    },
+    () => {
+      createSettingsWindow()
+    }
+  )
+
+  if (config.geminiApiKey) {
+    scheduler.start(config.refreshIntervalMinutes)
+  } else {
+    createSettingsWindow()
+  }
 })
 
 app.on('window-all-closed', () => {
-  // Keep app running in tray when settings is closed
+  // running in tray
+})
+
+app.on('will-quit', async (event) => {
+  event.preventDefault()
+  scheduler.stop()
+  try {
+    await wallpaperRenderer.restore()
+  } catch (err) {
+    console.error('Failed to restore wallpaper on exit:', err)
+  } finally {
+    app.exit(0)
+  }
 })
