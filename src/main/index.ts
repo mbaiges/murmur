@@ -165,7 +165,7 @@ app.whenReady().then(async () => {
   if (config.geminiApiKey || process.env.MURMUR_E2E === 'true') {
     scheduler.start(config.refreshIntervalMinutes)
   }
-  if (!config.geminiApiKey || process.env.MURMUR_E2E === 'true') {
+  if (!app.isPackaged || !config.geminiApiKey || process.env.MURMUR_E2E === 'true') {
     createSettingsWindow()
   }
 })
