@@ -1,8 +1,11 @@
 import { app, screen } from 'electron'
-import { execSync } from 'child_process'
-import { writeFileSync, mkdirSync, existsSync, readFileSync } from 'fs'
+import { exec } from 'child_process'
+import { promisify } from 'util'
+import { writeFileSync, mkdirSync, existsSync } from 'fs'
 import { join } from 'path'
 import { IWallpaperRenderer } from '../../ports/IWallpaperRenderer'
+
+const execAsync = promisify(exec)
 
 export class WinDesktopWallpaperAdapter implements IWallpaperRenderer {
   private wallpaperDir: string
@@ -17,21 +20,21 @@ export class WinDesktopWallpaperAdapter implements IWallpaperRenderer {
     }
   }
 
-  private runPowerShell(psCommandLines: string[]): string {
-    const windir = process.env.windir || 'C:\\Windows'
-    const sysnative = join(windir, 'sysnative\\WindowsPowerShell\\v1.0\\powershell.exe')
-    const system32 = join(windir, 'System32\\WindowsPowerShell\\v1.0\\powershell.exe')
-    
-    let bin = 'powershell'
-    if (existsSync(sysnative)) {
-      bin = sysnative
-    } else if (existsSync(system32)) {
-      bin = system32
-    }
+  private getHelperPath(): string {
+    const pathsToSearch = [
+      join(process.resourcesPath || '', 'bin/WallpaperHelper.exe'),
+      join(process.resourcesPath || '', 'resources/bin/WallpaperHelper.exe'),
+      join(__dirname, '../../resources/bin/WallpaperHelper.exe'),
+      join(__dirname, '../../../resources/bin/WallpaperHelper.exe'),
+      join(app.getAppPath(), 'resources/bin/WallpaperHelper.exe')
+    ]
 
-    const commandString = psCommandLines.join('; ')
-    const cmdLine = `"${bin}" -NoProfile -Command "${commandString.replace(/"/g, '\\"')}"`
-    return execSync(cmdLine).toString()
+    for (const p of pathsToSearch) {
+      if (existsSync(p)) {
+        return p
+      }
+    }
+    return join(app.getAppPath(), 'resources/bin/WallpaperHelper.exe')
   }
 
   public async getScreens(): Promise<{ id: string; width: number; height: number }[]> {
@@ -63,27 +66,13 @@ export class WinDesktopWallpaperAdapter implements IWallpaperRenderer {
     }
 
     try {
-      // Try IDesktopWallpaper COM first
-      const psCommandLines = [
-        '$wp = New-Object -ComObject DesktopWallpaper',
-        `$id = $wp.GetMonitorDevicePathAt(${index})`,
-        `$wp.SetWallpaper($id, '${filePath.replace(/'/g, "''")}')`
-      ]
-      this.runPowerShell(psCommandLines)
+      const helperPath = this.getHelperPath()
+      const cmd = `"${helperPath}" set ${index} "${filePath}"`
+      const { stdout } = await execAsync(cmd)
+      console.log(`WinDesktopWallpaperAdapter: Native helper set output: ${stdout.trim()}`)
     } catch (error) {
-      console.warn(`WinDesktopWallpaperAdapter: IDesktopWallpaper COM failed. Falling back to Win32 SystemParametersInfo.`)
-      try {
-        // Fallback to Win32 SystemParametersInfo API (SPI_SETDESKWALLPAPER = 0x0014)
-        const psCommandLines = [
-          `$code = '[DllImport("user32.dll", CharSet=CharSet.Auto)] public static extern int SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni);'`,
-          `Add-Type -MemberDefinition $code -Name "Win32Utils" -Namespace "Win32" -ErrorAction SilentlyContinue`,
-          `[Win32.Win32Utils]::SystemParametersInfo(0x0014, 0, '${filePath.replace(/'/g, "''")}', 3)`
-        ]
-        this.runPowerShell(psCommandLines)
-      } catch (fallbackError) {
-        console.error(`WinDesktopWallpaperAdapter: Fallback failed`, fallbackError)
-        throw fallbackError
-      }
+      console.error(`WinDesktopWallpaperAdapter: Native helper set failed`, error)
+      throw error
     }
   }
 
@@ -92,20 +81,12 @@ export class WinDesktopWallpaperAdapter implements IWallpaperRenderer {
     if (existsSync(this.backupFile)) return
 
     try {
-      const psCommandLines = [
-        '$wp = New-Object -ComObject DesktopWallpaper',
-        '$count = $wp.GetMonitorDevicePathCount()',
-        '$paths = @()',
-        'for ($i = 0; $i -lt $count; $i++) { $id = $wp.GetMonitorDevicePathAt($i); $paths += $wp.GetWallpaper($id) }',
-        '$paths | ConvertTo-Json -Compress'
-      ]
-      const output = this.runPowerShell(psCommandLines).trim()
-      if (output) {
-        writeFileSync(this.backupFile, output, 'utf8')
-        console.log('WinDesktopWallpaperAdapter: Wallpaper backup saved successfully')
-      }
+      const helperPath = this.getHelperPath()
+      const cmd = `"${helperPath}" backup "${this.backupFile}"`
+      const { stdout } = await execAsync(cmd)
+      console.log(`WinDesktopWallpaperAdapter: Native helper backup output: ${stdout.trim()}`)
     } catch (error) {
-      console.warn('WinDesktopWallpaperAdapter: Backup failed, skipping COM backup')
+      console.error('WinDesktopWallpaperAdapter: Backup failed', error)
     }
   }
 
@@ -114,34 +95,10 @@ export class WinDesktopWallpaperAdapter implements IWallpaperRenderer {
     if (!existsSync(this.backupFile)) return
 
     try {
-      const backupData = JSON.parse(readFileSync(this.backupFile, 'utf8')) as string[]
-      
-      try {
-        const psCommandLines = [
-          '$wp = New-Object -ComObject DesktopWallpaper',
-          `$backup = '${JSON.stringify(backupData).replace(/'/g, "''")}' | ConvertFrom-Json`
-        ]
-
-        backupData.forEach((path, i) => {
-          if (path) {
-            psCommandLines.push(`$id = $wp.GetMonitorDevicePathAt(${i})`)
-            psCommandLines.push(`$wp.SetWallpaper($id, '${path.replace(/'/g, "''")}')`)
-          }
-        })
-
-        this.runPowerShell(psCommandLines)
-        console.log('WinDesktopWallpaperAdapter: Wallpaper restored successfully')
-      } catch (comError) {
-        if (backupData && backupData[0]) {
-          const psCommandLines = [
-            `$code = '[DllImport("user32.dll", CharSet=CharSet.Auto)] public static extern int SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni);'`,
-            `Add-Type -MemberDefinition $code -Name "Win32Utils" -Namespace "Win32" -ErrorAction SilentlyContinue`,
-            `[Win32.Win32Utils]::SystemParametersInfo(0x0014, 0, '${backupData[0].replace(/'/g, "''")}', 3)`
-          ]
-          this.runPowerShell(psCommandLines)
-          console.log('WinDesktopWallpaperAdapter: Wallpaper restored via Win32 fallback')
-        }
-      }
+      const helperPath = this.getHelperPath()
+      const cmd = `"${helperPath}" restore "${this.backupFile}"`
+      const { stdout } = await execAsync(cmd)
+      console.log(`WinDesktopWallpaperAdapter: Native helper restore output: ${stdout.trim()}`)
     } catch (error) {
       console.error('WinDesktopWallpaperAdapter: Restore failed', error)
     }

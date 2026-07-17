@@ -9,6 +9,8 @@ import { sampleHeadlines } from './HeadlineSampler'
 import { RssItem, ThemeName } from './types'
 
 export class MurmurService {
+  private isRefreshing = false
+
   constructor(
     private readonly rss: IRssFetcher,
     private readonly ai: IPhraseGenerator,
@@ -20,6 +22,12 @@ export class MurmurService {
   ) {}
 
   public async refresh(): Promise<void> {
+    if (this.isRefreshing) {
+      console.warn('MurmurService: Refresh already in progress. Bypassing concurrent request.')
+      return
+    }
+    this.isRefreshing = true
+
     try {
       const config = await this.configStore.get()
       if (!config.geminiApiKey) {
@@ -78,50 +86,22 @@ export class MurmurService {
         // Set background
         await this.renderer.set(screen.id, buffer)
 
-        // Save to local history logs
+        // Record history
         await this.historyStore.save(screen.id, phrase)
 
         lastPhrases[screen.id] = phrase
       }
 
-      // 4. Update system tray state
+      // 4. Update Tray
       this.tray.updateState({
         isPaused: false,
         lastRefreshTime: new Date().toLocaleTimeString(),
         lastPhrases
       })
-
     } catch (error) {
       console.error('MurmurService refresh failed:', error)
-    }
-  }
-
-  public async previewTheme(monitorId: string, theme: ThemeName): Promise<void> {
-    try {
-      const config = await this.configStore.get()
-      const activeScreens = await this.renderer.getScreens()
-      const targetScreen = activeScreens.find((s) => s.id === monitorId)
-      if (!targetScreen) {
-        throw new Error(`Monitor with ID ${monitorId} not found`)
-      }
-
-      const history = await this.historyStore.get(monitorId)
-      const phrase = history[0] || 'surrealism is the quiet hum of the world'
-
-      const paintOptions = {
-        phrase,
-        theme,
-        fontFamily: config.fontFamily,
-        animation: config.animation,
-        overlays: config.overlays,
-        resolution: { width: targetScreen.width, height: targetScreen.height }
-      }
-
-      const buffer = await this.painter.paint(paintOptions)
-      await this.renderer.set(monitorId, buffer)
-
-    } catch (error) {
-      console.error('MurmurService previewTheme failed:', error)
+    } finally {
+      this.isRefreshing = false
     }
   }
 }
