@@ -84,7 +84,7 @@ function createSettingsWindow() {
       sandbox: false
     },
     autoHideMenuBar: true,
-    show: false,
+    show: true,
     resizable: true,
     title: 'Murmur Settings'
   })
