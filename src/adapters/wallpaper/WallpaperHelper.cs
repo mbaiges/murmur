@@ -54,6 +54,10 @@ namespace Murmur {
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
 
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
         private const int GWL_EXSTYLE = -20;
         private const int WS_EX_TRANSPARENT = 0x20;
         private const int WS_EX_NOACTIVATE = 0x08000000;
@@ -162,44 +166,49 @@ namespace Murmur {
                     IntPtr result = IntPtr.Zero;
                     SendMessageTimeout(progman, 0x052C, IntPtr.Zero, IntPtr.Zero, 0, 1000, out result);
 
-                    // 2. Find the WorkerW wallpaper window (the one that does NOT contain SHELLDLL_DefView)
-                    IntPtr workerw = IntPtr.Zero;
+                    // 2. Scan and classify all WorkerW windows:
+                    // shellWorkerW holds the desktop icons (SHELLDLL_DefView).
+                    // workerwToHide holds the redundant static wallpaper layer (hide it to reveal icons).
+                    IntPtr shellWorkerW = IntPtr.Zero;
+                    IntPtr workerwToHide = IntPtr.Zero;
+
                     EnumWindows(new EnumWindowsProc((tophwnd, lparam) => {
                         StringBuilder className = new StringBuilder(256);
                         GetClassName(tophwnd, className, className.Capacity);
                         if (className.ToString() == "WorkerW") {
                             IntPtr shellDll = FindWindowEx(tophwnd, IntPtr.Zero, "SHELLDLL_DefView", null);
-                            if (shellDll == IntPtr.Zero) {
-                                workerw = tophwnd;
+                            if (shellDll != IntPtr.Zero) {
+                                shellWorkerW = tophwnd;
+                            } else {
+                                workerwToHide = tophwnd;
                             }
                         }
                         return true;
                     }), IntPtr.Zero);
 
-                    if (workerw == IntPtr.Zero) {
-                        workerw = FindWindow("WorkerW", null);
+                    // If we couldn't identify the icon-hosting WorkerW, default to Progman
+                    IntPtr targetParent = shellWorkerW != IntPtr.Zero ? shellWorkerW : progman;
+
+                    // 3. Hide the redundant static wallpaper window if found to reveal the active icons
+                    if (workerwToHide != IntPtr.Zero) {
+                        ShowWindow(workerwToHide, 0); // SW_HIDE = 0
                     }
 
-                    if (workerw == IntPtr.Zero) {
-                        Console.WriteLine("ERROR: WorkerW container not found");
-                        return;
-                    }
-
-                    // 3. Find the target borderless window
+                    // 4. Find the target borderless window
                     IntPtr childHwnd = FindWindow(null, title);
                     if (childHwnd == IntPtr.Zero) {
                         Console.WriteLine("ERROR: Target window not found: " + title);
                         return;
                     }
 
-                    // 4. Set target window parent as WorkerW
-                    SetParent(childHwnd, workerw);
+                    // 5. Parent our window to target container
+                    SetParent(childHwnd, targetParent);
 
-                    // 5. Apply transparency / click-through / non-activatable styles
+                    // 6. Apply transparency / click-through / non-activatable styles
                     int exStyle = GetWindowLong(childHwnd, GWL_EXSTYLE);
                     SetWindowLong(childHwnd, GWL_EXSTYLE, exStyle | WS_EX_TRANSPARENT | WS_EX_LAYERED | WS_EX_NOACTIVATE);
 
-                    // 6. Set window Z-order to bottom inside container (HWND_BOTTOM = 1)
+                    // 7. Force window to the bottom Z-order (HWND_BOTTOM = 1) behind the icon view (SHELLDLL_DefView)
                     SetWindowPos(childHwnd, (IntPtr)1, 0, 0, 0, 0, 0x0002 | 0x0001 | 0x0010 | 0x0040);
 
                     Console.WriteLine("SUCCESS");

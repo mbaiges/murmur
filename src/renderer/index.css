@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+/* Force overflow hidden on HTML, body and root to prevent border scrollbars */
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden !important;
+}
+
 /* Font Faces for Live Browser Rendering */
 @font-face {
   font-family: 'EB Garamond';
