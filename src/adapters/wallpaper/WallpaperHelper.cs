@@ -1,6 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 using System.IO;
+using System.Text;
 
 namespace Murmur {
     [ComImport]
@@ -22,6 +23,23 @@ namespace Murmur {
     class Program {
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         public static extern int SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni);
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam, uint fuFlags, uint uTimeout, out IntPtr lpdwResult);
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+        public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr FindWindowEx(IntPtr hwndParent, IntPtr hwndChildAfter, string lpszClass, string lpszWindow);
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr SetParent(IntPtr hWndChild, IntPtr hWndNewParent);
 
         static void Main(string[] args) {
             if (args.Length == 0) {
@@ -46,7 +64,6 @@ namespace Murmur {
                 int index = int.Parse(args[1]);
                 string path = args[2];
 
-                // Try COM
                 try {
                     var wp = (IDesktopWallpaper)new DesktopWallpaperClass();
                     string id = wp.GetMonitorDevicePathAt((uint)index);
@@ -113,6 +130,51 @@ namespace Murmur {
                     } catch (Exception fallbackEx) {
                         Console.WriteLine("ERROR: Fallback restore failed. " + fallbackEx.Message);
                     }
+                }
+            } else if (action == "inject") {
+                if (args.Length < 2) {
+                    Console.WriteLine("ERROR: Missing window title");
+                    return;
+                }
+                string title = args[1];
+                
+                try {
+                    // 1. Send 0x052C message to Progman to spawn WorkerW
+                    IntPtr progman = FindWindow("Progman", null);
+                    IntPtr result = IntPtr.Zero;
+                    SendMessageTimeout(progman, 0x052C, IntPtr.Zero, IntPtr.Zero, 0, 1000, out result);
+
+                    // 2. Find the WorkerW container window
+                    IntPtr workerw = IntPtr.Zero;
+                    EnumWindows(new EnumWindowsProc((tophwnd, lparam) => {
+                        IntPtr shellDll = FindWindowEx(tophwnd, IntPtr.Zero, "SHELLDLL_DefView", null);
+                        if (shellDll != IntPtr.Zero) {
+                            workerw = FindWindowEx(IntPtr.Zero, tophwnd, "WorkerW", null);
+                        }
+                        return true;
+                    }), IntPtr.Zero);
+
+                    if (workerw == IntPtr.Zero) {
+                        workerw = FindWindow("WorkerW", null);
+                    }
+
+                    if (workerw == IntPtr.Zero) {
+                        Console.WriteLine("ERROR: WorkerW container not found");
+                        return;
+                    }
+
+                    // 3. Find the target borderless window
+                    IntPtr childHwnd = FindWindow(null, title);
+                    if (childHwnd == IntPtr.Zero) {
+                        Console.WriteLine("ERROR: Target window not found: " + title);
+                        return;
+                    }
+
+                    // 4. Set target window parent as WorkerW
+                    SetParent(childHwnd, workerw);
+                    Console.WriteLine("SUCCESS");
+                } catch (Exception ex) {
+                    Console.WriteLine("ERROR: Injection failed. " + ex.Message);
                 }
             }
         }

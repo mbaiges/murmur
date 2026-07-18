@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain, screen } from 'electron'
 import { join } from 'path'
 import { existsSync } from 'fs'
 import { FastXmlRssFetcherAdapter } from '../adapters/rss/FastXmlRssFetcherAdapter'
@@ -17,6 +17,9 @@ import { IPhraseGenerator } from '../ports/IPhraseGenerator'
 import { IWallpaperRenderer } from '../ports/IWallpaperRenderer'
 
 let settingsWindow: BrowserWindow | null = null
+const bgWindows = new Map<string, BrowserWindow>()
+let isQuitting = false
+
 let state: MurmurState = {
   isPaused: false,
   lastRefreshTime: undefined,
@@ -116,6 +119,54 @@ function createSettingsWindow() {
   })
 }
 
+function createBackgroundWindow(screenInfo: { id: string; width: number; height: number }, x: number, y: number) {
+  const windowTitle = `Murmur Background - ${screenInfo.id}`
+  const bgWindow = new BrowserWindow({
+    x,
+    y,
+    width: screenInfo.width,
+    height: screenInfo.height,
+    frame: false,
+    transparent: true,
+    enableLargerThanScreen: true,
+    skipTaskbar: true,
+    type: 'desktop',
+    title: windowTitle,
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      sandbox: false
+    }
+  })
+
+  bgWindow.on('close', (e) => {
+    if (!isQuitting) {
+      e.preventDefault()
+    }
+  })
+
+  if (process.env.ELECTRON_RENDERER_URL) {
+    bgWindow.loadURL(`${process.env.ELECTRON_RENDERER_URL}?view=wallpaper&monitorId=${screenInfo.id}`)
+  } else {
+    bgWindow.loadFile(join(__dirname, '../renderer/index.html'), {
+      query: { view: 'wallpaper', monitorId: screenInfo.id }
+    })
+  }
+
+  bgWindow.once('ready-to-show', async () => {
+    bgWindow.show()
+    try {
+      if (typeof wallpaperRenderer.inject === 'function') {
+        console.log(`Injecting live window for display ${screenInfo.id} into WorkerW container...`)
+        await wallpaperRenderer.inject(windowTitle)
+      }
+    } catch (err) {
+      console.error(`Failed to inject window for display ${screenInfo.id} into desktop`, err)
+    }
+  })
+
+  bgWindows.set(screenInfo.id, bgWindow)
+}
+
 function setupIpc() {
   ipcMain.handle('config:get', () => configStore.get())
   ipcMain.handle('config:save', async (_event, config) => {
@@ -142,7 +193,6 @@ function setupIpc() {
       }
     }
 
-    // Apply any appearance/theme settings updates immediately to active wallpapers
     if (newConfig.geminiApiKey) {
       await murmurService.updateClockWallpapers()
     }
@@ -180,15 +230,21 @@ app.whenReady().then(async () => {
   try {
     const screens = await wallpaperRenderer.getScreens()
     const initialPhrases: Record<string, string> = {}
+    const displays = screen.getAllDisplays()
+
     for (const s of screens) {
       initialPhrases[s.id] = ''
+      const display = displays.find((d) => String(d.id) === s.id) || displays[0]
+      const bounds = display ? display.bounds : { x: 0, y: 0 }
+      
+      createBackgroundWindow(s, bounds.x, bounds.y)
     }
     state = {
       ...state,
       lastPhrases: initialPhrases
     }
   } catch (err) {
-    console.error('Failed to pre-initialize active screens', err)
+    console.error('Failed to pre-initialize active screens and background windows', err)
   }
 
   const config = await configStore.get()
@@ -198,6 +254,11 @@ app.whenReady().then(async () => {
     state = { ...state, ...newState }
     customTrayAdapterUpdate(state)
     settingsWindow?.webContents.send('state:updated', state)
+    bgWindows.forEach((win) => {
+      if (!win.isDestroyed()) {
+        win.webContents.send('state:updated', state)
+      }
+    })
   }
 
   trayAdapter.init(
@@ -213,7 +274,6 @@ app.whenReady().then(async () => {
     scheduler.start(config.refreshIntervalMinutes)
   }
   
-  // Start the high-precision clock ticking routine
   startClockScheduler()
 
   if (!app.isPackaged || !config.geminiApiKey || process.env.MURMUR_E2E === 'true') {
@@ -225,7 +285,6 @@ app.on('window-all-closed', () => {
   // running in tray
 })
 
-let isQuitting = false
 app.on('before-quit', async (event) => {
   if (!isQuitting) {
     event.preventDefault()

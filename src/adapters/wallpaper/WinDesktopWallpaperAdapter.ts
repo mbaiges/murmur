@@ -109,4 +109,18 @@ export class WinDesktopWallpaperAdapter implements IWallpaperRenderer {
       console.error('WinDesktopWallpaperAdapter: Restore failed', error)
     }
   }
+
+  public async inject(windowTitle: string): Promise<void> {
+    if (process.platform !== 'win32') return
+
+    try {
+      const helperPath = this.getHelperPath()
+      const cmd = `"${helperPath}" inject "${windowTitle}"`
+      const { stdout } = await execAsync(cmd)
+      console.log(`WinDesktopWallpaperAdapter: Native helper inject output: ${stdout.trim()}`)
+    } catch (error) {
+      console.error('WinDesktopWallpaperAdapter: Inject failed', error)
+      throw error
+    }
+  }
 }

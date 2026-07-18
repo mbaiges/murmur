@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { MurmurConfig, MurmurState, ThemeName, MonitorConfig } from '../domain/types'
+import { MurmurConfig, MurmurState, ThemeName } from '../domain/types'
+import WallpaperView from './WallpaperView'
 
 // Type cast helper for electron window API
 const api = (window as any).api
@@ -17,6 +18,10 @@ export default function App() {
   // Setup Wizard fields
   const [wizardKey, setWizardKey] = useState('')
   const [wizardFeed, setWizardFeed] = useState('https://feeds.bbci.co.uk/news/rss.xml')
+
+  // Check if we should render the Wallpaper view instead of the Dashboard
+  const params = new URLSearchParams(window.location.search)
+  const isWallpaperView = params.get('view') === 'wallpaper'
 
   useEffect(() => {
     // 1. Fetch initial config and state
@@ -114,6 +119,10 @@ export default function App() {
       geminiApiKey: wizardKey.trim(),
       feeds: [wizardFeed.trim()]
     })
+  }
+
+  if (isWallpaperView) {
+    return <WallpaperView />
   }
 
   if (!config) {
@@ -418,11 +427,10 @@ export default function App() {
                       value={config.theme}
                       onChange={(e) => handleSave({ theme: e.target.value as ThemeName })}
                     >
-                      <option value="Midnight">Midnight (Dark Indigo)</option>
-                      <option value="Drift">Drift (Ocean Wave)</option>
+                      <option value="Midnight">Midnight (Dark Indigo Gradient)</option>
+                      <option value="Drift">Drift (Ocean Wave Gradient)</option>
                       <option value="Parchment">Parchment (Warm Tan Paper)</option>
                       <option value="Blanc">Blanc (Minimalist Off-White)</option>
-                      <option value="Static">Static (Noise/TV Texture)</option>
                     </select>
                   </div>
                   <div>
@@ -449,8 +457,8 @@ export default function App() {
                   >
                     <option value="Fade">Fade In</option>
                     <option value="DriftIn">Drift & Fade</option>
-                    <option value="Typewriter">Typewriter Reveal</option>
                     <option value="Morph">Morph (Scale & Fade)</option>
+                    <option value="Typewriter">Typewriter Reveal</option>
                     <option value="Instant">Instant Cut</option>
                   </select>
                 </div>
@@ -641,7 +649,6 @@ export default function App() {
                               <option value="Drift">Drift</option>
                               <option value="Parchment">Parchment</option>
                               <option value="Blanc">Blanc</option>
-                              <option value="Static">Static</option>
                             </select>
                           </div>
 

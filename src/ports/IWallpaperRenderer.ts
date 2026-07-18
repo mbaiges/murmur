@@ -3,4 +3,5 @@ export interface IWallpaperRenderer {
   set(monitorId: string, pngBuffer: Buffer): Promise<void>
   backup(): Promise<void>
   restore(): Promise<void>
+  inject?(windowTitle: string): Promise<void>
 }

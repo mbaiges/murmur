@@ -23,3 +23,93 @@
 .titlebar-no-drag {
   -webkit-app-region: no-drag;
 }
+
+/* Animated Gradients */
+.bg-midnight-gradient {
+  background: linear-gradient(135deg, #0a0b1e, #16082c, #061324);
+  background-size: 400% 400%;
+}
+.bg-drift-gradient {
+  background: linear-gradient(135deg, #061726, #0c2d3a, #041f22);
+  background-size: 400% 400%;
+}
+
+/* Animations */
+.animate-midnight-spin {
+  animation: gradientSlow 18s ease infinite;
+}
+.animate-drift-spin {
+  animation: gradientSlow 14s ease infinite;
+}
+
+@keyframes gradientSlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Vignette radial overlay */
+.bg-radial-vignette {
+  background: radial-gradient(circle, transparent 25%, rgba(0, 0, 0, 0.4) 85%);
+}
+
+/* Layout animations */
+.animate-fade-in {
+  animation: fadeIn 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.animate-drift-in {
+  animation: driftIn 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.animate-morph-in {
+  animation: morphIn 1.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.animate-typewriter-fade {
+  animation: typewriterFade 2s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes driftIn {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes morphIn {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes typewriterFade {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Font face definitions if needed, or fallback fonts */
+.font-eb-garamond {
+  font-family: 'EB Garamond', serif;
+}
+.font-playfair {
+  font-family: 'Playfair Display', serif;
+}
+.font-outfit {
+  font-family: 'Outfit', sans-serif;
+}
