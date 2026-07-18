@@ -41,6 +41,21 @@ namespace Murmur {
         [DllImport("user32.dll")]
         public static extern IntPtr SetParent(IntPtr hWndChild, IntPtr hWndNewParent);
 
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+
+        [DllImport("user32.dll")]
+        private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
+
+        private const int GWL_EXSTYLE = -20;
+        private const int WS_EX_TRANSPARENT = 0x20;
+        private const int WS_EX_NOACTIVATE = 0x08000000;
+        private const int WS_EX_LAYERED = 0x80000;
+
         static void Main(string[] args) {
             if (args.Length == 0) {
                 Console.WriteLine("Usage: WallpaperHelper.exe <action> <args>");
@@ -172,6 +187,14 @@ namespace Murmur {
 
                     // 4. Set target window parent as WorkerW
                     SetParent(childHwnd, workerw);
+
+                    // 5. Apply transparency / click-through / non-activatable styles
+                    int exStyle = GetWindowLong(childHwnd, GWL_EXSTYLE);
+                    SetWindowLong(childHwnd, GWL_EXSTYLE, exStyle | WS_EX_TRANSPARENT | WS_EX_LAYERED | WS_EX_NOACTIVATE);
+
+                    // 6. Set window Z-order to bottom inside container (HWND_BOTTOM = 1)
+                    SetWindowPos(childHwnd, (IntPtr)1, 0, 0, 0, 0, 0x0002 | 0x0001 | 0x0010 | 0x0040);
+
                     Console.WriteLine("SUCCESS");
                 } catch (Exception ex) {
                     Console.WriteLine("ERROR: Injection failed. " + ex.Message);
