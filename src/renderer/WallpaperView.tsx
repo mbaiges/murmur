@@ -106,14 +106,14 @@ export default function WallpaperView() {
   }, [state, config, monitorId])
 
   if (!config || !state) {
-    return <div className="w-screen h-screen bg-slate-950" />
+    return <div className="w-full h-full bg-slate-950" />
   }
 
   // Get active monitor settings
   const monitorConf = config.monitors.find((m) => m.id === monitorId)
   const isEnabled = monitorConf ? monitorConf.enabled : true
   if (!isEnabled) {
-    return <div className="w-screen h-screen bg-slate-950" />
+    return <div className="w-full h-full bg-slate-950" />
   }
 
   const theme = monitorConf?.themeOverride || config.theme
@@ -151,17 +151,6 @@ export default function WallpaperView() {
   else if (config.animation === 'Morph') animClass = 'animate-morph-in'
   else if (config.animation === 'Typewriter') animClass = 'animate-typewriter-fade'
   else if (config.animation === 'Glitch') animClass = 'animate-glitch'
-
-  const getAsymmetricalLines = (text: string) => {
-    const words = text.split(' ')
-    const chunkCount = Math.min(3, words.length)
-    const lines: string[] = []
-    const chunkSize = Math.ceil(words.length / chunkCount)
-    for (let i = 0; i < chunkCount; i++) {
-      lines.push(words.slice(i * chunkSize, (i + 1) * chunkSize).join(' '))
-    }
-    return lines
-  }
 
   const renderScatteredLayout = () => {
     if (!visibleText) return null
@@ -254,6 +243,17 @@ export default function WallpaperView() {
     )
   };
 
+  const getAsymmetricalLines = (text: string) => {
+    const words = text.split(' ')
+    const chunkCount = Math.min(3, words.length)
+    const lines: string[] = []
+    const chunkSize = Math.ceil(words.length / chunkCount)
+    for (let i = 0; i < chunkCount; i++) {
+      lines.push(words.slice(i * chunkSize, (i + 1) * chunkSize).join(' '))
+    }
+    return lines
+  }
+
   // Theme styles classes
   let bgThemeClass = ''
   if (theme === 'Midnight') bgThemeClass = 'bg-midnight-gradient animate-midnight-spin'
@@ -273,7 +273,7 @@ export default function WallpaperView() {
   else if (config.vignetteStyle === 'dramatic') vignetteClass = 'bg-vignette-dramatic'
 
   return (
-    <div className={`w-screen h-screen flex items-center justify-center relative overflow-hidden select-none ${bgThemeClass}`}>
+    <div className={`w-full h-full flex items-center justify-center relative overflow-hidden select-none ${bgThemeClass}`}>
       
       {/* 1. Grain/Noise Overlay */}
       {config.noiseIntensity !== 'none' && (
