@@ -28,6 +28,7 @@ Guidelines:
 3. Keep it brief. The phrase will be displayed on a desktop wallpaper in a large font.
 4. Respond in the language requested: "${language}". If "${language}" is "auto", detect and match the dominant language of the input headlines.
 5. Return ONLY the generated phrase. Do not wrap in quotes, do not include markdown, do not write any prefixes (e.g., do not write "Surreal phrase:"), and do not write any explanation.
+6. Do NOT end the phrase with a period or any punctuation mark.
 
 Headlines:
 ${headlines.map((h, i) => `- ${h}`).join('\n')}`
@@ -46,6 +47,8 @@ ${headlines.map((h, i) => `- ${h}`).join('\n')}`
       return text
         .replace(/^["'“”‘«»]/, '')
         .replace(/["'“”‘«»]$/, '')
+        .trim()
+        .replace(/\.+$/, '')
         .trim()
     } catch (error) {
       console.error('GeminiPhraseGeneratorAdapter generation failed:', error)
