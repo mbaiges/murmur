@@ -224,3 +224,19 @@ app.whenReady().then(async () => {
 app.on('window-all-closed', () => {
   // running in tray
 })
+
+let isQuitting = false
+app.on('before-quit', async (event) => {
+  if (!isQuitting) {
+    event.preventDefault()
+    isQuitting = true
+    try {
+      console.log('Restoring original wallpapers before quit...')
+      await wallpaperRenderer.restore()
+    } catch (err) {
+      console.error('Failed to restore wallpapers on quit:', err)
+    } finally {
+      app.exit(0)
+    }
+  }
+})
