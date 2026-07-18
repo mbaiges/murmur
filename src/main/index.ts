@@ -235,9 +235,9 @@ app.whenReady().then(async () => {
     for (const s of screens) {
       initialPhrases[s.id] = ''
       const display = displays.find((d) => String(d.id) === s.id) || displays[0]
-      const bounds = display ? display.bounds : { x: 0, y: 0 }
+      const bounds = display ? display.bounds : { x: 0, y: 0, width: 1920, height: 1080 }
       
-      createBackgroundWindow(s, bounds.x, bounds.y)
+      createBackgroundWindow({ id: s.id, width: bounds.width, height: bounds.height }, bounds.x, bounds.y)
     }
     state = {
       ...state,

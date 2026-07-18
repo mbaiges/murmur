@@ -28,14 +28,14 @@ export default function WallpaperView() {
   }, [])
 
   if (!config || !state) {
-    return <div className="w-full h-full bg-slate-950" />
+    return <div className="w-screen h-screen bg-slate-950" />
   }
 
   // Get active monitor settings
   const monitorConf = config.monitors.find((m) => m.id === monitorId)
   const isEnabled = monitorConf ? monitorConf.enabled : true
   if (!isEnabled) {
-    return <div className="w-full h-full bg-slate-950" />
+    return <div className="w-screen h-screen bg-slate-950" />
   }
 
   const theme = monitorConf?.themeOverride || config.theme
@@ -57,13 +57,13 @@ export default function WallpaperView() {
   else if (config.textAlignment === 'right') alignmentClass = 'text-right items-end'
 
   // Layout Style
-  let layoutClass = 'w-full max-w-2xl px-12 justify-center'
+  let layoutClass = 'w-full max-w-3xl px-16 justify-center'
   if (config.layoutStyle === 'editorial-left') {
-    layoutClass = 'w-full max-w-xl pl-16 pr-6 justify-start items-start text-left'
+    layoutClass = 'w-full max-w-xl pl-20 pr-6 justify-start items-start text-left'
   } else if (config.layoutStyle === 'editorial-right') {
-    layoutClass = 'w-full max-w-xl pr-16 pl-6 justify-end items-end text-right'
+    layoutClass = 'w-full max-w-xl pr-20 pl-6 justify-end items-end text-right'
   } else if (config.layoutStyle === 'scattered') {
-    layoutClass = 'w-full h-full relative p-16'
+    layoutClass = 'w-full h-full relative p-20'
   }
 
   // Animation Transition Classes
@@ -113,7 +113,7 @@ export default function WallpaperView() {
                 top: `${y}%`,
                 transform: `translate(-50%, -50%) rotate(${rotation}deg) scale(${scale})`,
                 opacity,
-                fontSize: 'clamp(2rem, 4vw, 5rem)',
+                fontSize: 'clamp(1.2rem, 2.5vw, 2.8rem)',
                 textShadow: '0 4px 12px rgba(0,0,0,0.1)'
               }}
             >
@@ -130,8 +130,8 @@ export default function WallpaperView() {
       <div className={`flex flex-col ${alignmentClass} ${animClass} w-full`}>
         <h1 
           key={phrase} // Key changes trigger CSS animation restarts!
-          className={`${textColor} ${fontClass} ${animClass} leading-relaxed select-none tracking-normal antialiased`}
-          style={{ fontSize: 'clamp(2.5rem, 5vw, 6rem)', textShadow: '0 4px 20px rgba(0,0,0,0.1)' }}
+          className={`${textColor} ${fontClass} ${animClass} leading-relaxed select-none tracking-wide antialiased`}
+          style={{ fontSize: 'clamp(1.6rem, 3.6vw, 3.2rem)', textShadow: '0 2px 10px rgba(0,0,0,0.05)' }}
         >
           {phrase || 'Surrealism is the quiet hum of the world'}
         </h1>
@@ -148,7 +148,7 @@ export default function WallpaperView() {
   else bgThemeClass = 'bg-slate-950'
 
   return (
-    <div className={`w-full h-full flex items-center justify-center relative overflow-hidden select-none ${bgThemeClass}`}>
+    <div className={`w-screen h-screen flex items-center justify-center relative overflow-hidden select-none ${bgThemeClass}`}>
       
       {/* 1. Grain/Noise Overlay */}
       {config.noiseIntensity !== 'none' && (
