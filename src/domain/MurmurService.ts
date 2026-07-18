@@ -62,9 +62,12 @@ export class MurmurService {
         // Sample headlines for this screen (different shuffle per screen!)
         const sampled = sampleHeadlines(rssItems, config.headlineSampleSize)
         const titles = sampled.map((item) => item.title)
+        
+        // Format titles with source prefix for the generator to enforce mixing sources
+        const generatorInputs = sampled.map((item) => `[Source: ${item.source}] ${item.title}`)
 
         // Generate unique phrase per display
-        const phrase = await this.ai.generate(titles, config.language)
+        const phrase = await this.ai.generate(generatorInputs, config.language)
         
         // Theme overrides per monitor
         const theme = monitorConf?.themeOverride || config.theme
