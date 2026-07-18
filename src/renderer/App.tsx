@@ -30,10 +30,19 @@ export default function App() {
       api.getState().then(setState).catch(console.error)
 
       // 2. Listen to live state updates
-      const removeListener = api.onStateUpdated((updatedState: MurmurState) => {
+      const removeStateListener = api.onStateUpdated((updatedState: MurmurState) => {
         setState(updatedState)
       })
-      return () => removeListener()
+
+      // 3. Listen to live config updates
+      const removeConfigListener = api.onConfigUpdated((updatedConfig: MurmurConfig) => {
+        setConfig(updatedConfig)
+      })
+
+      return () => {
+        removeStateListener()
+        removeConfigListener()
+      }
     }
   }, [])
 
@@ -429,6 +438,10 @@ export default function App() {
                     >
                       <option value="Midnight">Midnight (Dark Indigo Gradient)</option>
                       <option value="Drift">Drift (Ocean Wave Gradient)</option>
+                      <option value="Forest">Forest (Deep Emerald Gradient)</option>
+                      <option value="Crimson">Crimson (Luxurious Blood Red)</option>
+                      <option value="Cyberpunk">Cyberpunk (Neon Purple/Cyan)</option>
+                      <option value="WarmGlow">Warm Glow (Sunset Gradients)</option>
                       <option value="Parchment">Parchment (Warm Tan Paper)</option>
                       <option value="Blanc">Blanc (Minimalist Off-White)</option>
                     </select>
@@ -441,26 +454,44 @@ export default function App() {
                       onChange={(e) => handleSave({ fontFamily: e.target.value as any })}
                     >
                       <option value="EB Garamond">EB Garamond (Elegant Serif)</option>
-                      <option value="Playfair Display">Playfair Display (Poetic/Modern Serif)</option>
+                      <option value="Garamond Bold">Garamond Bold (Extra Heavy Editorial)</option>
+                      <option value="Playfair Display">Playfair Display (Poetic Serif)</option>
                       <option value="Outfit">Outfit (Clean Sans-Serif)</option>
+                      <option value="Monospace">Monospace (Terminal Code)</option>
                     </select>
                   </div>
                 </div>
 
-                {/* Transition Animations */}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Transition Animation</label>
-                  <select
-                    className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg px-3 py-2 text-sm text-slate-100 outline-none transition-all"
-                    value={config.animation}
-                    onChange={(e) => handleSave({ animation: e.target.value as any })}
-                  >
-                    <option value="Fade">Fade In</option>
-                    <option value="DriftIn">Drift & Fade</option>
-                    <option value="Morph">Morph (Scale & Fade)</option>
-                    <option value="Typewriter">Typewriter Reveal</option>
-                    <option value="Instant">Instant Cut</option>
-                  </select>
+                {/* Transition Animations & Audio */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Transition Animation</label>
+                    <select
+                      className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg px-3 py-2 text-sm text-slate-100 outline-none transition-all"
+                      value={config.animation}
+                      onChange={(e) => handleSave({ animation: e.target.value as any })}
+                    >
+                      <option value="Fade">Fade In</option>
+                      <option value="DriftIn">Drift & Fade</option>
+                      <option value="Morph">Morph (Scale & Fade)</option>
+                      <option value="Typewriter">Typewriter Reveal</option>
+                      <option value="Glitch">Glitch (Scrambled Neon)</option>
+                      <option value="Instant">Instant Cut</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center justify-between pt-6">
+                    <div>
+                      <h5 className="text-sm font-medium text-white">Keyboard Audio Feedback</h5>
+                      <p className="text-xs text-slate-500">Undertale typewriter sounds.</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      disabled={config.animation !== 'Typewriter'}
+                      className="rounded border-slate-800 text-indigo-600 focus:ring-indigo-500 h-4 w-4 bg-slate-950 disabled:opacity-50"
+                      checked={config.audioFeedback}
+                      onChange={(e) => handleSave({ audioFeedback: e.target.checked })}
+                    />
+                  </div>
                 </div>
 
                 {/* Text Layout & Alignment */}
@@ -487,6 +518,8 @@ export default function App() {
                       <option value="centered">Classic Centered</option>
                       <option value="editorial-left">Editorial Left Column</option>
                       <option value="editorial-right">Editorial Right Column</option>
+                      <option value="asymmetrical">Asymmetrical Alternating</option>
+                      <option value="book-cover">Editorial Book Cover</option>
                       <option value="scattered">Scattered Letters / Words</option>
                     </select>
                   </div>
@@ -506,17 +539,18 @@ export default function App() {
                       <option value="heavy">Heavy Grain (Analog Film)</option>
                     </select>
                   </div>
-                  <div className="flex items-center justify-between pt-6">
-                    <div>
-                      <h5 className="text-sm font-medium text-white">Vignette Shadow</h5>
-                      <p className="text-xs text-slate-500">Darken edges for depth.</p>
-                    </div>
-                    <input
-                      type="checkbox"
-                      className="rounded border-slate-800 text-indigo-600 focus:ring-indigo-500 h-4 w-4 bg-slate-950"
-                      checked={config.vignette}
-                      onChange={(e) => handleSave({ vignette: e.target.checked })}
-                    />
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Vignette Style</label>
+                    <select
+                      className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg px-3 py-2 text-sm text-slate-100 outline-none transition-all"
+                      value={config.vignetteStyle}
+                      onChange={(e) => handleSave({ vignetteStyle: e.target.value as any })}
+                    >
+                      <option value="none">None</option>
+                      <option value="soft">Soft Vignette</option>
+                      <option value="medium">Medium Vignette</option>
+                      <option value="dramatic">Dramatic Vignette</option>
+                    </select>
                   </div>
                 </div>
 
@@ -647,6 +681,10 @@ export default function App() {
                               <option value="">Default ({config.theme})</option>
                               <option value="Midnight">Midnight</option>
                               <option value="Drift">Drift</option>
+                              <option value="Forest">Forest</option>
+                              <option value="Crimson">Crimson</option>
+                              <option value="Cyberpunk">Cyberpunk</option>
+                              <option value="WarmGlow">Warm Glow</option>
                               <option value="Parchment">Parchment</option>
                               <option value="Blanc">Blanc</option>
                             </select>

@@ -28,8 +28,8 @@ export class JsonConfigStoreAdapter implements IConfigStore {
       monitors: [],
       textAlignment: 'center',
       layoutStyle: 'centered',
-      vignette: false,
-      noiseIntensity: 'none'
+      vignetteStyle: 'none',
+      audioFeedback: true
     }
   }
 
@@ -48,6 +48,13 @@ export class JsonConfigStoreAdapter implements IConfigStore {
     try {
       const content = readFileSync(this.filePath, 'utf8')
       const parsed = JSON.parse(content)
+
+      // Backward compatible migration for vignette boolean
+      if (parsed.vignette !== undefined && parsed.vignetteStyle === undefined) {
+        parsed.vignetteStyle = parsed.vignette ? 'medium' : 'none'
+        delete parsed.vignette
+      }
+
       const validated = MurmurConfigSchema.parse(parsed)
       this.cachedConfig = validated as MurmurConfig
       return this.cachedConfig

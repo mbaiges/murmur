@@ -7,9 +7,10 @@ export default function WallpaperView() {
   const [config, setConfig] = useState<MurmurConfig | null>(null)
   const [state, setState] = useState<MurmurState | null>(null)
   const [monitorId, setMonitorId] = useState<string>('')
+  const [visibleText, setVisibleText] = useState<string>('')
 
   useEffect(() => {
-    // 1. Get monitorId from search query parameters
+    // 1. Get monitorId from search parameters
     const params = new URLSearchParams(window.location.search)
     const mId = params.get('monitorId') || ''
     setMonitorId(mId)
@@ -24,7 +25,7 @@ export default function WallpaperView() {
         setState(updatedState)
       })
 
-      // 4. Listen to live config updates (font, layouts, vignette, etc.)
+      // 4. Listen to live config updates
       const removeConfigListener = api.onConfigUpdated((updatedConfig: MurmurConfig) => {
         setConfig(updatedConfig)
       })
@@ -35,6 +36,58 @@ export default function WallpaperView() {
       }
     }
   }, [])
+
+  // 5. Undertale Typewriter Reveal Hook
+  useEffect(() => {
+    if (!state || !config || !monitorId) return
+    const phrase = state.lastPhrases[monitorId] || 'Surrealism is the quiet hum of the world'
+
+    if (config.animation === 'Typewriter') {
+      setVisibleText('')
+      let current = ''
+      let index = 0
+      
+      const playBlipSound = () => {
+        if (!config.audioFeedback) return
+        try {
+          const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)()
+          const osc = audioCtx.createOscillator()
+          const gainNode = audioCtx.createGain()
+          
+          osc.type = 'triangle'
+          osc.frequency.setValueAtTime(140 + Math.random() * 40, audioCtx.currentTime)
+          
+          gainNode.gain.setValueAtTime(0.04, audioCtx.currentTime)
+          gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08)
+          
+          osc.connect(gainNode)
+          gainNode.connect(audioCtx.destination)
+          
+          osc.start()
+          osc.stop(audioCtx.currentTime + 0.08)
+        } catch (e) {
+          console.error(e)
+        }
+      }
+
+      const timer = setInterval(() => {
+        if (index < phrase.length) {
+          current += phrase[index]
+          setVisibleText(current)
+          index++
+          if (phrase[index - 1] !== ' ') {
+            playBlipSound()
+          }
+        } else {
+          clearInterval(timer)
+        }
+      }, 45)
+
+      return () => clearInterval(timer)
+    } else {
+      setVisibleText(phrase)
+    }
+  }, [state, config, monitorId])
 
   if (!config || !state) {
     return <div className="w-screen h-screen bg-slate-950" />
@@ -48,17 +101,17 @@ export default function WallpaperView() {
   }
 
   const theme = monitorConf?.themeOverride || config.theme
-  const isDark = ['Midnight', 'Drift', 'Static'].includes(theme)
+  const isDark = ['Midnight', 'Drift', 'Static', 'Forest', 'Crimson', 'Cyberpunk', 'WarmGlow'].includes(theme)
   const textColor = isDark ? 'text-white' : 'text-slate-900'
   const mutedColor = isDark ? 'text-white/40' : 'text-slate-700/60'
-
-  const phrase = state.lastPhrases[monitorId] || ''
 
   // Font class mapping
   let fontClass = 'font-serif'
   if (config.fontFamily === 'EB Garamond') fontClass = 'font-eb-garamond'
   else if (config.fontFamily === 'Playfair Display') fontClass = 'font-playfair'
   else if (config.fontFamily === 'Outfit') fontClass = 'font-outfit'
+  else if (config.fontFamily === 'Garamond Bold') fontClass = 'font-garamond-bold'
+  else if (config.fontFamily === 'Monospace') fontClass = 'font-monospace'
 
   // Text Alignment
   let alignmentClass = 'text-center items-center'
@@ -81,41 +134,37 @@ export default function WallpaperView() {
   else if (config.animation === 'DriftIn') animClass = 'animate-drift-in'
   else if (config.animation === 'Morph') animClass = 'animate-morph-in'
   else if (config.animation === 'Typewriter') animClass = 'animate-typewriter-fade'
+  else if (config.animation === 'Glitch') animClass = 'animate-glitch'
 
-  // Simple seeded random helper for scattered layout
-  const createSeededRandom = (seedStr: string) => {
-    let h = 1779033703 ^ seedStr.length
-    for (let i = 0; i < seedStr.length; i++) {
-      h = Math.imul(h ^ seedStr.charCodeAt(i), 3432918353)
-      h = (h << 13) | (h >>> 19)
+  const getAsymmetricalLines = (text: string) => {
+    const words = text.split(' ')
+    const chunkCount = Math.min(3, words.length)
+    const lines: string[] = []
+    const chunkSize = Math.ceil(words.length / chunkCount)
+    for (let i = 0; i < chunkCount; i++) {
+      lines.push(words.slice(i * chunkSize, (i + 1) * chunkSize).join(' '))
     }
-    let seed = h >>> 0
-    return () => {
-      seed = (seed + 0x9e3779b9) | 0
-      let z = seed
-      z = Math.imul(z ^ (z >>> 16), 0x85ebca6b)
-      z = Math.imul(z ^ (z >>> 13), 0xc2b2ae35)
-      return ((z ^ (z >>> 16)) >>> 0) / 4294967296
-    }
+    return lines
   }
 
   const renderScatteredLayout = () => {
-    if (!phrase) return null
-    const rand = createSeededRandom(phrase)
-    const words = phrase.split(' ')
+    if (!visibleText) return null
+    const phraseKey = state.lastPhrases[monitorId] || 'empty'
+    const rand = createSeededRandom(phraseKey)
+    const words = visibleText.split(' ')
 
     return (
       <div className="w-full h-full relative">
         {words.map((word, index) => {
           const x = 15 + rand() * 70 // 15% to 85%
           const y = 20 + rand() * 60 // 20% to 80%
-          const rotation = (rand() - 0.5) * 20 // -10deg to 10deg
+          const rotation = (rand() - 0.5) * 20
           const scale = 0.8 + rand() * 0.6
           const opacity = 0.4 + rand() * 0.6
 
           return (
             <span
-              key={`${phrase}_${index}`}
+              key={`${phraseKey}_${index}`}
               className={`absolute select-none transform ${fontClass} ${textColor} ${animClass}`}
               style={{
                 left: `${x}%`,
@@ -134,15 +183,56 @@ export default function WallpaperView() {
     )
   };
 
+  const renderAsymmetricalLayout = () => {
+    const lines = getAsymmetricalLines(visibleText)
+    return (
+      <div className={`flex flex-col w-full max-w-4xl space-y-6 ${animClass}`}>
+        {lines.map((line, index) => {
+          let lineAlign = 'self-center text-center'
+          if (index === 0) lineAlign = 'self-start text-left pl-6'
+          else if (index === 2) lineAlign = 'self-end text-right pr-6'
+          
+          return (
+            <h1
+              key={`${line}_${index}`}
+              className={`${textColor} ${fontClass} ${lineAlign} leading-relaxed select-none tracking-wide antialiased ${animClass}`}
+              style={{ fontSize: 'clamp(1.8rem, 3.8vw, 3.5rem)', textShadow: '0 2px 10px rgba(0,0,0,0.05)' }}
+            >
+              {line}
+            </h1>
+          )
+        })}
+      </div>
+    )
+  }
+
+  const renderBookCoverLayout = () => {
+    return (
+      <div className={`flex flex-col items-center text-center max-w-xl ${animClass}`}>
+        <h1 
+          className={`${textColor} ${fontClass} leading-loose select-none tracking-widest antialiased`}
+          style={{ fontSize: 'clamp(1.4rem, 2.8vw, 2.4rem)', textShadow: '0 2px 8px rgba(0,0,0,0.03)' }}
+        >
+          {visibleText}
+        </h1>
+        <div className={`h-[1px] w-24 my-10 bg-current opacity-20`} />
+        {state.lastRefreshTime && (
+          <p className={`text-[10px] tracking-widest uppercase font-sans ${mutedColor}`}>
+            Murmur Conceptual Poetry  •  {state.lastRefreshTime}
+          </p>
+        )}
+      </div>
+    )
+  }
+
   const renderClassicLayout = () => {
     return (
       <div className={`flex flex-col ${alignmentClass} ${animClass} w-full`}>
         <h1 
-          key={phrase} // Key changes trigger CSS animation restarts!
           className={`${textColor} ${fontClass} ${animClass} leading-relaxed select-none tracking-wide antialiased`}
           style={{ fontSize: 'clamp(1.6rem, 3.6vw, 3.2rem)', textShadow: '0 2px 10px rgba(0,0,0,0.05)' }}
         >
-          {phrase || 'Surrealism is the quiet hum of the world'}
+          {visibleText || 'Surrealism is the quiet hum of the world'}
         </h1>
       </div>
     )
@@ -152,9 +242,19 @@ export default function WallpaperView() {
   let bgThemeClass = ''
   if (theme === 'Midnight') bgThemeClass = 'bg-midnight-gradient animate-midnight-spin'
   else if (theme === 'Drift') bgThemeClass = 'bg-drift-gradient animate-drift-spin'
+  else if (theme === 'Forest') bgThemeClass = 'bg-forest-gradient animate-forest-spin'
+  else if (theme === 'Crimson') bgThemeClass = 'bg-crimson-gradient animate-crimson-spin'
+  else if (theme === 'Cyberpunk') bgThemeClass = 'bg-cyberpunk-gradient animate-cyberpunk-spin'
+  else if (theme === 'WarmGlow') bgThemeClass = 'bg-warmglow-gradient animate-warmglow-spin'
   else if (theme === 'Parchment') bgThemeClass = 'bg-[#f4efe2]'
   else if (theme === 'Blanc') bgThemeClass = 'bg-[#f8f9fa]'
   else bgThemeClass = 'bg-slate-950'
+
+  // Vignette Class Mapping
+  let vignetteClass = ''
+  if (config.vignetteStyle === 'soft') vignetteClass = 'bg-vignette-soft'
+  else if (config.vignetteStyle === 'medium') vignetteClass = 'bg-vignette-medium'
+  else if (config.vignetteStyle === 'dramatic') vignetteClass = 'bg-vignette-dramatic'
 
   return (
     <div className={`w-screen h-screen flex items-center justify-center relative overflow-hidden select-none ${bgThemeClass}`}>
@@ -167,8 +267,8 @@ export default function WallpaperView() {
       )}
 
       {/* 2. Vignette Overlay */}
-      {config.vignette && (
-        <div className="absolute inset-0 pointer-events-none bg-radial-vignette" />
+      {config.vignetteStyle !== 'none' && (
+        <div className={`absolute inset-0 pointer-events-none ${vignetteClass}`} />
       )}
 
       {/* 3. Date & Time Widget (Top Right) */}
@@ -200,7 +300,15 @@ export default function WallpaperView() {
 
       {/* 6. Main Poetic Phrase Container */}
       <div className={`flex flex-col items-center select-none ${layoutClass}`}>
-        {config.layoutStyle === 'scattered' ? renderScatteredLayout() : renderClassicLayout()}
+        {config.layoutStyle === 'scattered' ? (
+          renderScatteredLayout()
+        ) : config.layoutStyle === 'asymmetrical' ? (
+          renderAsymmetricalLayout()
+        ) : config.layoutStyle === 'book-cover' ? (
+          renderBookCoverLayout()
+        ) : (
+          renderClassicLayout()
+        )}
       </div>
     </div>
   )

@@ -1,5 +1,5 @@
-export type ThemeName = 'Midnight' | 'Drift' | 'Parchment' | 'Blanc' | 'Static'
-export type AnimationName = 'Fade' | 'DriftIn' | 'Typewriter' | 'Morph' | 'Instant'
+export type ThemeName = 'Midnight' | 'Drift' | 'Parchment' | 'Blanc' | 'Static' | 'Forest' | 'Crimson' | 'Cyberpunk' | 'WarmGlow'
+export type AnimationName = 'Fade' | 'DriftIn' | 'Typewriter' | 'Morph' | 'Instant' | 'Glitch'
 
 export interface OverlayConfig {
   dateTime: boolean
@@ -23,13 +23,13 @@ export interface MurmurConfig {
   overlays: OverlayConfig
   headlineSampleSize: number
   launchAtLogin: boolean
-  fontFamily: 'EB Garamond' | 'Playfair Display' | 'Outfit'
+  fontFamily: 'EB Garamond' | 'Playfair Display' | 'Outfit' | 'Garamond Bold' | 'Monospace'
   monitors: MonitorConfig[]
-  // New personalization fields
+  // Personalization fields
   textAlignment: 'center' | 'left' | 'right'
-  layoutStyle: 'centered' | 'scattered' | 'editorial-left' | 'editorial-right'
-  vignette: boolean
-  noiseIntensity: 'none' | 'subtle' | 'heavy'
+  layoutStyle: 'centered' | 'scattered' | 'editorial-left' | 'editorial-right' | 'asymmetrical' | 'book-cover'
+  vignetteStyle: 'none' | 'soft' | 'medium' | 'dramatic'
+  audioFeedback: boolean
 }
 
 export interface RssItem {
@@ -47,11 +47,10 @@ export interface PaintOptions {
   resolution: { width: number; height: number }
   headlines?: string[]
   sources?: string[]
-  // New paint parameters
   textAlignment: 'center' | 'left' | 'right'
-  layoutStyle: 'centered' | 'scattered' | 'editorial-left' | 'editorial-right'
-  vignette: boolean
-  noiseIntensity: 'none' | 'subtle' | 'heavy'
+  layoutStyle: 'centered' | 'scattered' | 'editorial-left' | 'editorial-right' | 'asymmetrical' | 'book-cover'
+  vignetteStyle: 'none' | 'soft' | 'medium' | 'dramatic'
+  audioFeedback: boolean
   transitionProgress?: number
 }
 
