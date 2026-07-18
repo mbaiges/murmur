@@ -20,10 +20,19 @@ export default function WallpaperView() {
       api.getState().then(setState).catch(console.error)
 
       // 3. Listen to state updates
-      const removeListener = api.onStateUpdated((updatedState: MurmurState) => {
+      const removeStateListener = api.onStateUpdated((updatedState: MurmurState) => {
         setState(updatedState)
       })
-      return () => removeListener()
+
+      // 4. Listen to live config updates (font, layouts, vignette, etc.)
+      const removeConfigListener = api.onConfigUpdated((updatedConfig: MurmurConfig) => {
+        setConfig(updatedConfig)
+      })
+
+      return () => {
+        removeStateListener()
+        removeConfigListener()
+      }
     }
   }, [])
 
@@ -41,7 +50,7 @@ export default function WallpaperView() {
   const theme = monitorConf?.themeOverride || config.theme
   const isDark = ['Midnight', 'Drift', 'Static'].includes(theme)
   const textColor = isDark ? 'text-white' : 'text-slate-900'
-  const mutedColor = isDark ? 'text-slate-400/60' : 'text-slate-500/60'
+  const mutedColor = isDark ? 'text-white/40' : 'text-slate-700/60'
 
   const phrase = state.lastPhrases[monitorId] || ''
 
@@ -106,7 +115,7 @@ export default function WallpaperView() {
 
           return (
             <span
-              key={index}
+              key={`${phrase}_${index}`}
               className={`absolute select-none transform ${fontClass} ${textColor} ${animClass}`}
               style={{
                 left: `${x}%`,

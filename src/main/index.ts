@@ -193,6 +193,14 @@ function setupIpc() {
       }
     }
 
+    // Broadcast live config updates to all background windows
+    bgWindows.forEach((win) => {
+      if (!win.isDestroyed()) {
+        win.webContents.send('config:updated', newConfig)
+      }
+    })
+    settingsWindow?.webContents.send('config:updated', newConfig)
+
     if (newConfig.geminiApiKey) {
       await murmurService.updateClockWallpapers()
     }

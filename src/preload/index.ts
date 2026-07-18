@@ -13,5 +13,10 @@ contextBridge.exposeInMainWorld('api', {
     const listener = (_event: any, state: MurmurState) => callback(state)
     ipcRenderer.on('state:updated', listener)
     return () => ipcRenderer.removeListener('state:updated', listener)
+  },
+  onConfigUpdated: (callback: (config: MurmurConfig) => void) => {
+    const listener = (_event: any, config: MurmurConfig) => callback(config)
+    ipcRenderer.on('config:updated', listener)
+    return () => ipcRenderer.removeListener('config:updated', listener)
   }
 })

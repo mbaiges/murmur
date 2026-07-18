@@ -1,5 +1,25 @@
 @import "tailwindcss";
 
+/* Font Faces for Live Browser Rendering */
+@font-face {
+  font-family: 'EB Garamond';
+  src: url('/fonts/EBGaramond-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Playfair Display';
+  src: url('/fonts/PlayfairDisplay-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Outfit';
+  src: url('/fonts/Outfit-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
 /* Custom Scrollbar Styles for consistent dark theme UI */
 ::-webkit-scrollbar {
   width: 8px;
@@ -103,7 +123,7 @@
   }
 }
 
-/* Font face definitions if needed, or fallback fonts */
+/* Font family classes */
 .font-eb-garamond {
   font-family: 'EB Garamond', serif;
 }
