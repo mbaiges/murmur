@@ -19,6 +19,101 @@ const createSeededRandom = (seedStr: string) => {
   }
 }
 
+// Tokenizing formatter to support bold, italic, and different fonts safely
+function parseFormattedText(
+  text: string,
+  defaultFontClass: string,
+  config: MurmurConfig
+) {
+  if (!text) return null
+
+  // 1. Handle newlines
+  const lines = config.enableNewlines ? text.split('\n') : [text.replace(/\n/g, ' ')]
+
+  return lines.map((line, lineIdx) => {
+    const tokens: React.ReactNode[] = []
+    let currentText = line
+    let keyIdx = 0
+
+    while (currentText.length > 0) {
+      const boldIdx = config.enableBold ? currentText.indexOf('**') : -1
+      const italicIdx = config.enableItalic ? currentText.indexOf('*') : -1
+      const fontStartIdx = config.enableDifferentFonts ? currentText.indexOf('[font:') : -1
+
+      const indices = [
+        { type: 'bold', index: boldIdx },
+        { type: 'italic', index: italicIdx },
+        { type: 'font', index: fontStartIdx }
+      ].filter((item) => item.index !== -1)
+
+      if (indices.length === 0) {
+        tokens.push(<span key={keyIdx++}>{currentText}</span>)
+        break
+      }
+
+      indices.sort((a, b) => a.index - b.index)
+      const nextMatch = indices[0]
+
+      if (nextMatch.index > 0) {
+        tokens.push(<span key={keyIdx++}>{currentText.substring(0, nextMatch.index)}</span>)
+        currentText = currentText.substring(nextMatch.index)
+      }
+
+      if (nextMatch.type === 'bold') {
+        const closeIdx = currentText.indexOf('**', 2)
+        if (closeIdx !== -1) {
+          const inner = currentText.substring(2, closeIdx)
+          tokens.push(<strong key={keyIdx++} className="font-extrabold">{inner}</strong>)
+          currentText = currentText.substring(closeIdx + 2)
+        } else {
+          tokens.push(<span key={keyIdx++}>**</span>)
+          currentText = currentText.substring(2)
+        }
+      } else if (nextMatch.type === 'italic') {
+        const closeIdx = currentText.indexOf('*', 1)
+        if (closeIdx !== -1) {
+          const inner = currentText.substring(1, closeIdx)
+          tokens.push(<em key={keyIdx++} className="italic">{inner}</em>)
+          currentText = currentText.substring(closeIdx + 1)
+        } else {
+          tokens.push(<span key={keyIdx++}>*</span>)
+          currentText = currentText.substring(1)
+        }
+      } else if (nextMatch.type === 'font') {
+        const closeBracketIdx = currentText.indexOf(']')
+        const closeFontIdx = currentText.indexOf('[/font]')
+        if (closeBracketIdx !== -1 && closeFontIdx !== -1 && closeFontIdx > closeBracketIdx) {
+          const fontName = currentText.substring(6, closeBracketIdx)
+          const innerText = currentText.substring(closeBracketIdx + 1, closeFontIdx)
+          
+          let overrideClass = defaultFontClass
+          if (fontName === 'EB Garamond') overrideClass = 'font-eb-garamond'
+          else if (fontName === 'Playfair Display') overrideClass = 'font-playfair'
+          else if (fontName === 'Outfit') overrideClass = 'font-outfit'
+          else if (fontName === 'Garamond Bold') overrideClass = 'font-garamond-bold'
+          else if (fontName === 'Monospace') overrideClass = 'font-monospace'
+
+          tokens.push(
+            <span key={keyIdx++} className={overrideClass}>
+              {innerText}
+            </span>
+          )
+          currentText = currentText.substring(closeFontIdx + 7)
+        } else {
+          tokens.push(<span key={keyIdx++}>[font:</span>)
+          currentText = currentText.substring(6)
+        }
+      }
+    }
+
+    return (
+      <div key={lineIdx} className="min-h-[1.5em]">
+        {tokens}
+      </div>
+    )
+  })
+}
+
 export default function WallpaperView() {
   const [config, setConfig] = useState<MurmurConfig | null>(null)
   const [state, setState] = useState<MurmurState | null>(null)
@@ -91,7 +186,7 @@ export default function WallpaperView() {
           current += phrase[index]
           setVisibleText(current)
           index++
-          if (phrase[index - 1] !== ' ') {
+          if (phrase[index - 1] !== ' ' && phrase[index - 1] !== '\n') {
             playBlipSound()
           }
         } else {
@@ -180,7 +275,7 @@ export default function WallpaperView() {
                 textShadow: '0 4px 12px rgba(0,0,0,0.1)'
               }}
             >
-              {word}
+              {parseFormattedText(word, fontClass, config)}
             </span>
           )
         })}
@@ -203,7 +298,7 @@ export default function WallpaperView() {
               className={`${textColor} ${fontClass} ${lineAlign} leading-relaxed select-none tracking-wide antialiased ${animClass}`}
               style={{ fontSize: 'clamp(1.8rem, 3.8vw, 3.5rem)', textShadow: '0 2px 10px rgba(0,0,0,0.05)' }}
             >
-              {line}
+              {parseFormattedText(line, fontClass, config)}
             </h1>
           )
         })}
@@ -218,7 +313,7 @@ export default function WallpaperView() {
           className={`${textColor} ${fontClass} leading-loose select-none tracking-widest antialiased`}
           style={{ fontSize: 'clamp(1.4rem, 2.8vw, 2.4rem)', textShadow: '0 2px 8px rgba(0,0,0,0.03)' }}
         >
-          {visibleText}
+          {parseFormattedText(visibleText, fontClass, config)}
         </h1>
         <div className={`h-[1px] w-24 my-10 bg-current opacity-20`} />
         {state.lastRefreshTime && (
@@ -237,7 +332,7 @@ export default function WallpaperView() {
           className={`${textColor} ${fontClass} ${animClass} leading-relaxed select-none tracking-wide antialiased`}
           style={{ fontSize: 'clamp(1.6rem, 3.6vw, 3.2rem)', textShadow: '0 2px 10px rgba(0,0,0,0.05)' }}
         >
-          {visibleText || 'Surrealism is the quiet hum of the world'}
+          {parseFormattedText(visibleText, fontClass, config) || 'Surrealism is the quiet hum of the world'}
         </h1>
       </div>
     )

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { MurmurConfig, MurmurState, ThemeName } from '../domain/types'
+import { MurmurConfig, MurmurState, ThemeName, DEFAULT_SYSTEM_PROMPT } from '../domain/types'
 import WallpaperView from './WallpaperView'
 
 // Type cast helper for electron window API
@@ -295,22 +295,40 @@ export default function App() {
             <div className="max-w-2xl space-y-8">
               <div>
                 <h2 className="text-2xl font-bold tracking-tight text-white mb-2">Ingestion & Feeds</h2>
-                <p className="text-slate-400 text-sm">Configure your Gemini keys and the RSS feeds utilized to synthesize nonsense phrases.</p>
+                <p className="text-slate-400 text-sm">Configure Gemini keys, RSS sources, and customize the AI generation prompt.</p>
               </div>
 
               <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-6">
                 {/* API Key */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Gemini API Key</label>
-                  <div className="flex space-x-3">
-                    <input
-                      type="password"
-                      className="flex-1 bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg px-3 py-1.5 text-sm text-slate-100 outline-none transition-all"
-                      value={config.geminiApiKey}
-                      onChange={(e) => handleSave({ geminiApiKey: e.target.value })}
-                      placeholder="Enter your API Key"
-                    />
+                  <input
+                    type="password"
+                    className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg px-3 py-1.5 text-sm text-slate-100 outline-none transition-all"
+                    value={config.geminiApiKey}
+                    onChange={(e) => handleSave({ geminiApiKey: e.target.value })}
+                    placeholder="Enter your API Key"
+                  />
+                </div>
+
+                {/* AI System Prompt */}
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">AI System Prompt Template</label>
+                    <button
+                      onClick={() => handleSave({ systemPrompt: DEFAULT_SYSTEM_PROMPT })}
+                      className="text-[10px] text-indigo-400 hover:text-indigo-300 font-medium uppercase tracking-wider"
+                    >
+                      Reset to Default
+                    </button>
                   </div>
+                  <textarea
+                    rows={8}
+                    className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg px-3 py-2 text-xs text-slate-200 outline-none transition-all font-mono leading-relaxed resize-y"
+                    value={config.systemPrompt}
+                    onChange={(e) => handleSave({ systemPrompt: e.target.value })}
+                    placeholder="Enter system prompt guidelines..."
+                  />
                 </div>
 
                 {/* Refresh Interval & Language */}
@@ -423,7 +441,7 @@ export default function App() {
             <div className="max-w-2xl space-y-8">
               <div>
                 <h2 className="text-2xl font-bold tracking-tight text-white mb-2">Appearance</h2>
-                <p className="text-slate-400 text-sm">Customize visual style, typography, and wallpaper overlay items.</p>
+                <p className="text-slate-400 text-sm">Customize visual style, typography layout, text formatting, and vignette overlays.</p>
               </div>
 
               <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-6">
@@ -525,8 +543,67 @@ export default function App() {
                   </div>
                 </div>
 
+                {/* Formatting Checkboxes */}
+                <div className="space-y-4 pt-4 border-t border-slate-800">
+                  <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">AI Phrase Formatting Settings</h4>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex items-center justify-between p-3 bg-slate-950 rounded-lg border border-slate-850">
+                      <div>
+                        <h5 className="text-xs font-medium text-white">Allow Bold (**word**)</h5>
+                        <p className="text-[10px] text-slate-500">Emphasize key concepts in bold.</p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        className="rounded border-slate-800 text-indigo-600 focus:ring-indigo-500 h-4 w-4 bg-slate-900"
+                        checked={config.enableBold}
+                        onChange={(e) => handleSave({ enableBold: e.target.checked })}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-slate-950 rounded-lg border border-slate-855">
+                      <div>
+                        <h5 className="text-xs font-medium text-white">Allow Italic (*word*)</h5>
+                        <p className="text-[10px] text-slate-500">Render words in elegant italics.</p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        className="rounded border-slate-800 text-indigo-600 focus:ring-indigo-500 h-4 w-4 bg-slate-900"
+                        checked={config.enableItalic}
+                        onChange={(e) => handleSave({ enableItalic: e.target.checked })}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-slate-950 rounded-lg border border-slate-855">
+                      <div>
+                        <h5 className="text-xs font-medium text-white">Poetic Newlines (\\n)</h5>
+                        <p className="text-[10px] text-slate-500">Split phrases into multi-line poetry.</p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        className="rounded border-slate-800 text-indigo-600 focus:ring-indigo-500 h-4 w-4 bg-slate-900"
+                        checked={config.enableNewlines}
+                        onChange={(e) => handleSave({ enableNewlines: e.target.checked })}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-slate-950 rounded-lg border border-slate-855">
+                      <div>
+                        <h5 className="text-xs font-medium text-white">Juxtapose Fonts</h5>
+                        <p className="text-[10px] text-slate-500">Permit mixed font styles in proverbs.</p>
+                      </div>
+                      <input
+                        type="checkbox"
+                        className="rounded border-slate-800 text-indigo-600 focus:ring-indigo-500 h-4 w-4 bg-slate-900"
+                        checked={config.enableDifferentFonts}
+                        onChange={(e) => handleSave({ enableDifferentFonts: e.target.checked })}
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 {/* Background Filters */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-800">
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Grain / Noise Intensity</label>
                     <select
@@ -633,12 +710,12 @@ export default function App() {
                             </span>
                           </div>
 
-                          <div className="bg-slate-950 border border-slate-800 rounded-lg p-3 text-xs italic text-slate-400 min-h-[60px] flex items-center justify-center text-center">
+                          <div className="bg-slate-955 border border-slate-800 rounded-lg p-3 text-xs italic text-slate-400 min-h-[60px] flex items-center justify-center text-center">
                             "{phrase || 'No phrase generated yet'}"
                           </div>
                         </div>
 
-                        <div className="space-y-3 pt-3 border-t border-slate-850">
+                        <div className="space-y-3 pt-3 border-t border-slate-855 col-span-1">
                           {/* Enable Toggle */}
                           <div className="flex items-center justify-between text-xs">
                             <span className="text-slate-400">Active Wallpaper</span>

@@ -2,7 +2,7 @@ import { app } from 'electron'
 import { join } from 'path'
 import { readFileSync, writeFileSync, existsSync } from 'fs'
 import { IConfigStore } from '../../ports/IConfigStore'
-import { MurmurConfig } from '../../domain/types'
+import { MurmurConfig, DEFAULT_SYSTEM_PROMPT } from '../../domain/types'
 import { MurmurConfigSchema } from '../../domain/config.schema'
 
 export class JsonConfigStoreAdapter implements IConfigStore {
@@ -29,7 +29,12 @@ export class JsonConfigStoreAdapter implements IConfigStore {
       textAlignment: 'center',
       layoutStyle: 'centered',
       vignetteStyle: 'none',
-      audioFeedback: true
+      audioFeedback: true,
+      systemPrompt: DEFAULT_SYSTEM_PROMPT,
+      enableBold: true,
+      enableItalic: true,
+      enableNewlines: true,
+      enableDifferentFonts: true
     }
   }
 
@@ -49,10 +54,15 @@ export class JsonConfigStoreAdapter implements IConfigStore {
       const content = readFileSync(this.filePath, 'utf8')
       const parsed = JSON.parse(content)
 
-      // Backward compatible migration for vignette boolean
+      // Backward compatible migration for vignette style
       if (parsed.vignette !== undefined && parsed.vignetteStyle === undefined) {
         parsed.vignetteStyle = parsed.vignette ? 'medium' : 'none'
         delete parsed.vignette
+      }
+
+      // Populate prompt if missing
+      if (parsed.systemPrompt === undefined) {
+        parsed.systemPrompt = DEFAULT_SYSTEM_PROMPT
       }
 
       const validated = MurmurConfigSchema.parse(parsed)

@@ -22,9 +22,14 @@ export const MurmurConfigSchema = z.object({
   launchAtLogin: z.boolean().default(false),
   fontFamily: z.enum(['EB Garamond', 'Playfair Display', 'Outfit', 'Garamond Bold', 'Monospace']).default('EB Garamond'),
   monitors: z.array(MonitorConfigSchema).default([]),
-  // New personalization fields
   textAlignment: z.enum(['center', 'left', 'right']).default('center'),
   layoutStyle: z.enum(['centered', 'scattered', 'editorial-left', 'editorial-right', 'asymmetrical', 'book-cover']).default('centered'),
   vignetteStyle: z.enum(['none', 'soft', 'medium', 'dramatic']).default('none'),
-  audioFeedback: z.boolean().default(true)
+  audioFeedback: z.boolean().default(true),
+  // Prompt & formatting fields
+  systemPrompt: z.string().default(''),
+  enableBold: z.boolean().default(true),
+  enableItalic: z.boolean().default(true),
+  enableNewlines: z.boolean().default(true),
+  enableDifferentFonts: z.boolean().default(true)
 })
