@@ -19,7 +19,124 @@ const createSeededRandom = (seedStr: string) => {
   }
 }
 
-// Tokenizing formatter to support bold, italic, backtick code, and different fonts safely
+// Helper to recursively parse words inside a single line to inline-only elements
+function parseLineToInlineElements(
+  text: string,
+  defaultFontClass: string,
+  config: MurmurConfig
+): React.ReactNode {
+  if (!text) return null
+
+  const tokens: React.ReactNode[] = []
+  let currentText = text
+  let keyIdx = 0
+
+  while (currentText.length > 0) {
+    const boldIdx = config.enableBold ? currentText.indexOf('**') : -1
+    const italicIdx = config.enableItalic ? currentText.indexOf('*') : -1
+    const codeIdx = config.enableDifferentFonts ? currentText.indexOf('`') : -1
+    const fontStartIdx = config.enableDifferentFonts ? currentText.indexOf('[font:') : -1
+
+    const indices = [
+      { type: 'font', index: fontStartIdx },
+      { type: 'bold', index: boldIdx },
+      { type: 'code', index: codeIdx },
+      { type: 'italic', index: italicIdx }
+    ].filter((item) => item.index !== -1)
+
+    if (indices.length === 0) {
+      tokens.push(<span key={keyIdx++}>{currentText}</span>)
+      break
+    }
+
+    indices.sort((a, b) => {
+      if (a.index !== b.index) {
+        return a.index - b.index
+      }
+      const priority: Record<string, number> = { font: 0, bold: 1, code: 2, italic: 3 }
+      return priority[a.type] - priority[b.type]
+    })
+
+    const nextMatch = indices[0]
+
+    if (nextMatch.index > 0) {
+      tokens.push(<span key={keyIdx++}>{currentText.substring(0, nextMatch.index)}</span>)
+      currentText = currentText.substring(nextMatch.index)
+    }
+
+    if (nextMatch.type === 'bold') {
+      const closeIdx = currentText.indexOf('**', 2)
+      if (closeIdx !== -1) {
+        const inner = currentText.substring(2, closeIdx)
+        tokens.push(
+          <strong key={keyIdx++} className="font-extrabold">
+            {parseLineToInlineElements(inner, defaultFontClass, config)}
+          </strong>
+        )
+        currentText = currentText.substring(closeIdx + 2)
+      } else {
+        tokens.push(<span key={keyIdx++}>**</span>)
+        currentText = currentText.substring(2)
+      }
+    } else if (nextMatch.type === 'italic') {
+      const closeIdx = currentText.indexOf('*', 1)
+      if (closeIdx !== -1) {
+        const inner = currentText.substring(1, closeIdx)
+        tokens.push(
+          <em key={keyIdx++} className="italic">
+            {parseLineToInlineElements(inner, defaultFontClass, config)}
+          </em>
+        )
+        currentText = currentText.substring(closeIdx + 1)
+      } else {
+        tokens.push(<span key={keyIdx++}>*</span>)
+        currentText = currentText.substring(1)
+      }
+    } else if (nextMatch.type === 'code') {
+      const closeIdx = currentText.indexOf('`', 1)
+      if (closeIdx !== -1) {
+        const inner = currentText.substring(1, closeIdx)
+        tokens.push(
+          <code key={keyIdx++} className="font-monospace bg-black/10 px-1 rounded text-sm">
+            {parseLineToInlineElements(inner, 'font-monospace', config)}
+          </code>
+        )
+        currentText = currentText.substring(closeIdx + 1)
+      } else {
+        tokens.push(<span key={keyIdx++}>`</span>)
+        currentText = currentText.substring(1)
+      }
+    } else if (nextMatch.type === 'font') {
+      const closeBracketIdx = currentText.indexOf(']')
+      const closeFontIdx = currentText.indexOf('[/font]')
+      if (closeBracketIdx !== -1 && closeFontIdx !== -1 && closeFontIdx > closeBracketIdx) {
+        const fontName = currentText.substring(6, closeBracketIdx)
+        const innerText = currentText.substring(closeBracketIdx + 1, closeFontIdx)
+        
+        let overrideClass = defaultFontClass
+        if (fontName === 'EB Garamond') overrideClass = 'font-eb-garamond'
+        else if (fontName === 'Playfair Display') overrideClass = 'font-playfair'
+        else if (fontName === 'Outfit') overrideClass = 'font-outfit'
+        else if (fontName === 'Garamond Bold') overrideClass = 'font-garamond-bold'
+        else if (fontName === 'Monospace') overrideClass = 'font-monospace'
+
+        tokens.push(
+          <span key={keyIdx++} className={overrideClass}>
+            {parseLineToInlineElements(innerText, overrideClass, config)}
+          </span>
+        )
+        currentText = currentText.substring(closeFontIdx + 7)
+      } else {
+        tokens.push(<span key={keyIdx++}>[font:</span>)
+        currentText = currentText.substring(6)
+      }
+    }
+  }
+
+  return <>{tokens}</>
+}
+
+// Tokenizing formatter to support bold, italic, and different fonts safely
 function parseFormattedText(
   text: string,
   defaultFontClass: string,
@@ -27,126 +144,16 @@ function parseFormattedText(
 ): React.ReactNode {
   if (!text) return null
 
-  // 1. Handle newlines
+  // Split only at the very top level for lines
   const lines = config.enableNewlines ? text.split('\n') : [text.replace(/\n/g, ' ')]
 
   return (
     <>
-      {lines.map((line, lineIdx) => {
-        const tokens: React.ReactNode[] = []
-        let currentText = line
-        let keyIdx = 0
-
-        while (currentText.length > 0) {
-          const boldIdx = config.enableBold ? currentText.indexOf('**') : -1
-          const italicIdx = config.enableItalic ? currentText.indexOf('*') : -1
-          const codeIdx = config.enableDifferentFonts ? currentText.indexOf('`') : -1
-          const fontStartIdx = config.enableDifferentFonts ? currentText.indexOf('[font:') : -1
-
-          const indices = [
-            { type: 'font', index: fontStartIdx },
-            { type: 'bold', index: boldIdx },
-            { type: 'code', index: codeIdx },
-            { type: 'italic', index: italicIdx }
-          ].filter((item) => item.index !== -1)
-
-          if (indices.length === 0) {
-            tokens.push(<span key={keyIdx++}>{currentText}</span>)
-            break
-          }
-
-          // Sort index matches. If indices match (e.g. ** matches both bold and italic at index 0),
-          // prioritize font -> bold -> code -> italic to prevent wrong token splits.
-          indices.sort((a, b) => {
-            if (a.index !== b.index) {
-              return a.index - b.index
-            }
-            const priority: Record<string, number> = { font: 0, bold: 1, code: 2, italic: 3 }
-            return priority[a.type] - priority[b.type]
-          })
-
-          const nextMatch = indices[0]
-
-          if (nextMatch.index > 0) {
-            tokens.push(<span key={keyIdx++}>{currentText.substring(0, nextMatch.index)}</span>)
-            currentText = currentText.substring(nextMatch.index)
-          }
-
-          if (nextMatch.type === 'bold') {
-            const closeIdx = currentText.indexOf('**', 2)
-            if (closeIdx !== -1) {
-              const inner = currentText.substring(2, closeIdx)
-              tokens.push(
-                <strong key={keyIdx++} className="font-extrabold">
-                  {parseFormattedText(inner, defaultFontClass, config)}
-                </strong>
-              )
-              currentText = currentText.substring(closeIdx + 2)
-            } else {
-              tokens.push(<span key={keyIdx++}>**</span>)
-              currentText = currentText.substring(2)
-            }
-          } else if (nextMatch.type === 'italic') {
-            const closeIdx = currentText.indexOf('*', 1)
-            if (closeIdx !== -1) {
-              const inner = currentText.substring(1, closeIdx)
-              tokens.push(
-                <em key={keyIdx++} className="italic">
-                  {parseFormattedText(inner, defaultFontClass, config)}
-                </em>
-              )
-              currentText = currentText.substring(closeIdx + 1)
-            } else {
-              tokens.push(<span key={keyIdx++}>*</span>)
-              currentText = currentText.substring(1)
-            }
-          } else if (nextMatch.type === 'code') {
-            const closeIdx = currentText.indexOf('`', 1)
-            if (closeIdx !== -1) {
-              const inner = currentText.substring(1, closeIdx)
-              tokens.push(
-                <code key={keyIdx++} className="font-monospace bg-black/10 px-1 rounded text-sm">
-                  {parseFormattedText(inner, 'font-monospace', config)}
-                </code>
-              )
-              currentText = currentText.substring(closeIdx + 1)
-            } else {
-              tokens.push(<span key={keyIdx++}>`</span>)
-              currentText = currentText.substring(1)
-            }
-          } else if (nextMatch.type === 'font') {
-            const closeBracketIdx = currentText.indexOf(']')
-            const closeFontIdx = currentText.indexOf('[/font]')
-            if (closeBracketIdx !== -1 && closeFontIdx !== -1 && closeFontIdx > closeBracketIdx) {
-              const fontName = currentText.substring(6, closeBracketIdx)
-              const innerText = currentText.substring(closeBracketIdx + 1, closeFontIdx)
-              
-              let overrideClass = defaultFontClass
-              if (fontName === 'EB Garamond') overrideClass = 'font-eb-garamond'
-              else if (fontName === 'Playfair Display') overrideClass = 'font-playfair'
-              else if (fontName === 'Outfit') overrideClass = 'font-outfit'
-              else if (fontName === 'Garamond Bold') overrideClass = 'font-garamond-bold'
-              else if (fontName === 'Monospace') overrideClass = 'font-monospace'
-
-              tokens.push(
-                <span key={keyIdx++} className={overrideClass}>
-                  {parseFormattedText(innerText, overrideClass, config)}
-                </span>
-              )
-              currentText = currentText.substring(closeFontIdx + 7)
-            } else {
-              tokens.push(<span key={keyIdx++}>[font:</span>)
-              currentText = currentText.substring(6)
-            }
-          }
-        }
-
-        return (
-          <div key={lineIdx} className="min-h-[1.5em]">
-            {tokens}
-          </div>
-        )
-      })}
+      {lines.map((line, lineIdx) => (
+        <div key={lineIdx} className="min-h-[1.5em] w-full">
+          {parseLineToInlineElements(line, defaultFontClass, config)}
+        </div>
+      ))}
     </>
   )
 }
