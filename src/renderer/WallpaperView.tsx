@@ -3,6 +3,22 @@ import { MurmurConfig, MurmurState } from '../domain/types'
 
 const api = (window as any).api
 
+const createSeededRandom = (seedStr: string) => {
+  let h = 1779033703 ^ seedStr.length
+  for (let i = 0; i < seedStr.length; i++) {
+    h = Math.imul(h ^ seedStr.charCodeAt(i), 3432918353)
+    h = (h << 13) | (h >>> 19)
+  }
+  let seed = h >>> 0
+  return () => {
+    seed = (seed + 0x9e3779b9) | 0
+    let z = seed
+    z = Math.imul(z ^ (z >>> 16), 0x85ebca6b)
+    z = Math.imul(z ^ (z >>> 13), 0xc2b2ae35)
+    return ((z ^ (z >>> 16)) >>> 0) / 4294967296
+  }
+}
+
 export default function WallpaperView() {
   const [config, setConfig] = useState<MurmurConfig | null>(null)
   const [state, setState] = useState<MurmurState | null>(null)
