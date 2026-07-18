@@ -41,6 +41,9 @@ namespace Murmur {
         [DllImport("user32.dll")]
         public static extern IntPtr SetParent(IntPtr hWndChild, IntPtr hWndNewParent);
 
+        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        private static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
+
         [DllImport("user32.dll", SetLastError = true)]
         private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
 
@@ -159,12 +162,16 @@ namespace Murmur {
                     IntPtr result = IntPtr.Zero;
                     SendMessageTimeout(progman, 0x052C, IntPtr.Zero, IntPtr.Zero, 0, 1000, out result);
 
-                    // 2. Find the WorkerW container window
+                    // 2. Find the WorkerW wallpaper window (the one that does NOT contain SHELLDLL_DefView)
                     IntPtr workerw = IntPtr.Zero;
                     EnumWindows(new EnumWindowsProc((tophwnd, lparam) => {
-                        IntPtr shellDll = FindWindowEx(tophwnd, IntPtr.Zero, "SHELLDLL_DefView", null);
-                        if (shellDll != IntPtr.Zero) {
-                            workerw = FindWindowEx(IntPtr.Zero, tophwnd, "WorkerW", null);
+                        StringBuilder className = new StringBuilder(256);
+                        GetClassName(tophwnd, className, className.Capacity);
+                        if (className.ToString() == "WorkerW") {
+                            IntPtr shellDll = FindWindowEx(tophwnd, IntPtr.Zero, "SHELLDLL_DefView", null);
+                            if (shellDll == IntPtr.Zero) {
+                                workerw = tophwnd;
+                            }
                         }
                         return true;
                     }), IntPtr.Zero);

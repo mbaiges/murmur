@@ -59,9 +59,8 @@ export class MurmurService {
           continue
         }
 
-        // Sample headlines for this screen (different shuffle per screen!)
+        // Sample headlines for this screen
         const sampled = sampleHeadlines(rssItems, config.headlineSampleSize)
-        const titles = sampled.map((item) => item.title)
         
         // Format titles with source prefix for the generator to enforce mixing sources
         const generatorInputs = sampled.map((item) => `[Source: ${item.source}] ${item.title}`)
@@ -73,27 +72,22 @@ export class MurmurService {
         // Save to history log
         await this.historyStore.save(screen.id, phrase)
 
-        // Run node-canvas paint/set ONLY in test environment to satisfy Vitest contracts
-        const isTest = typeof process !== 'undefined' && process.env.NODE_ENV === 'test'
-        if (isTest) {
-          const theme = monitorConf?.themeOverride || config.theme
-          const paintOptions = {
-            phrase,
-            theme,
-            fontFamily: config.fontFamily,
-            animation: config.animation,
-            overlays: config.overlays,
-            resolution: { width: screen.width, height: screen.height },
-            headlines: config.overlays.inspiringHeadlines ? titles.slice(0, 5) : [],
-            sources: config.overlays.sourceCredit ? Array.from(new Set(sampled.map((item) => item.source))) : [],
-            textAlignment: config.textAlignment,
-            layoutStyle: config.layoutStyle,
-            vignetteStyle: config.vignetteStyle,
-            audioFeedback: config.audioFeedback
-          }
-          const buffer = await this.painter.paint(paintOptions)
-          await this.renderer.set(screen.id, buffer)
+        // Paint static underlay (gradient background with NO phrase text) so taskbar acrylic blur matches theme colors!
+        const theme = monitorConf?.themeOverride || config.theme
+        const staticOptions = {
+          phrase: '', // NO TEXT
+          theme,
+          fontFamily: config.fontFamily,
+          animation: 'Instant' as any,
+          overlays: { dateTime: false, sourceCredit: false, inspiringHeadlines: false },
+          resolution: { width: screen.width, height: screen.height },
+          textAlignment: config.textAlignment,
+          layoutStyle: config.layoutStyle,
+          vignetteStyle: config.vignetteStyle,
+          audioFeedback: false
         }
+        const buffer = await this.painter.paint(staticOptions)
+        await this.renderer.set(screen.id, buffer)
       }
 
       // 4. Update Tray
@@ -118,42 +112,30 @@ export class MurmurService {
         throw new Error(`Monitor with ID ${monitorId} not found`)
       }
 
-      const history = await this.historyStore.get(monitorId)
-      const phrase = history[0] || 'surrealism is the quiet hum of the world'
-
-      const isTest = typeof process !== 'undefined' && process.env.NODE_ENV === 'test'
-      if (isTest) {
-        const paintOptions = {
-          phrase,
-          theme,
-          fontFamily: config.fontFamily,
-          animation: config.animation,
-          overlays: config.overlays,
-          resolution: { width: targetScreen.width, height: targetScreen.height },
-          textAlignment: config.textAlignment,
-          layoutStyle: config.layoutStyle,
-          vignetteStyle: config.vignetteStyle,
-          audioFeedback: config.audioFeedback
-        }
-        const buffer = await this.painter.paint(paintOptions)
-        await this.renderer.set(monitorId, buffer)
+      // Paint static theme underlay for preview
+      const staticOptions = {
+        phrase: '',
+        theme,
+        fontFamily: config.fontFamily,
+        animation: 'Instant' as any,
+        overlays: { dateTime: false, sourceCredit: false, inspiringHeadlines: false },
+        resolution: { width: targetScreen.width, height: targetScreen.height },
+        textAlignment: config.textAlignment,
+        layoutStyle: config.layoutStyle,
+        vignetteStyle: config.vignetteStyle,
+        audioFeedback: false
       }
+      const buffer = await this.painter.paint(staticOptions)
+      await this.renderer.set(monitorId, buffer)
     } catch (error) {
       console.error('MurmurService previewTheme failed:', error)
     }
   }
 
   public async updateClockWallpapers(): Promise<void> {
-    const isTest = typeof process !== 'undefined' && process.env.NODE_ENV === 'test'
-    if (!isTest) {
-      // In live application, HTML handles date/time ticking dynamically at 60fps,
-      // so we bypass redundant main thread canvas repainting!
-      return
-    }
-
     try {
       const config = await this.configStore.get()
-      if (!config.geminiApiKey || !config.overlays.dateTime) {
+      if (!config.geminiApiKey) {
         return
       }
 
@@ -164,20 +146,21 @@ export class MurmurService {
           continue
         }
 
-        const paintOptions = {
-          phrase: 'test clock phrase',
-          theme: monitorConf?.themeOverride || config.theme,
+        const theme = monitorConf?.themeOverride || config.theme
+        const staticOptions = {
+          phrase: '',
+          theme,
           fontFamily: config.fontFamily,
-          animation: config.animation,
-          overlays: config.overlays,
+          animation: 'Instant' as any,
+          overlays: { dateTime: false, sourceCredit: false, inspiringHeadlines: false },
           resolution: { width: screen.width, height: screen.height },
           textAlignment: config.textAlignment,
           layoutStyle: config.layoutStyle,
           vignetteStyle: config.vignetteStyle,
-          audioFeedback: config.audioFeedback
+          audioFeedback: false
         }
 
-        const buffer = await this.painter.paint(paintOptions)
+        const buffer = await this.painter.paint(staticOptions)
         await this.renderer.set(screen.id, buffer)
       }
     } catch (error) {
