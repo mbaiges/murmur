@@ -184,7 +184,7 @@ export default function App() {
 
   // --- 2. MAIN DASHBOARD VIEW ---
   return (
-    <div className="flex min-h-screen bg-slate-950 text-slate-100 font-sans antialiased overflow-hidden">
+    <div className="flex h-screen max-h-screen bg-slate-950 text-slate-100 font-sans antialiased overflow-hidden">
       {/* Toast Notification */}
       {toast && (
         <div className={`fixed top-6 right-6 px-4 py-3 rounded-lg shadow-xl text-sm transition-all duration-300 z-50 border ${

@@ -10,6 +10,7 @@ import { RssItem, ThemeName } from './types'
 
 export class MurmurService {
   private isRefreshing = false
+  private lastPaintOptions: Record<string, any> = {}
 
   constructor(
     private readonly rss: IRssFetcher,
@@ -84,6 +85,8 @@ export class MurmurService {
           sources: config.overlays.sourceCredit ? Array.from(new Set(sampled.map((item) => item.source))) : []
         }
 
+        this.lastPaintOptions[screen.id] = paintOptions
+
         const buffer = await this.painter.paint(paintOptions)
 
         // Set background
@@ -133,6 +136,39 @@ export class MurmurService {
       await this.renderer.set(monitorId, buffer)
     } catch (error) {
       console.error('MurmurService previewTheme failed:', error)
+    }
+  }
+
+  public async updateClockWallpapers(): Promise<void> {
+    try {
+      const config = await this.configStore.get()
+      if (!config.geminiApiKey || !config.overlays.dateTime) {
+        return
+      }
+
+      const activeScreens = await this.renderer.getScreens()
+      for (const screen of activeScreens) {
+        const paintOptions = this.lastPaintOptions[screen.id]
+        if (!paintOptions) continue
+
+        const monitorConf = config.monitors.find((m) => m.id === screen.id)
+        if (monitorConf && !monitorConf.enabled) {
+          continue
+        }
+
+        // Update paint options with current default config parameters
+        paintOptions.overlays = config.overlays
+        paintOptions.fontFamily = config.fontFamily
+        paintOptions.animation = config.animation
+        
+        // Use monitor theme override or default theme
+        paintOptions.theme = monitorConf?.themeOverride || config.theme
+
+        const buffer = await this.painter.paint(paintOptions)
+        await this.renderer.set(screen.id, buffer)
+      }
+    } catch (error) {
+      console.error('MurmurService updateClockWallpapers failed:', error)
     }
   }
 }

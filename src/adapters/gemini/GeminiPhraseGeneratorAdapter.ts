@@ -20,7 +20,7 @@ export class GeminiPhraseGeneratorAdapter implements IPhraseGenerator {
     const ai = await this.getClient()
     
     const prompt = `You are a surrealist poet and conceptual artist.
-Given a list of recent headlines from different news sources, create a single short, surreal, nonsense phrase in the style of a popular folk saying or proverb.
+Given a list of recent headlines from different news sources, create a single short, surreal, nonsense phrase in the style of a traditional folk saying or proverb.
 
 Structural Reference Examples (by language):
 - Spanish:
@@ -42,12 +42,13 @@ Structural Reference Examples (by language):
 
 Guidelines:
 1. The phrase must sound like a traditional proverb, rhythmic, brief, and structured, but completely surreal, nonsensical, and absurd.
-2. The examples above are ONLY for structural and rhythmic reference. Do NOT copy, reuse, or adapt any wording, nouns, or verbs from these examples.
-3. Be highly original and unpredictable. Juxtapose and blend concepts, nouns, or verbs from DIFFERENT headlines and sources.
-4. Keep it very short and punchy (maximum 8-12 words). The phrase will be displayed on a desktop wallpaper in a large font.
-5. Respond in the language requested: "${language}". If "${language}" is "auto", detect and match the dominant language of the input headlines.
-6. Return ONLY the generated phrase. Do not wrap in quotes, do not include markdown, do not write any prefixes (e.g., do not write "Proverb:"), and do not write any explanation.
-7. Do NOT end the phrase with a period or any punctuation mark.
+2. It must have the cadence, rhyme, or parallel structure of a proverb (e.g., matching halves, advice-giving, or a lesson format) to sound like ancient folk wisdom, even though the juxtaposed concepts make no actual sense.
+3. The examples above are ONLY for structural and rhythmic reference. Do NOT copy, reuse, or adapt any wording, nouns, or verbs from these examples.
+4. Be highly original, unpredictable, and poetic. Juxtapose and blend concepts, nouns, or verbs from DIFFERENT headlines and sources.
+5. Keep it very short and punchy (maximum 8-12 words). The phrase will be displayed on a desktop wallpaper in a large font.
+6. Respond in the language requested: "${language}". If "${language}" is "auto", detect and match the dominant language of the input headlines.
+7. Return ONLY the generated phrase. Do not wrap in quotes, do not include markdown, do not write any prefixes (e.g., do not write "Proverb:"), and do not write any explanation.
+8. Do NOT end the phrase with a period or any punctuation mark.
 
 Headlines:
 ${headlines.map((h, i) => `- ${h}`).join('\n')}`

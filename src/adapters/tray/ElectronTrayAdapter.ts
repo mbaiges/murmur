@@ -16,6 +16,9 @@ export class ElectronTrayAdapter implements ISystemTray {
     const iconPath = join(__dirname, '../../resources/tray.png')
     this.tray = new Tray(iconPath)
     this.tray.setToolTip('Murmur Wallpaper')
+    this.tray.on('double-click', () => {
+      this.onSettings?.()
+    })
     this.rebuildMenu()
   }
 

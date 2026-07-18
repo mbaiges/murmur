@@ -135,6 +135,11 @@ function setupIpc() {
         scheduler.stop()
       }
     }
+
+    // Apply any appearance/theme settings updates immediately to active wallpapers
+    if (newConfig.geminiApiKey) {
+      await murmurService.updateClockWallpapers()
+    }
   })
 
   ipcMain.handle('history:get', (_event, monitorId) => historyStore.get(monitorId))
@@ -144,6 +149,22 @@ function setupIpc() {
     murmurService.previewTheme(monitorId, theme)
   )
   ipcMain.handle('state:get', () => state)
+}
+
+function startClockScheduler() {
+  const tickClock = async () => {
+    if (!state.isPaused) {
+      await murmurService.updateClockWallpapers()
+    }
+  }
+
+  const now = new Date()
+  const msUntilNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds()
+  
+  setTimeout(() => {
+    tickClock()
+    setInterval(tickClock, 60 * 1000)
+  }, msUntilNextMinute)
 }
 
 app.whenReady().then(async () => {
@@ -185,6 +206,10 @@ app.whenReady().then(async () => {
   if (config.geminiApiKey || process.env.MURMUR_E2E === 'true') {
     scheduler.start(config.refreshIntervalMinutes)
   }
+  
+  // Start the high-precision clock ticking routine
+  startClockScheduler()
+
   if (!app.isPackaged || !config.geminiApiKey || process.env.MURMUR_E2E === 'true') {
     createSettingsWindow()
   }
