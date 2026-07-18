@@ -1,7 +1,7 @@
 import { app, screen } from 'electron'
 import { exec } from 'child_process'
 import { promisify } from 'util'
-import { writeFileSync, mkdirSync, existsSync } from 'fs'
+import { writeFileSync, mkdirSync, existsSync, unlinkSync } from 'fs'
 import { join } from 'path'
 import { IWallpaperRenderer } from '../../ports/IWallpaperRenderer'
 
@@ -99,6 +99,12 @@ export class WinDesktopWallpaperAdapter implements IWallpaperRenderer {
       const cmd = `"${helperPath}" restore "${this.backupFile}"`
       const { stdout } = await execAsync(cmd)
       console.log(`WinDesktopWallpaperAdapter: Native helper restore output: ${stdout.trim()}`)
+      
+      try {
+        unlinkSync(this.backupFile)
+      } catch (err) {
+        console.error('Failed to delete wallpaper backup file:', err)
+      }
     } catch (error) {
       console.error('WinDesktopWallpaperAdapter: Restore failed', error)
     }
