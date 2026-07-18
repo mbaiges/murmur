@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
+import { existsSync } from 'fs'
 import { FastXmlRssFetcherAdapter } from '../adapters/rss/FastXmlRssFetcherAdapter'
 import { GeminiPhraseGeneratorAdapter } from '../adapters/gemini/GeminiPhraseGeneratorAdapter'
 import { NodeCanvasWallpaperPainterAdapter } from '../adapters/canvas/NodeCanvasWallpaperPainterAdapter'
@@ -76,6 +77,10 @@ function createSettingsWindow() {
     return
   }
 
+  const iconPath = existsSync(join(__dirname, '../../resources/icon.png'))
+    ? join(__dirname, '../../resources/icon.png')
+    : join(__dirname, '../../../resources/icon.png')
+
   settingsWindow = new BrowserWindow({
     width: 900,
     height: 700,
@@ -86,7 +91,8 @@ function createSettingsWindow() {
     autoHideMenuBar: true,
     show: true,
     resizable: true,
-    title: 'Murmur Settings'
+    title: 'Murmur Settings',
+    icon: iconPath
   })
 
   if (process.env.ELECTRON_RENDERER_URL) {
@@ -144,6 +150,20 @@ app.whenReady().then(async () => {
   setupIpc()
   await wallpaperRenderer.backup()
 
+  try {
+    const screens = await wallpaperRenderer.getScreens()
+    const initialPhrases: Record<string, string> = {}
+    for (const s of screens) {
+      initialPhrases[s.id] = ''
+    }
+    state = {
+      ...state,
+      lastPhrases: initialPhrases
+    }
+  } catch (err) {
+    console.error('Failed to pre-initialize active screens', err)
+  }
+
   const config = await configStore.get()
   
   const customTrayAdapterUpdate = trayAdapter.updateState.bind(trayAdapter)
@@ -172,16 +192,4 @@ app.whenReady().then(async () => {
 
 app.on('window-all-closed', () => {
   // running in tray
-})
-
-app.on('will-quit', async (event) => {
-  event.preventDefault()
-  scheduler.stop()
-  try {
-    await wallpaperRenderer.restore()
-  } catch (err) {
-    console.error('Failed to restore wallpaper on exit:', err)
-  } finally {
-    app.exit(0)
-  }
 })

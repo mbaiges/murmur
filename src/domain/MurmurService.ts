@@ -104,4 +104,32 @@ export class MurmurService {
       this.isRefreshing = false
     }
   }
+
+  public async previewTheme(monitorId: string, theme: ThemeName): Promise<void> {
+    try {
+      const config = await this.configStore.get()
+      const activeScreens = await this.renderer.getScreens()
+      const targetScreen = activeScreens.find((s) => s.id === monitorId)
+      if (!targetScreen) {
+        throw new Error(`Monitor with ID ${monitorId} not found`)
+      }
+
+      const history = await this.historyStore.get(monitorId)
+      const phrase = history[0] || 'surrealism is the quiet hum of the world'
+
+      const paintOptions = {
+        phrase,
+        theme,
+        fontFamily: config.fontFamily,
+        animation: config.animation,
+        overlays: config.overlays,
+        resolution: { width: targetScreen.width, height: targetScreen.height }
+      }
+
+      const buffer = await this.painter.paint(paintOptions)
+      await this.renderer.set(monitorId, buffer)
+    } catch (error) {
+      console.error('MurmurService previewTheme failed:', error)
+    }
+  }
 }
