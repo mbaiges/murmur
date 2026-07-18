@@ -92,7 +92,13 @@ function createSettingsWindow() {
     show: true,
     resizable: true,
     title: 'Murmur Settings',
-    icon: iconPath
+    icon: iconPath,
+    titleBarStyle: 'hidden',
+    titleBarOverlay: {
+      color: '#090d16',
+      symbolColor: '#94a3b8',
+      height: 40
+    }
   })
 
   if (process.env.ELECTRON_RENDERER_URL) {

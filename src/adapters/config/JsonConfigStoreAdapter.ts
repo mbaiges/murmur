@@ -25,7 +25,11 @@ export class JsonConfigStoreAdapter implements IConfigStore {
       headlineSampleSize: 15,
       launchAtLogin: false,
       fontFamily: 'EB Garamond',
-      monitors: []
+      monitors: [],
+      textAlignment: 'center',
+      layoutStyle: 'centered',
+      vignette: false,
+      noiseIntensity: 'none'
     }
   }
 
@@ -59,8 +63,7 @@ export class JsonConfigStoreAdapter implements IConfigStore {
   public async set(config: Partial<MurmurConfig>): Promise<void> {
     const current = await this.get()
     const updated = { ...current, ...config }
-    const validated = MurmurConfigSchema.parse(updated)
-    writeFileSync(this.filePath, JSON.stringify(validated, null, 2), 'utf8')
-    this.cachedConfig = validated as MurmurConfig
+    writeFileSync(this.filePath, JSON.stringify(updated, null, 2), 'utf8')
+    this.cachedConfig = updated
   }
 }

@@ -82,15 +82,33 @@ export class MurmurService {
           overlays: config.overlays,
           resolution: { width: screen.width, height: screen.height },
           headlines: config.overlays.inspiringHeadlines ? titles.slice(0, 5) : [],
-          sources: config.overlays.sourceCredit ? Array.from(new Set(sampled.map((item) => item.source))) : []
+          sources: config.overlays.sourceCredit ? Array.from(new Set(sampled.map((item) => item.source))) : [],
+          // Pass personalization settings
+          textAlignment: config.textAlignment,
+          layoutStyle: config.layoutStyle,
+          vignette: config.vignette,
+          noiseIntensity: config.noiseIntensity
         }
 
         this.lastPaintOptions[screen.id] = paintOptions
 
-        const buffer = await this.painter.paint(paintOptions)
+        const isTest = typeof process !== 'undefined' && process.env.NODE_ENV === 'test'
 
-        // Set background
-        await this.renderer.set(screen.id, buffer)
+        // Render with 4-frame smooth fade/transition animation if configured (skip in tests)
+        if (config.animation && config.animation !== 'Instant' && !isTest) {
+          const frames = [0.1, 0.4, 0.7, 1.0]
+          for (const progress of frames) {
+            const frameOptions = { ...paintOptions, transitionProgress: progress }
+            const buffer = await this.painter.paint(frameOptions)
+            await this.renderer.set(screen.id, buffer)
+            // Wait 60ms between frames
+            await new Promise((resolve) => setTimeout(resolve, 60))
+          }
+        } else {
+          // Instant paint
+          const buffer = await this.painter.paint(paintOptions)
+          await this.renderer.set(screen.id, buffer)
+        }
 
         // Record history
         await this.historyStore.save(screen.id, phrase)
@@ -129,7 +147,12 @@ export class MurmurService {
         fontFamily: config.fontFamily,
         animation: config.animation,
         overlays: config.overlays,
-        resolution: { width: targetScreen.width, height: targetScreen.height }
+        resolution: { width: targetScreen.width, height: targetScreen.height },
+        // Pass personalization settings
+        textAlignment: config.textAlignment,
+        layoutStyle: config.layoutStyle,
+        vignette: config.vignette,
+        noiseIntensity: config.noiseIntensity
       }
 
       const buffer = await this.painter.paint(paintOptions)
@@ -156,10 +179,14 @@ export class MurmurService {
           continue
         }
 
-        // Update paint options with current default config parameters
+        // Update paint options with current config parameters
         paintOptions.overlays = config.overlays
         paintOptions.fontFamily = config.fontFamily
         paintOptions.animation = config.animation
+        paintOptions.textAlignment = config.textAlignment
+        paintOptions.layoutStyle = config.layoutStyle
+        paintOptions.vignette = config.vignette
+        paintOptions.noiseIntensity = config.noiseIntensity
         
         // Use monitor theme override or default theme
         paintOptions.theme = monitorConf?.themeOverride || config.theme

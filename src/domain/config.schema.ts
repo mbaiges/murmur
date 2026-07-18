@@ -21,5 +21,10 @@ export const MurmurConfigSchema = z.object({
   headlineSampleSize: z.number().int().min(5).max(50).default(15),
   launchAtLogin: z.boolean().default(false),
   fontFamily: z.enum(['EB Garamond', 'Playfair Display', 'Outfit']).default('EB Garamond'),
-  monitors: z.array(MonitorConfigSchema).default([])
+  monitors: z.array(MonitorConfigSchema).default([]),
+  // New schema fields
+  textAlignment: z.enum(['center', 'left', 'right']).default('center'),
+  layoutStyle: z.enum(['centered', 'scattered', 'editorial-left', 'editorial-right']).default('centered'),
+  vignette: z.boolean().default(false),
+  noiseIntensity: z.enum(['none', 'subtle', 'heavy']).default('none')
 })

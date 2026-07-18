@@ -25,6 +25,11 @@ export interface MurmurConfig {
   launchAtLogin: boolean
   fontFamily: 'EB Garamond' | 'Playfair Display' | 'Outfit'
   monitors: MonitorConfig[]
+  // New personalization fields
+  textAlignment: 'center' | 'left' | 'right'
+  layoutStyle: 'centered' | 'scattered' | 'editorial-left' | 'editorial-right'
+  vignette: boolean
+  noiseIntensity: 'none' | 'subtle' | 'heavy'
 }
 
 export interface RssItem {
@@ -42,6 +47,12 @@ export interface PaintOptions {
   resolution: { width: number; height: number }
   headlines?: string[]
   sources?: string[]
+  // New paint parameters
+  textAlignment: 'center' | 'left' | 'right'
+  layoutStyle: 'centered' | 'scattered' | 'editorial-left' | 'editorial-right'
+  vignette: boolean
+  noiseIntensity: 'none' | 'subtle' | 'heavy'
+  transitionProgress?: number
 }
 
 export interface MurmurState {
