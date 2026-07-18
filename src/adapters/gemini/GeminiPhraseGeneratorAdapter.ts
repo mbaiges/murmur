@@ -46,7 +46,7 @@ export class GeminiPhraseGeneratorAdapter implements IPhraseGenerator {
 
     try {
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash', // Using gemini-2.5-flash for reliable follow-through on system prompt format directions!
+        model: 'gemini-3.1-flash-lite', // Using gemini-3.1-flash-lite to match the working configuration
         contents: prompt
       })
 
