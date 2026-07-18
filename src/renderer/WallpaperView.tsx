@@ -19,17 +19,36 @@ const createSeededRandom = (seedStr: string) => {
   }
 }
 
-// Helper to recursively parse words inside a single line to inline-only elements
-function parseLineToInlineElements(
+interface StyledChar {
+  char: string
+  isBold: boolean
+  isItalic: boolean
+  isCode: boolean
+  fontClass: string
+}
+
+interface StyledRun {
+  text: string
+  isBold: boolean
+  isItalic: boolean
+  isCode: boolean
+  fontClass: string
+}
+
+// Compile raw markdown string to flat array of styled characters
+function compileToStyledChars(
   text: string,
   defaultFontClass: string,
-  config: MurmurConfig
-): React.ReactNode {
-  if (!text) return null
+  config: MurmurConfig,
+  isBold = false,
+  isItalic = false,
+  isCode = false,
+  currentFontClass = ''
+): StyledChar[] {
+  if (!text) return []
 
-  const tokens: React.ReactNode[] = []
+  const result: StyledChar[] = []
   let currentText = text
-  let keyIdx = 0
 
   while (currentText.length > 0) {
     const boldIdx = config.enableBold ? currentText.indexOf('**') : -1
@@ -45,7 +64,15 @@ function parseLineToInlineElements(
     ].filter((item) => item.index !== -1)
 
     if (indices.length === 0) {
-      tokens.push(<span key={keyIdx++}>{currentText}</span>)
+      for (const char of currentText) {
+        result.push({
+          char,
+          isBold,
+          isItalic,
+          isCode,
+          fontClass: currentFontClass || defaultFontClass
+        })
+      }
       break
     }
 
@@ -60,7 +87,16 @@ function parseLineToInlineElements(
     const nextMatch = indices[0]
 
     if (nextMatch.index > 0) {
-      tokens.push(<span key={keyIdx++}>{currentText.substring(0, nextMatch.index)}</span>)
+      const plain = currentText.substring(0, nextMatch.index)
+      for (const char of plain) {
+        result.push({
+          char,
+          isBold,
+          isItalic,
+          isCode,
+          fontClass: currentFontClass || defaultFontClass
+        })
+      }
       currentText = currentText.substring(nextMatch.index)
     }
 
@@ -68,42 +104,61 @@ function parseLineToInlineElements(
       const closeIdx = currentText.indexOf('**', 2)
       if (closeIdx !== -1) {
         const inner = currentText.substring(2, closeIdx)
-        tokens.push(
-          <strong key={keyIdx++} className="font-extrabold">
-            {parseLineToInlineElements(inner, defaultFontClass, config)}
-          </strong>
+        result.push(
+          ...compileToStyledChars(
+            inner,
+            defaultFontClass,
+            config,
+            true,
+            isItalic,
+            isCode,
+            currentFontClass
+          )
         )
         currentText = currentText.substring(closeIdx + 2)
       } else {
-        tokens.push(<span key={keyIdx++}>**</span>)
+        result.push({ char: '*', isBold, isItalic, isCode, fontClass: currentFontClass || defaultFontClass })
+        result.push({ char: '*', isBold, isItalic, isCode, fontClass: currentFontClass || defaultFontClass })
         currentText = currentText.substring(2)
       }
     } else if (nextMatch.type === 'italic') {
       const closeIdx = currentText.indexOf('*', 1)
       if (closeIdx !== -1) {
         const inner = currentText.substring(1, closeIdx)
-        tokens.push(
-          <em key={keyIdx++} className="italic">
-            {parseLineToInlineElements(inner, defaultFontClass, config)}
-          </em>
+        result.push(
+          ...compileToStyledChars(
+            inner,
+            defaultFontClass,
+            config,
+            isBold,
+            true,
+            isCode,
+            currentFontClass
+          )
         )
         currentText = currentText.substring(closeIdx + 1)
       } else {
-        tokens.push(<span key={keyIdx++}>*</span>)
+        result.push({ char: '*', isBold, isItalic, isCode, fontClass: currentFontClass || defaultFontClass })
         currentText = currentText.substring(1)
       }
     } else if (nextMatch.type === 'code') {
       const closeIdx = currentText.indexOf('`', 1)
       if (closeIdx !== -1) {
         const inner = currentText.substring(1, closeIdx)
-        tokens.push(
-          <code key={keyIdx++} className="font-monospace bg-black/10 px-1 rounded text-sm">
-            {parseLineToInlineElements(inner, 'font-monospace', config)}
-          </code>
+        result.push(
+          ...compileToStyledChars(
+            inner,
+            'font-monospace',
+            config,
+            isBold,
+            isItalic,
+            true,
+            'font-monospace'
+          )
         )
         currentText = currentText.substring(closeIdx + 1)
       } else {
-        tokens.push(<span key={keyIdx++}>`</span>)
+        result.push({ char: '`', isBold, isItalic, isCode, fontClass: currentFontClass || defaultFontClass })
         currentText = currentText.substring(1)
       }
     } else if (nextMatch.type === 'font') {
@@ -120,40 +175,107 @@ function parseLineToInlineElements(
         else if (fontName === 'Garamond Bold') overrideClass = 'font-garamond-bold'
         else if (fontName === 'Monospace') overrideClass = 'font-monospace'
 
-        tokens.push(
-          <span key={keyIdx++} className={overrideClass}>
-            {parseLineToInlineElements(innerText, overrideClass, config)}
-          </span>
+        result.push(
+          ...compileToStyledChars(
+            innerText,
+            defaultFontClass,
+            config,
+            isBold,
+            isItalic,
+            isCode,
+            overrideClass
+          )
         )
         currentText = currentText.substring(closeFontIdx + 7)
       } else {
-        tokens.push(<span key={keyIdx++}>[font:</span>)
+        const rawPart = currentText.substring(0, 6)
+        for (const char of rawPart) {
+          result.push({ char, isBold, isItalic, isCode, fontClass: currentFontClass || defaultFontClass })
+        }
         currentText = currentText.substring(6)
       }
     }
   }
 
-  return <>{tokens}</>
+  return result
 }
 
-// Tokenizing formatter to support bold, italic, and different fonts safely
-function parseFormattedText(
-  text: string,
-  defaultFontClass: string,
-  config: MurmurConfig
-): React.ReactNode {
-  if (!text) return null
+// Group contiguous styled characters to HTML elements for efficient rendering
+function renderStyledChars(chars: StyledChar[]): React.ReactNode {
+  if (chars.length === 0) return null
 
-  // Split only at the very top level for lines
-  const lines = config.enableNewlines ? text.split('\n') : [text.replace(/\n/g, ' ')]
+  const runs: StyledRun[] = []
+  let currentRun: StyledRun | null = null
+
+  for (const char of chars) {
+    if (
+      currentRun &&
+      currentRun.isBold === char.isBold &&
+      currentRun.isItalic === char.isItalic &&
+      currentRun.isCode === char.isCode &&
+      currentRun.fontClass === char.fontClass
+    ) {
+      currentRun.text += char.char
+    } else {
+      if (currentRun) {
+        runs.push(currentRun)
+      }
+      currentRun = {
+        text: char.char,
+        isBold: char.isBold,
+        isItalic: char.isItalic,
+        isCode: char.isCode,
+        fontClass: char.fontClass
+      }
+    }
+  }
+  if (currentRun) {
+    runs.push(currentRun)
+  }
 
   return (
     <>
-      {lines.map((line, lineIdx) => (
-        <div key={lineIdx} className="min-h-[1.5em] w-full">
-          {parseLineToInlineElements(line, defaultFontClass, config)}
-        </div>
-      ))}
+      {runs.map((run, idx) => {
+        let node: React.ReactNode = <span>{run.text}</span>
+        if (run.isCode) {
+          node = <code className="font-monospace bg-black/10 px-1 rounded text-sm">{node}</code>
+        }
+        if (run.isItalic) {
+          node = <em className="italic">{node}</em>
+        }
+        if (run.isBold) {
+          node = <strong className="font-extrabold">{node}</strong>
+        }
+        
+        return (
+          <span key={idx} className={run.fontClass}>
+            {node}
+          </span>
+        )
+      })}
+    </>
+  )
+}
+
+function renderSlicedPhrase(phraseLines: StyledChar[][], visibleCount: number): React.ReactNode {
+  let remaining = visibleCount
+  
+  return (
+    <>
+      {phraseLines.map((line, lineIdx) => {
+        if (remaining <= 0) {
+          return <div key={lineIdx} className="min-h-[1.5em] w-full" />
+        }
+        
+        const lineChars = line.slice(0, remaining)
+        remaining -= line.length
+        
+        return (
+          <div key={lineIdx} className="min-h-[1.5em] w-full">
+            {renderStyledChars(lineChars)}
+          </div>
+        )
+      })}
     </>
   )
 }
@@ -162,7 +284,8 @@ export default function WallpaperView() {
   const [config, setConfig] = useState<MurmurConfig | null>(null)
   const [state, setState] = useState<MurmurState | null>(null)
   const [monitorId, setMonitorId] = useState<string>('')
-  const [visibleText, setVisibleText] = useState<string>('')
+  const [phraseLines, setPhraseLines] = useState<StyledChar[][]>([])
+  const [visibleCount, setVisibleCount] = useState<number>(0)
 
   useEffect(() => {
     // 1. Get monitorId from search parameters
@@ -192,15 +315,29 @@ export default function WallpaperView() {
     }
   }, [])
 
-  // 5. Undertale Typewriter Reveal Hook
+  // 5. Compile phrase and drive Typewriter reveals
   useEffect(() => {
     if (!state || !config || !monitorId) return
     const phrase = state.lastPhrases[monitorId] || 'Surrealism is the quiet hum of the world'
 
+    // Font class mapping
+    let defaultFontClass = 'font-serif'
+    if (config.fontFamily === 'EB Garamond') defaultFontClass = 'font-eb-garamond'
+    else if (config.fontFamily === 'Playfair Display') defaultFontClass = 'font-playfair'
+    else if (config.fontFamily === 'Outfit') defaultFontClass = 'font-outfit'
+    else if (config.fontFamily === 'Garamond Bold') defaultFontClass = 'font-garamond-bold'
+    else if (config.fontFamily === 'Monospace') defaultFontClass = 'font-monospace'
+
+    const lines = config.enableNewlines ? phrase.split('\\n') : [phrase.replace(/\\n/g, ' ')]
+    const compiled = lines.map(line => compileToStyledChars(line, defaultFontClass, config))
+    
+    setPhraseLines(compiled)
+
+    const total = compiled.reduce((acc, l) => acc + l.length, 0)
+
     if (config.animation === 'Typewriter') {
-      setVisibleText('')
-      let current = ''
-      let index = 0
+      setVisibleCount(0)
+      let count = 0
       
       const playBlipSound = () => {
         if (!config.audioFeedback) return
@@ -225,12 +362,14 @@ export default function WallpaperView() {
         }
       }
 
+      const flatChars = compiled.flat()
+
       const timer = setInterval(() => {
-        if (index < phrase.length) {
-          current += phrase[index]
-          setVisibleText(current)
-          index++
-          if (phrase[index - 1] !== ' ' && phrase[index - 1] !== '\n') {
+        if (count < total) {
+          const nextChar = flatChars[count]
+          count++
+          setVisibleCount(count)
+          if (nextChar && nextChar.char !== ' ') {
             playBlipSound()
           }
         } else {
@@ -240,7 +379,7 @@ export default function WallpaperView() {
 
       return () => clearInterval(timer)
     } else {
-      setVisibleText(phrase)
+      setVisibleCount(total)
     }
   }, [state, config, monitorId])
 
@@ -292,16 +431,35 @@ export default function WallpaperView() {
   else if (config.animation === 'Glitch') animClass = 'animate-glitch'
 
   const renderScatteredLayout = () => {
-    if (!visibleText) return null
+    if (phraseLines.length === 0) return null
+    const flatChars = phraseLines.flat()
+    const visibleChars = flatChars.slice(0, visibleCount)
+    
+    // Group visible chars to words split by space
+    const words: StyledChar[][] = []
+    let currentWord: StyledChar[] = []
+    for (const char of visibleChars) {
+      if (char.char === ' ') {
+        if (currentWord.length > 0) {
+          words.push(currentWord)
+          currentWord = []
+        }
+      } else {
+        currentWord.push(char)
+      }
+    }
+    if (currentWord.length > 0) {
+      words.push(currentWord)
+    }
+
     const phraseKey = state.lastPhrases[monitorId] || 'empty'
     const rand = createSeededRandom(phraseKey)
-    const words = visibleText.split(' ')
 
     return (
       <div className="w-full h-full relative">
-        {words.map((word, index) => {
-          const x = 15 + rand() * 70 // 15% to 85%
-          const y = 20 + rand() * 60 // 20% to 80%
+        {words.map((wordChars, index) => {
+          const x = 15 + rand() * 70
+          const y = 20 + rand() * 60
           const rotation = (rand() - 0.5) * 20
           const scale = 0.8 + rand() * 0.6
           const opacity = 0.4 + rand() * 0.6
@@ -319,7 +477,7 @@ export default function WallpaperView() {
                 textShadow: '0 4px 12px rgba(0,0,0,0.1)'
               }}
             >
-              {parseFormattedText(word, fontClass, config)}
+              {renderStyledChars(wordChars)}
             </span>
           )
         })}
@@ -327,22 +485,66 @@ export default function WallpaperView() {
     )
   };
 
+  const getAsymmetricalRuns = (chars: StyledChar[]) => {
+    const words: StyledChar[][] = []
+    let currentWord: StyledChar[] = []
+    for (const char of chars) {
+      if (char.char === ' ') {
+        if (currentWord.length > 0) {
+          words.push(currentWord)
+          currentWord = []
+        }
+        words.push([char])
+      } else {
+        currentWord.push(char)
+      }
+    }
+    if (currentWord.length > 0) {
+      words.push(currentWord)
+    }
+
+    const chunkCount = Math.min(3, words.length)
+    const lines: StyledChar[][] = []
+    const chunkSize = Math.ceil(words.length / chunkCount)
+    for (let i = 0; i < chunkCount; i++) {
+      const lineWords = words.slice(i * chunkSize, (i + 1) * chunkSize)
+      lines.push(lineWords.flat())
+    }
+    return lines
+  }
+
   const renderAsymmetricalLayout = () => {
-    const lines = getAsymmetricalLines(visibleText)
+    const flatChars = phraseLines.flat()
+    const chunks = getAsymmetricalRuns(flatChars)
+    
+    let remaining = visibleCount
     return (
       <div className={`flex flex-col w-full max-w-4xl space-y-6 ${animClass}`}>
-        {lines.map((line, index) => {
+        {chunks.map((chunk, index) => {
           let lineAlign = 'self-center text-center'
           if (index === 0) lineAlign = 'self-start text-left pl-6'
           else if (index === 2) lineAlign = 'self-end text-right pr-6'
           
+          if (remaining <= 0) {
+            return (
+              <h1
+                key={index}
+                className={`${textColor} ${fontClass} ${lineAlign} leading-relaxed select-none tracking-wide antialiased min-h-[1.5em]`}
+                style={{ fontSize: 'clamp(1.8rem, 3.8vw, 3.5rem)' }}
+              />
+            )
+          }
+
+          const visibleChunk = chunk.slice(0, remaining)
+          remaining -= chunk.length
+
           return (
             <h1
-              key={`${line}_${index}`}
+              key={index}
               className={`${textColor} ${fontClass} ${lineAlign} leading-relaxed select-none tracking-wide antialiased ${animClass}`}
               style={{ fontSize: 'clamp(1.8rem, 3.8vw, 3.5rem)', textShadow: '0 2px 10px rgba(0,0,0,0.05)' }}
             >
-              {parseFormattedText(line, fontClass, config)}
+              {renderStyledChars(visibleChunk)}
             </h1>
           )
         })}
@@ -357,7 +559,7 @@ export default function WallpaperView() {
           className={`${textColor} ${fontClass} leading-loose select-none tracking-widest antialiased`}
           style={{ fontSize: 'clamp(1.4rem, 2.8vw, 2.4rem)', textShadow: '0 2px 8px rgba(0,0,0,0.03)' }}
         >
-          {parseFormattedText(visibleText, fontClass, config)}
+          {renderSlicedPhrase(phraseLines, visibleCount)}
         </h1>
         <div className={`h-[1px] w-24 my-10 bg-current opacity-20`} />
         {state.lastRefreshTime && (
@@ -376,22 +578,11 @@ export default function WallpaperView() {
           className={`${textColor} ${fontClass} ${animClass} leading-relaxed select-none tracking-wide antialiased`}
           style={{ fontSize: 'clamp(1.6rem, 3.6vw, 3.2rem)', textShadow: '0 2px 10px rgba(0,0,0,0.05)' }}
         >
-          {parseFormattedText(visibleText, fontClass, config) || 'Surrealism is the quiet hum of the world'}
+          {renderSlicedPhrase(phraseLines, visibleCount)}
         </h1>
       </div>
     )
   };
-
-  const getAsymmetricalLines = (text: string) => {
-    const words = text.split(' ')
-    const chunkCount = Math.min(3, words.length)
-    const lines: string[] = []
-    const chunkSize = Math.ceil(words.length / chunkCount)
-    for (let i = 0; i < chunkCount; i++) {
-      lines.push(words.slice(i * chunkSize, (i + 1) * chunkSize).join(' '))
-    }
-    return lines
-  }
 
   // Theme styles classes
   let bgThemeClass = ''
