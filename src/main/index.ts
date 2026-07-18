@@ -154,6 +154,9 @@ function createBackgroundWindow(screenInfo: { id: string; width: number; height:
 
   bgWindow.once('ready-to-show', async () => {
     bgWindow.show()
+    // Force Electron mouse events ignore for click-through support
+    bgWindow.setIgnoreMouseEvents(true)
+    
     try {
       if (typeof wallpaperRenderer.inject === 'function') {
         console.log(`Injecting live window for display ${screenInfo.id} into WorkerW container...`)
@@ -245,7 +248,13 @@ app.whenReady().then(async () => {
       const display = displays.find((d) => String(d.id) === s.id) || displays[0]
       const bounds = display ? display.bounds : { x: 0, y: 0, width: 1920, height: 1080 }
       
-      createBackgroundWindow({ id: s.id, width: bounds.width, height: bounds.height }, bounds.x, bounds.y)
+      // Expand bounds slightly to prevent visual gaps at edges from rounding/scaling errors
+      const expandedX = bounds.x - 4
+      const expandedY = bounds.y - 4
+      const expandedWidth = bounds.width + 8
+      const expandedHeight = bounds.height + 8
+
+      createBackgroundWindow({ id: s.id, width: expandedWidth, height: expandedHeight }, expandedX, expandedY)
     }
     state = {
       ...state,
