@@ -58,6 +58,18 @@ namespace Murmur {
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
+        [StructLayout(LayoutKind.Sequential)]
+        public struct RECT {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool GetClientRect(IntPtr hWnd, out RECT lpRect);
+
         private const int GWL_STYLE = -16;
         private const int GWL_EXSTYLE = -20;
 
@@ -68,6 +80,7 @@ namespace Murmur {
         private const int WS_MINIMIZEBOX = 0x00020000;
         private const int WS_MAXIMIZEBOX = 0x00010000;
         private const int WS_SYSMENU = 0x00080000;
+        private const int WS_VISIBLE = 0x10000000;
 
         private const int WS_EX_TRANSPARENT = 0x20;
         private const int WS_EX_NOACTIVATE = 0x08000000;
@@ -226,21 +239,29 @@ namespace Murmur {
                         return;
                     }
 
-                    // 5. Transition target window style from POPUP to CHILD to become a nested control window
+                    // 5. Query the parent container size to map coordinates relative to parent top-left (0,0)
+                    RECT rect;
+                    GetClientRect(targetParent, out rect);
+                    int width = rect.Right - rect.Left;
+                    int height = rect.Bottom - rect.Top;
+
+                    // 6. Transition target window style from POPUP to CHILD to become a nested control window
                     int style = GetWindowLong(childHwnd, GWL_STYLE);
                     style &= ~(WS_POPUP | WS_CAPTION | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU);
-                    style |= WS_CHILD;
+                    style |= WS_CHILD | WS_VISIBLE;
                     SetWindowLong(childHwnd, GWL_STYLE, style);
 
-                    // 6. Parent our window inside the target container
+                    // 7. Parent our window inside the target container
                     SetParent(childHwnd, targetParent);
 
-                    // 7. Apply extended styles (layered, non-activatable, transparent click-through)
+                    // 8. Apply extended styles (layered, non-activatable, transparent click-through)
                     int exStyle = GetWindowLong(childHwnd, GWL_EXSTYLE);
                     SetWindowLong(childHwnd, GWL_EXSTYLE, exStyle | WS_EX_TRANSPARENT | WS_EX_LAYERED | WS_EX_NOACTIVATE);
 
-                    // 8. Force window to the bottom Z-order (HWND_BOTTOM = 1)
-                    SetWindowPos(childHwnd, (IntPtr)1, 0, 0, 0, 0, 0x0002 | 0x0001 | 0x0010 | 0x0040);
+                    // 9. Resize and reposition the window to match the parent client bounds, and trigger frame updates
+                    // HWND_TOP = 0
+                    // SWP_NOACTIVATE = 0x0010, SWP_SHOWWINDOW = 0x0040, SWP_FRAMECHANGED = 0x0020
+                    SetWindowPos(childHwnd, IntPtr.Zero, 0, 0, width, height, 0x0010 | 0x0040 | 0x0020);
 
                     Console.WriteLine("SUCCESS");
                 } catch (Exception ex) {
