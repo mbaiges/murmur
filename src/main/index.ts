@@ -13,6 +13,12 @@ import { MurmurService } from '../domain/MurmurService'
 import { Scheduler } from '../domain/Scheduler'
 import { MurmurState } from '../domain/types'
 import { IRssFetcher } from '../ports/IRssFetcher'
+
+// Disable GPU acceleration globally to allow Electron windows to render reliably inside WorkerW
+app.disableHardwareAcceleration()
+
+// Disable GPU acceleration globally to allow Electron windows to render reliably inside WorkerW
+app.disableHardwareAcceleration()
 import { IPhraseGenerator } from '../ports/IPhraseGenerator'
 import { IWallpaperRenderer } from '../ports/IWallpaperRenderer'
 
@@ -202,6 +208,28 @@ function setupIpc() {
       }
     }
 
+    // Manage background window lifecycles based on active animation preference
+    if (newConfig.animation === 'Instant') {
+      // Destroy all active background windows to free memory and return to native static background
+      bgWindows.forEach((win) => {
+        if (!win.isDestroyed()) {
+          win.destroy()
+        }
+      })
+      bgWindows.clear()
+    } else {
+      // Ensure background windows are spawned if turning animation back on
+      const screens = await wallpaperRenderer.getScreens()
+      const displays = screen.getAllDisplays()
+      for (const s of screens) {
+        if (!bgWindows.has(s.id)) {
+          const display = displays.find((d) => String(d.id) === s.id) || displays[0]
+          const bounds = display ? display.bounds : { x: 0, y: 0, width: 1920, height: 1080 }
+          createBackgroundWindow({ id: s.id, width: bounds.width, height: bounds.height }, bounds.x, bounds.y)
+        }
+      }
+    }
+
     // Broadcast live config updates to all background windows
     bgWindows.forEach((win) => {
       if (!win.isDestroyed()) {
@@ -211,7 +239,7 @@ function setupIpc() {
     settingsWindow?.webContents.send('config:updated', newConfig)
 
     if (newConfig.geminiApiKey) {
-      await murmurService.updateClockWallpapers()
+      await murmurService.updateClockWallpapers(state)
     }
   })
 
@@ -227,7 +255,7 @@ function setupIpc() {
 function startClockScheduler() {
   const tickClock = async () => {
     if (!state.isPaused) {
-      await murmurService.updateClockWallpapers()
+      await murmurService.updateClockWallpapers(state)
     }
   }
 
@@ -249,13 +277,16 @@ app.whenReady().then(async () => {
     const initialPhrases: Record<string, string> = {}
     const displays = screen.getAllDisplays()
 
+    const configTemp = await configStore.get()
+    const shouldSpawnBg = configTemp.animation !== 'Instant'
+
     for (const s of screens) {
       initialPhrases[s.id] = ''
-      const display = displays.find((d) => String(d.id) === s.id) || displays[0]
-      const bounds = display ? display.bounds : { x: 0, y: 0, width: 1920, height: 1080 }
-      
-      // Use exact screen bounds to avoid Win32 window clipping margins
-      createBackgroundWindow({ id: s.id, width: bounds.width, height: bounds.height }, bounds.x, bounds.y)
+      if (shouldSpawnBg) {
+        const display = displays.find((d) => String(d.id) === s.id) || displays[0]
+        const bounds = display ? display.bounds : { x: 0, y: 0, width: 1920, height: 1080 }
+        createBackgroundWindow({ id: s.id, width: bounds.width, height: bounds.height }, bounds.x, bounds.y)
+      }
     }
     state = {
       ...state,

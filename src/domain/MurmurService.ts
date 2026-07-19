@@ -76,19 +76,23 @@ export class MurmurService {
         // Save to history log
         await this.historyStore.save(screen.id, phrase)
 
-        // Paint static underlay (gradient background with NO phrase text) so taskbar acrylic blur matches theme colors!
         const theme = monitorConf?.themeOverride || config.theme
+        const isStaticMode = config.animation === 'Instant'
+        
+        // If static mode is active, bake the phrase text and overlays directly onto the native desktop wallpaper
         const staticOptions = {
-          phrase: '', // NO TEXT
+          phrase: isStaticMode ? phrase : '',
           theme,
           fontFamily: config.fontFamily,
           animation: 'Instant' as any,
-          overlays: { dateTime: false, sourceCredit: false, inspiringHeadlines: false },
+          overlays: isStaticMode ? config.overlays : { dateTime: false, sourceCredit: false, inspiringHeadlines: false },
           resolution: { width: screen.width, height: screen.height },
           textAlignment: config.textAlignment,
           layoutStyle: config.layoutStyle,
           vignetteStyle: config.vignetteStyle,
-          audioFeedback: false
+          audioFeedback: false,
+          headlines: isStaticMode ? sampled.map(item => item.title) : undefined,
+          sources: isStaticMode ? Array.from(new Set(sampled.map(i => i.source))) : undefined
         }
         const buffer = await this.painter.paint(staticOptions)
         await this.renderer.set(screen.id, buffer)
@@ -138,7 +142,7 @@ export class MurmurService {
     }
   }
 
-  public async updateClockWallpapers(): Promise<void> {
+  public async updateClockWallpapers(state: any): Promise<void> {
     try {
       const config = await this.configStore.get()
       if (!config.geminiApiKey) {
