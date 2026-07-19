@@ -629,9 +629,17 @@ export default function WallpaperView() {
         <div className={`absolute bottom-12 left-12 space-y-1.5 ${mutedColor} max-w-sm font-sans select-none animate-fade-in`}>
           <p className="text-[10px] font-bold tracking-widest uppercase">Concepts Sampled</p>
           <div className="text-xs space-y-1">
-            <p>• Quantum fluctuations in regulatory bounds</p>
-            <p>• Artificial gravity drifts in local news</p>
-            <p>• Micro-aggregations of poetry feeds</p>
+            {state.lastHeadlines && state.lastHeadlines[monitorId] && state.lastHeadlines[monitorId].length > 0 ? (
+              state.lastHeadlines[monitorId].map((headline, idx) => (
+                <p key={idx}>• {headline}</p>
+              ))
+            ) : (
+              <>
+                <p>• Quantum fluctuations in regulatory bounds</p>
+                <p>• Artificial gravity drifts in local news</p>
+                <p>• Micro-aggregations of poetry feeds</p>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -640,7 +648,11 @@ export default function WallpaperView() {
       {config.overlays.sourceCredit && state.lastRefreshTime && (
         <div className={`absolute bottom-12 right-12 text-right ${mutedColor} font-sans text-xs select-none animate-fade-in`}>
           <p className="text-[10px] font-bold tracking-widest uppercase mb-1">Sources Contributed</p>
-          <p className="italic">BBC News, NYT Science</p>
+          <p className="italic">
+            {state.lastSources && state.lastSources[monitorId] && state.lastSources[monitorId].length > 0
+              ? state.lastSources[monitorId].join(', ')
+              : 'BBC News, NYT Science'}
+          </p>
         </div>
       )}
 

@@ -23,7 +23,9 @@ let isQuitting = false
 let state: MurmurState = {
   isPaused: false,
   lastRefreshTime: undefined,
-  lastPhrases: {}
+  lastPhrases: {},
+  lastHeadlines: {},
+  lastSources: {}
 }
 
 const configStore = new JsonConfigStoreAdapter()
@@ -130,7 +132,6 @@ function createBackgroundWindow(screenInfo: { id: string; width: number; height:
     transparent: true,
     enableLargerThanScreen: true,
     skipTaskbar: true,
-    type: 'desktop',
     title: windowTitle,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),

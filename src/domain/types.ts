@@ -91,4 +91,6 @@ export interface MurmurState {
   isPaused: boolean
   lastRefreshTime?: string
   lastPhrases: Record<string, string>
+  lastHeadlines?: Record<string, string[]>
+  lastSources?: Record<string, string[]>
 }

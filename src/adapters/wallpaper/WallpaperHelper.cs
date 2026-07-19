@@ -176,25 +176,33 @@ namespace Murmur {
                     IntPtr result = IntPtr.Zero;
                     SendMessageTimeout(progman, 0x052C, IntPtr.Zero, IntPtr.Zero, 0, 1000, out result);
 
-                    // 2. Scan and classify all WorkerW windows:
-                    // shellWorkerW holds the desktop icons (SHELLDLL_DefView).
-                    // workerwToUse holds the sibling wallpaper layer sitting BEHIND shellWorkerW.
+                    // 2. Scan and classify all WorkerW windows with a retry loop (wait up to 500ms total for Explorer thread split)
                     IntPtr shellWorkerW = IntPtr.Zero;
                     IntPtr workerwToUse = IntPtr.Zero;
 
-                    EnumWindows(new EnumWindowsProc((tophwnd, lparam) => {
-                        StringBuilder className = new StringBuilder(256);
-                        GetClassName(tophwnd, className, className.Capacity);
-                        if (className.ToString() == "WorkerW") {
-                            IntPtr shellDll = FindWindowEx(tophwnd, IntPtr.Zero, "SHELLDLL_DefView", null);
-                            if (shellDll != IntPtr.Zero) {
-                                shellWorkerW = tophwnd;
-                            } else {
-                                workerwToUse = tophwnd;
+                    for (int attempt = 0; attempt < 10; attempt++) {
+                        shellWorkerW = IntPtr.Zero;
+                        workerwToUse = IntPtr.Zero;
+
+                        EnumWindows(new EnumWindowsProc((tophwnd, lparam) => {
+                            StringBuilder className = new StringBuilder(256);
+                            GetClassName(tophwnd, className, className.Capacity);
+                            if (className.ToString() == "WorkerW") {
+                                IntPtr shellDll = FindWindowEx(tophwnd, IntPtr.Zero, "SHELLDLL_DefView", null);
+                                if (shellDll != IntPtr.Zero) {
+                                    shellWorkerW = tophwnd;
+                                } else {
+                                    workerwToUse = tophwnd;
+                                }
                             }
+                            return true;
+                        }), IntPtr.Zero);
+
+                        if (shellWorkerW != IntPtr.Zero && workerwToUse != IntPtr.Zero) {
+                            break; // Successfully found both sibling WorkerW windows
                         }
-                        return true;
-                    }), IntPtr.Zero);
+                        System.Threading.Thread.Sleep(50);
+                    }
 
                     // If we couldn't identify the sibling WorkerW, default to shellWorkerW or Progman
                     IntPtr targetParent = workerwToUse != IntPtr.Zero ? workerwToUse : (shellWorkerW != IntPtr.Zero ? shellWorkerW : progman);

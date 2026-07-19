@@ -95,7 +95,9 @@ describe('MurmurService', () => {
     expect(trayMock.updateState).toHaveBeenCalledWith({
       isPaused: false,
       lastRefreshTime: expect.any(String),
-      lastPhrases: { 'screen-1': 'surreal phrase' }
+      lastPhrases: { 'screen-1': 'surreal phrase' },
+      lastHeadlines: { 'screen-1': ['Headline 1', 'Headline 2'] },
+      lastSources: { 'screen-1': ['Source 1', 'Source 2'] }
     })
   })
 

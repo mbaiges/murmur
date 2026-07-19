@@ -50,6 +50,8 @@ export class MurmurService {
       // 2. Discover active monitors
       const activeScreens = await this.renderer.getScreens()
       const lastPhrases: Record<string, string> = {}
+      const lastHeadlines: Record<string, string[]> = {}
+      const lastSources: Record<string, string[]> = {}
 
       // 3. For each active screen, generate and set wallpaper if enabled
       for (const screen of activeScreens) {
@@ -68,6 +70,8 @@ export class MurmurService {
         // Generate unique phrase per display
         const phrase = await this.ai.generate(generatorInputs, config.language)
         lastPhrases[screen.id] = phrase
+        lastHeadlines[screen.id] = sampled.map((item) => item.title)
+        lastSources[screen.id] = Array.from(new Set(sampled.map((item) => item.source)))
 
         // Save to history log
         await this.historyStore.save(screen.id, phrase)
@@ -94,7 +98,9 @@ export class MurmurService {
       this.tray.updateState({
         isPaused: false,
         lastRefreshTime: new Date().toLocaleTimeString(),
-        lastPhrases
+        lastPhrases,
+        lastHeadlines,
+        lastSources
       })
     } catch (error) {
       console.error('MurmurService refresh failed:', error)
