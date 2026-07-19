@@ -58,7 +58,17 @@ namespace Murmur {
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
+        private const int GWL_STYLE = -16;
         private const int GWL_EXSTYLE = -20;
+
+        private const int WS_CHILD = 0x40000000;
+        private const int WS_POPUP = unchecked((int)0x80000000);
+        private const int WS_CAPTION = 0x00C00000;
+        private const int WS_THICKFRAME = 0x00040000;
+        private const int WS_MINIMIZEBOX = 0x00020000;
+        private const int WS_MAXIMIZEBOX = 0x00010000;
+        private const int WS_SYSMENU = 0x00080000;
+
         private const int WS_EX_TRANSPARENT = 0x20;
         private const int WS_EX_NOACTIVATE = 0x08000000;
         private const int WS_EX_LAYERED = 0x80000;
@@ -168,9 +178,9 @@ namespace Murmur {
 
                     // 2. Scan and classify all WorkerW windows:
                     // shellWorkerW holds the desktop icons (SHELLDLL_DefView).
-                    // workerwToHide holds the redundant static wallpaper layer (hide it to reveal icons).
+                    // workerwToUse holds the sibling wallpaper layer sitting BEHIND shellWorkerW.
                     IntPtr shellWorkerW = IntPtr.Zero;
-                    IntPtr workerwToHide = IntPtr.Zero;
+                    IntPtr workerwToUse = IntPtr.Zero;
 
                     EnumWindows(new EnumWindowsProc((tophwnd, lparam) => {
                         StringBuilder className = new StringBuilder(256);
@@ -180,18 +190,18 @@ namespace Murmur {
                             if (shellDll != IntPtr.Zero) {
                                 shellWorkerW = tophwnd;
                             } else {
-                                workerwToHide = tophwnd;
+                                workerwToUse = tophwnd;
                             }
                         }
                         return true;
                     }), IntPtr.Zero);
 
-                    // If we couldn't identify the icon-hosting WorkerW, default to Progman
-                    IntPtr targetParent = shellWorkerW != IntPtr.Zero ? shellWorkerW : progman;
+                    // If we couldn't identify the sibling WorkerW, default to shellWorkerW or Progman
+                    IntPtr targetParent = workerwToUse != IntPtr.Zero ? workerwToUse : (shellWorkerW != IntPtr.Zero ? shellWorkerW : progman);
 
-                    // 3. Hide the redundant static wallpaper window if found to reveal the active icons
-                    if (workerwToHide != IntPtr.Zero) {
-                        ShowWindow(workerwToHide, 0); // SW_HIDE = 0
+                    // 3. Ensure the sibling WorkerW container is visible (SW_SHOW = 5)
+                    if (workerwToUse != IntPtr.Zero) {
+                        ShowWindow(workerwToUse, 5);
                     }
 
                     // 4. Find the target borderless window
@@ -201,14 +211,20 @@ namespace Murmur {
                         return;
                     }
 
-                    // 5. Parent our window to target container
+                    // 5. Transition target window style from POPUP to CHILD to become a nested control window
+                    int style = GetWindowLong(childHwnd, GWL_STYLE);
+                    style &= ~(WS_POPUP | WS_CAPTION | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU);
+                    style |= WS_CHILD;
+                    SetWindowLong(childHwnd, GWL_STYLE, style);
+
+                    // 6. Parent our window inside the target container
                     SetParent(childHwnd, targetParent);
 
-                    // 6. Apply transparency / click-through / non-activatable styles
+                    // 7. Apply extended styles (layered, non-activatable, transparent click-through)
                     int exStyle = GetWindowLong(childHwnd, GWL_EXSTYLE);
                     SetWindowLong(childHwnd, GWL_EXSTYLE, exStyle | WS_EX_TRANSPARENT | WS_EX_LAYERED | WS_EX_NOACTIVATE);
 
-                    // 7. Force window to the bottom Z-order (HWND_BOTTOM = 1) behind the icon view (SHELLDLL_DefView)
+                    // 8. Force window to the bottom Z-order (HWND_BOTTOM = 1)
                     SetWindowPos(childHwnd, (IntPtr)1, 0, 0, 0, 0, 0x0002 | 0x0001 | 0x0010 | 0x0040);
 
                     Console.WriteLine("SUCCESS");
