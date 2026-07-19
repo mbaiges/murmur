@@ -160,8 +160,13 @@ function createBackgroundWindow(screenInfo: { id: string; width: number; height:
     
     try {
       if (typeof wallpaperRenderer.inject === 'function') {
-        console.log(`Injecting live window for display ${screenInfo.id} into WorkerW container...`)
-        await wallpaperRenderer.inject(windowTitle)
+        const hwndBuffer = bgWindow.getNativeWindowHandle()
+        const hwndVal = process.arch === 'x64'
+          ? hwndBuffer.readBigInt64LE(0).toString()
+          : hwndBuffer.readInt32LE(0).toString()
+
+        console.log(`Injecting live window for display ${screenInfo.id} (HWND: ${hwndVal}) into WorkerW container...`)
+        await wallpaperRenderer.inject(hwndVal)
       }
     } catch (err) {
       console.error(`Failed to inject window for display ${screenInfo.id} into desktop`, err)

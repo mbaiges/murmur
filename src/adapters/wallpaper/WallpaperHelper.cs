@@ -212,8 +212,15 @@ namespace Murmur {
                         ShowWindow(workerwToUse, 5);
                     }
 
-                    // 4. Find the target borderless window
-                    IntPtr childHwnd = FindWindow(null, title);
+                    // 4. Find the target borderless window (either by raw HWND number or title fallback)
+                    IntPtr childHwnd = IntPtr.Zero;
+                    long parsedHwnd;
+                    if (long.TryParse(title, out parsedHwnd)) {
+                        childHwnd = new IntPtr(parsedHwnd);
+                    } else {
+                        childHwnd = FindWindow(null, title);
+                    }
+
                     if (childHwnd == IntPtr.Zero) {
                         Console.WriteLine("ERROR: Target window not found: " + title);
                         return;
