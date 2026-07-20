@@ -253,19 +253,8 @@ function setupIpc() {
 }
 
 function startClockScheduler() {
-  const tickClock = async () => {
-    if (!state.isPaused) {
-      await murmurService.updateClockWallpapers(state)
-    }
-  }
-
-  const now = new Date()
-  const msUntilNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds()
-  
-  setTimeout(() => {
-    tickClock()
-    setInterval(tickClock, 60 * 1000)
-  }, msUntilNextMinute)
+  // Disabled main process background clock ticker to eliminate the Win32 SetWallpaper screen blinks/flickers.
+  // The React clock widget handles UI updates smoothly on screen in Chromium.
 }
 
 app.whenReady().then(async () => {

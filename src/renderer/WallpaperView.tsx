@@ -315,7 +315,7 @@ export default function WallpaperView() {
     }
   }, [])
 
-  // 5. Compile phrase and drive Typewriter reveals
+  // 5. Compile phrase and drive Typewriter reveals (only when the phrase itself changes)
   useEffect(() => {
     if (!state || !config || !monitorId) return
     const phrase = state.lastPhrases[monitorId] || 'Surrealism is the quiet hum of the world'
