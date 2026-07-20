@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { MurmurConfig, MurmurState, ThemeName, DEFAULT_SYSTEM_PROMPT } from '../domain/types'
+import { MurmurConfig, MurmurState, ThemeName, DEFAULT_SYSTEM_PROMPT, ABSURD_PROVERB_PROMPT, WORST_NEWS_TITLE_PROMPT, BEST_NEWS_TITLE_PROMPT } from '../domain/types'
 import WallpaperView from './WallpaperView'
 
 // Type cast helper for electron window API
@@ -314,16 +314,33 @@ export default function App() {
                 {/* AI System Prompt */}
                 <div>
                   <div className="flex justify-between items-center mb-2">
-                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">AI System Prompt Template</label>
-                    <button
-                      onClick={() => handleSave({ systemPrompt: DEFAULT_SYSTEM_PROMPT })}
-                      className="text-[10px] text-indigo-400 hover:text-indigo-300 font-medium uppercase tracking-wider"
+                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">AI System Prompt Preset</label>
+                    <select
+                      className="bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg px-2 py-1 text-xs text-slate-200 outline-none transition-all cursor-pointer"
+                      value={
+                        config.systemPrompt === ABSURD_PROVERB_PROMPT
+                          ? 'Absurd Proverb'
+                          : config.systemPrompt === WORST_NEWS_TITLE_PROMPT
+                            ? 'Worst News Title'
+                            : config.systemPrompt === BEST_NEWS_TITLE_PROMPT
+                              ? 'Best News Title'
+                              : 'Custom'
+                      }
+                      onChange={(e) => {
+                        const val = e.target.value
+                        if (val === 'Absurd Proverb') handleSave({ systemPrompt: ABSURD_PROVERB_PROMPT })
+                        else if (val === 'Worst News Title') handleSave({ systemPrompt: WORST_NEWS_TITLE_PROMPT })
+                        else if (val === 'Best News Title') handleSave({ systemPrompt: BEST_NEWS_TITLE_PROMPT })
+                      }}
                     >
-                      Reset to Default
-                    </button>
+                      <option value="Absurd Proverb">Absurd Proverb (Default)</option>
+                      <option value="Worst News Title">Worst News Title</option>
+                      <option value="Best News Title">Best News Title</option>
+                      <option value="Custom">Custom</option>
+                    </select>
                   </div>
                   <textarea
-                    rows={8}
+                    rows={6}
                     className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg px-3 py-2 text-xs text-slate-200 outline-none transition-all font-mono leading-relaxed resize-y"
                     value={config.systemPrompt}
                     onChange={(e) => handleSave({ systemPrompt: e.target.value })}
