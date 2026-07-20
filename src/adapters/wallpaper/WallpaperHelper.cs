@@ -27,6 +27,11 @@ namespace Murmur {
         [return: MarshalAs(UnmanagedType.LPWStr)]
         string GetMonitorDevicePathAt(uint monitorIndex);
         uint GetMonitorDevicePathCount();
+        void GetMonitorRECT([MarshalAs(UnmanagedType.LPWStr)] string monitorID, out RECT displayRect);
+        void SetBackgroundColor(uint color);
+        void GetBackgroundColor(out uint color);
+        void SetPosition(int position); // 4 = Fill, 5 = Span
+        void GetPosition(out int position);
     }
 
     class Program {
@@ -71,6 +76,10 @@ namespace Murmur {
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool GetClientRect(IntPtr hWnd, out RECT lpRect);
 
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
         private const int GWL_STYLE = -16;
         private const int GWL_EXSTYLE = -20;
 
@@ -112,7 +121,6 @@ namespace Murmur {
 
                 try {
                     // Update Windows User Registry to enforce 'Fill' style (WallpaperStyle = 10, TileWallpaper = 0)
-                    // This prevents Windows from spanning a single image across multiple monitors.
                     using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Control Panel\Desktop", true)) {
                         if (key != null) {
                             key.SetValue("WallpaperStyle", "10");
@@ -121,6 +129,8 @@ namespace Murmur {
                     }
 
                     var wp = (IDesktopWallpaper)new DesktopWallpaperClass();
+                    wp.SetPosition(4);
+
                     string id = wp.GetMonitorDevicePathAt((uint)index);
                     wp.SetWallpaper(id, path);
                     Console.WriteLine("SUCCESS");
@@ -249,29 +259,36 @@ namespace Murmur {
                         return;
                     }
 
-                    // 5. Query the parent container size to map coordinates relative to parent top-left (0,0)
-                    RECT rect;
-                    GetClientRect(targetParent, out rect);
-                    int width = rect.Right - rect.Left;
-                    int height = rect.Bottom - rect.Top;
+                    // 5. Query child window screen bounds BEFORE reparenting to identify its target monitor area
+                    RECT childRect;
+                    GetWindowRect(childHwnd, out childRect);
+                    int childWidth = childRect.Right - childRect.Left;
+                    int childHeight = childRect.Bottom - childRect.Top;
 
-                    // 6. Transition target window style from POPUP to CHILD to become a nested control window
+                    // 6. Query parent window screen bounds to calculate relative offset
+                    RECT parentRect;
+                    GetWindowRect(targetParent, out parentRect);
+
+                    int relativeX = childRect.Left - parentRect.Left;
+                    int relativeY = childRect.Top - parentRect.Top;
+
+                    // 7. Transition target window style from POPUP to CHILD to become a nested control window
                     int style = GetWindowLong(childHwnd, GWL_STYLE);
                     style &= ~(WS_POPUP | WS_CAPTION | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU);
                     style |= WS_CHILD | WS_VISIBLE;
                     SetWindowLong(childHwnd, GWL_STYLE, style);
 
-                    // 7. Parent our window inside the target container
+                    // 8. Parent our window inside the target container
                     SetParent(childHwnd, targetParent);
 
-                    // 8. Apply extended styles (layered, non-activatable, transparent click-through)
+                    // 9. Apply extended styles (layered, non-activatable, transparent click-through)
                     int exStyle = GetWindowLong(childHwnd, GWL_EXSTYLE);
                     SetWindowLong(childHwnd, GWL_EXSTYLE, exStyle | WS_EX_TRANSPARENT | WS_EX_LAYERED | WS_EX_NOACTIVATE);
 
-                    // 9. Resize and reposition the window to match the parent client bounds, and trigger frame updates
+                    // 10. Position and resize the child window precisely at its parent-relative monitor slot
                     // HWND_TOP = 0
                     // SWP_NOACTIVATE = 0x0010, SWP_SHOWWINDOW = 0x0040, SWP_FRAMECHANGED = 0x0020
-                    SetWindowPos(childHwnd, IntPtr.Zero, 0, 0, width, height, 0x0010 | 0x0040 | 0x0020);
+                    SetWindowPos(childHwnd, IntPtr.Zero, relativeX, relativeY, childWidth, childHeight, 0x0010 | 0x0040 | 0x0020);
 
                     Console.WriteLine("SUCCESS");
                 } catch (Exception ex) {
