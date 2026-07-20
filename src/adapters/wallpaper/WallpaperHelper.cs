@@ -2,8 +2,17 @@ using System;
 using System.Runtime.InteropServices;
 using System.IO;
 using System.Text;
+using Microsoft.Win32;
 
 namespace Murmur {
+    [StructLayout(LayoutKind.Sequential)]
+    public struct RECT {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+
     [ComImport]
     [Guid("C2CF3110-460E-4fc1-B9D0-8A1C0C9CC4BD")]
     public class DesktopWallpaperClass {}
@@ -58,14 +67,6 @@ namespace Murmur {
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
-        [StructLayout(LayoutKind.Sequential)]
-        public struct RECT {
-            public int Left;
-            public int Top;
-            public int Right;
-            public int Bottom;
-        }
-
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool GetClientRect(IntPtr hWnd, out RECT lpRect);
@@ -110,6 +111,15 @@ namespace Murmur {
                 string path = args[2];
 
                 try {
+                    // Update Windows User Registry to enforce 'Fill' style (WallpaperStyle = 10, TileWallpaper = 0)
+                    // This prevents Windows from spanning a single image across multiple monitors.
+                    using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Control Panel\Desktop", true)) {
+                        if (key != null) {
+                            key.SetValue("WallpaperStyle", "10");
+                            key.SetValue("TileWallpaper", "0");
+                        }
+                    }
+
                     var wp = (IDesktopWallpaper)new DesktopWallpaperClass();
                     string id = wp.GetMonitorDevicePathAt((uint)index);
                     wp.SetWallpaper(id, path);
