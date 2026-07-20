@@ -286,6 +286,8 @@ export default function WallpaperView() {
   const [monitorId, setMonitorId] = useState<string>('')
   const [phraseLines, setPhraseLines] = useState<StyledChar[][]>([])
   const [visibleCount, setVisibleCount] = useState<number>(0)
+  const [activePhrase, setActivePhrase] = useState<string>('')
+  const [isFadingOut, setIsFadingOut] = useState<boolean>(false)
 
   useEffect(() => {
     // 1. Get monitorId from search parameters
@@ -315,10 +317,31 @@ export default function WallpaperView() {
     }
   }, [])
 
-  // 5. Compile phrase and drive Typewriter reveals (only when the phrase itself changes)
+  // Transition helper to fade out the phrase before swapping and typing the new one
   useEffect(() => {
-    if (!state || !config || !monitorId) return
-    const phrase = state.lastPhrases[monitorId] || 'Surrealism is the quiet hum of the world'
+    if (!state || !monitorId) return
+    const incomingPhrase = state.lastPhrases[monitorId] || 'Surrealism is the quiet hum of the world'
+
+    if (!activePhrase) {
+      // First load: set active phrase immediately without fading out
+      setActivePhrase(incomingPhrase)
+      return
+    }
+
+    if (incomingPhrase !== activePhrase) {
+      // Incoming phrase is different: fade out first
+      setIsFadingOut(true)
+      const timeout = setTimeout(() => {
+        setActivePhrase(incomingPhrase)
+        setIsFadingOut(false)
+      }, 500) // 500ms fade-out duration
+      return () => clearTimeout(timeout)
+    }
+  }, [state?.lastPhrases?.[monitorId], monitorId])
+
+  // 5. Compile phrase and drive Typewriter reveals
+  useEffect(() => {
+    if (!config || !activePhrase) return
 
     // Font class mapping
     let defaultFontClass = 'font-serif'
@@ -328,7 +351,7 @@ export default function WallpaperView() {
     else if (config.fontFamily === 'Garamond Bold') defaultFontClass = 'font-garamond-bold'
     else if (config.fontFamily === 'Monospace') defaultFontClass = 'font-monospace'
 
-    const lines = config.enableNewlines ? phrase.split('\\n') : [phrase.replace(/\\n/g, ' ')]
+    const lines = config.enableNewlines ? activePhrase.split('\\n') : [activePhrase.replace(/\\n/g, ' ')]
     const compiled = lines.map(line => compileToStyledChars(line, defaultFontClass, config))
     
     setPhraseLines(compiled)
@@ -381,7 +404,7 @@ export default function WallpaperView() {
     } else {
       setVisibleCount(total)
     }
-  }, [state, config, monitorId])
+  }, [activePhrase, config])
 
   if (!config || !state) {
     return <div className="w-full h-full bg-slate-950" />
@@ -657,7 +680,7 @@ export default function WallpaperView() {
       )}
 
       {/* 6. Main Poetic Phrase Container */}
-      <div className={`flex flex-col items-center select-none ${layoutClass}`}>
+      <div className={`flex flex-col items-center select-none transition-opacity duration-500 ease-in-out ${isFadingOut ? 'opacity-0' : 'opacity-100'} ${layoutClass}`}>
         {config.layoutStyle === 'scattered' ? (
           renderScatteredLayout()
         ) : config.layoutStyle === 'asymmetrical' ? (
