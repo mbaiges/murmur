@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { MurmurConfig, MurmurState, ThemeName, DEFAULT_SYSTEM_PROMPT, ABSURD_PROVERB_PROMPT, WORST_NEWS_TITLE_PROMPT, BEST_NEWS_TITLE_PROMPT } from '../domain/types'
+import { MurmurConfig, MurmurState, ThemeName, DEFAULT_SYSTEM_PROMPT, ABSURD_PROVERB_PROMPT, WORST_NEWS_TITLE_PROMPT, BEST_NEWS_TITLE_PROMPT, CYBERPUNK_TERMINAL_PROMPT, ZEN_KOAN_PROMPT, PARANOID_CONSPIRACY_PROMPT, EXISTENTIAL_DREAD_PROMPT, GOTHIC_PURPLE_PROSE_PROMPT } from '../domain/types'
 import WallpaperView from './WallpaperView'
 
 // Type cast helper for electron window API
@@ -119,6 +119,11 @@ export default function App() {
     if (presetName === 'Absurd Proverb') nextPrompt = ABSURD_PROVERB_PROMPT
     else if (presetName === 'Worst News Title') nextPrompt = WORST_NEWS_TITLE_PROMPT
     else if (presetName === 'Best News Title') nextPrompt = BEST_NEWS_TITLE_PROMPT
+    else if (presetName === 'Cyberpunk Terminal') nextPrompt = CYBERPUNK_TERMINAL_PROMPT
+    else if (presetName === 'Zen Koan') nextPrompt = ZEN_KOAN_PROMPT
+    else if (presetName === 'Paranoid Conspiracy') nextPrompt = PARANOID_CONSPIRACY_PROMPT
+    else if (presetName === 'Existential Dread') nextPrompt = EXISTENTIAL_DREAD_PROMPT
+    else if (presetName === 'Gothic Purple Prose') nextPrompt = GOTHIC_PURPLE_PROSE_PROMPT
     
     setDraftPrompt(nextPrompt)
     setIsPromptDirty(false)
@@ -372,13 +377,28 @@ export default function App() {
                               ? 'Worst News Title'
                               : draftPrompt === BEST_NEWS_TITLE_PROMPT
                                 ? 'Best News Title'
-                                : 'Custom'
+                                : draftPrompt === CYBERPUNK_TERMINAL_PROMPT
+                                  ? 'Cyberpunk Terminal'
+                                  : draftPrompt === ZEN_KOAN_PROMPT
+                                    ? 'Zen Koan'
+                                    : draftPrompt === PARANOID_CONSPIRACY_PROMPT
+                                      ? 'Paranoid Conspiracy'
+                                      : draftPrompt === EXISTENTIAL_DREAD_PROMPT
+                                        ? 'Existential Dread'
+                                        : draftPrompt === GOTHIC_PURPLE_PROSE_PROMPT
+                                          ? 'Gothic Purple Prose'
+                                          : 'Custom'
                         }
                         onChange={(e) => handlePresetChange(e.target.value)}
                       >
                         <option value="Absurd Proverb">Absurd Proverb (Default)</option>
                         <option value="Worst News Title">Worst News Title</option>
                         <option value="Best News Title">Best News Title</option>
+                        <option value="Cyberpunk Terminal">Cyberpunk Terminal</option>
+                        <option value="Zen Koan">Zen Koan</option>
+                        <option value="Paranoid Conspiracy">Paranoid Conspiracy</option>
+                        <option value="Existential Dread">Existential Dread</option>
+                        <option value="Gothic Purple Prose">Gothic Purple Prose</option>
                         <option value="Custom">Custom</option>
                       </select>
 

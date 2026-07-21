@@ -72,12 +72,29 @@ test('AI System Prompt Presets and Custom Apply flow', async () => {
   const dropdown = page.locator('select').first() // The first select is the Preset selector
   await expect(dropdown).toBeVisible()
 
-  // 2. Select "Worst News Title" preset
+  const textarea = page.locator('textarea')
+
+  // 2. Select and verify newly added presets
+  await dropdown.selectOption('Cyberpunk Terminal')
+  await page.waitForTimeout(1000)
+  const cyberpunkPrompt = await textarea.inputValue()
+  expect(cyberpunkPrompt).toContain('You are a rogue cyberpunk terminal')
+
+  await dropdown.selectOption('Zen Koan')
+  await page.waitForTimeout(1000)
+  const zenPrompt = await textarea.inputValue()
+  expect(zenPrompt).toContain('You are a Zen master')
+
+  await dropdown.selectOption('Existential Dread')
+  await page.waitForTimeout(1000)
+  const dreadPrompt = await textarea.inputValue()
+  expect(dreadPrompt).toContain('You are a melancholic, existential machine')
+
+  // Select "Worst News Title" preset
   await dropdown.selectOption('Worst News Title')
   await page.waitForTimeout(1500)
 
   // Verify textarea value has updated to the Worst News Title prompt
-  const textarea = page.locator('textarea')
   const worstPromptVal = await textarea.inputValue()
   expect(worstPromptVal).toContain('You are a satirical copywriter')
 
