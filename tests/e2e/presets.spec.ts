@@ -130,3 +130,75 @@ test('AI System Prompt Presets and Custom Apply flow', async () => {
   // The apply button should disappear since the prompt matches the saved config
   await expect(applyBtn).not.toBeVisible()
 })
+
+test('Aesthetic Mood Presets (Atmospheres) selector flow', async () => {
+  test.setTimeout(60000)
+
+  // Wait for settings window to be active
+  let page = await electronApp.firstWindow()
+  
+  for (let attempt = 0; attempt < 25; attempt++) {
+    const windows = electronApp.windows()
+    let found = false
+    for (const win of windows) {
+      const url = win.url()
+      if (url && !url.includes('view=wallpaper')) {
+        page = win
+        found = true
+        break
+      }
+    }
+    if (found) break
+    await page.waitForTimeout(200)
+  }
+
+  await page.waitForLoadState('load')
+
+  const sidebar = page.locator('aside')
+  await expect(sidebar).toBeVisible()
+
+  // 1. Navigate to Appearance Tab
+  await page.locator('button:has-text("Appearance")').click()
+  await page.waitForTimeout(500)
+
+  // Locate the Mood Select element (the first select on the Appearance tab)
+  const moodDropdown = page.locator('select').first()
+  await expect(moodDropdown).toBeVisible()
+
+  // 2. Select "Zen Study" mood preset
+  await moodDropdown.selectOption('Zen Study')
+  await page.waitForTimeout(1000)
+
+  // Assert that Theme select matches "Parchment"
+  const themeSelect = page.locator('select').nth(1) // The Theme selector
+  expect(await themeSelect.inputValue()).toBe('Parchment')
+
+  // Assert that Font select matches "EB Garamond"
+  const fontSelect = page.locator('select').nth(2) // The Font selector
+  expect(await fontSelect.inputValue()).toBe('EB Garamond')
+
+  // Assert that Animation select matches "Fade"
+  const animationSelect = page.locator('select').nth(3) // The Animation selector
+  expect(await animationSelect.inputValue()).toBe('Fade')
+
+  // 3. Select "Rogue Terminal" mood preset
+  await moodDropdown.selectOption('Rogue Terminal')
+  await page.waitForTimeout(1000)
+
+  // Assert that Theme select matches "Cyberpunk"
+  expect(await themeSelect.inputValue()).toBe('Cyberpunk')
+
+  // Assert that Font select matches "Monospace"
+  expect(await fontSelect.inputValue()).toBe('Monospace')
+
+  // Assert that Animation select matches "Typewriter"
+  expect(await animationSelect.inputValue()).toBe('Typewriter')
+
+  // 4. Navigate back to Feeds tab and verify the prompt updated to Cyberpunk
+  await page.locator('button:has-text("Ingestion & Feeds")').click()
+  await page.waitForTimeout(500)
+
+  const textarea = page.locator('textarea')
+  const promptVal = await textarea.inputValue()
+  expect(promptVal).toContain('You are a rogue cyberpunk terminal')
+})

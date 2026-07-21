@@ -130,6 +130,59 @@ export default function App() {
     handleSave({ systemPrompt: nextPrompt })
   }
 
+  const handleMoodChange = (moodName: string) => {
+    if (moodName === 'Custom') return
+    
+    let updates: Partial<MurmurConfig> = {}
+    if (moodName === 'Rogue Terminal') {
+      updates = {
+        systemPrompt: CYBERPUNK_TERMINAL_PROMPT,
+        theme: 'Cyberpunk',
+        fontFamily: 'Monospace',
+        layoutStyle: 'editorial-left',
+        animation: 'Typewriter',
+        audioFeedback: true,
+        vignetteStyle: 'dramatic'
+      }
+    } else if (moodName === 'Zen Study') {
+      updates = {
+        systemPrompt: ZEN_KOAN_PROMPT,
+        theme: 'Parchment',
+        fontFamily: 'EB Garamond',
+        layoutStyle: 'book-cover',
+        animation: 'Fade',
+        audioFeedback: false,
+        vignetteStyle: 'soft'
+      }
+    } else if (moodName === 'Gothic Novelist') {
+      updates = {
+        systemPrompt: GOTHIC_PURPLE_PROSE_PROMPT,
+        theme: 'Drift',
+        fontFamily: 'Playfair Display',
+        layoutStyle: 'asymmetrical',
+        animation: 'DriftIn',
+        audioFeedback: false,
+        vignetteStyle: 'dramatic'
+      }
+    } else if (moodName === 'Clickbait Press') {
+      updates = {
+        systemPrompt: WORST_NEWS_TITLE_PROMPT,
+        theme: 'Crimson',
+        fontFamily: 'Outfit',
+        layoutStyle: 'centered',
+        animation: 'Instant',
+        audioFeedback: false,
+        vignetteStyle: 'none'
+      }
+    }
+    
+    if (updates.systemPrompt) {
+      setDraftPrompt(updates.systemPrompt)
+      setIsPromptDirty(false)
+    }
+    handleSave(updates)
+  }
+
   const handleRefresh = async () => {
     if (!api || isRefreshing) return
     setIsRefreshing(true)
@@ -551,6 +604,59 @@ export default function App() {
               <div>
                 <h2 className="text-2xl font-bold tracking-tight text-white mb-2">Appearance</h2>
                 <p className="text-slate-400 text-sm">Customize visual style, typography layout, text formatting, and vignette overlays.</p>
+              </div>
+
+              {/* Aesthetic Mood Presets */}
+              <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4">
+                <div>
+                  <h3 className="text-sm font-bold text-white mb-1">Aesthetic Mood Preset</h3>
+                  <p className="text-xs text-slate-400">Instantly configure coordinated prompt, theme, font, layout, and animation settings.</p>
+                </div>
+                <select
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg px-3 py-2 text-sm text-slate-100 outline-none transition-all cursor-pointer"
+                  value={
+                    config.systemPrompt === CYBERPUNK_TERMINAL_PROMPT &&
+                    config.theme === 'Cyberpunk' &&
+                    config.fontFamily === 'Monospace' &&
+                    config.layoutStyle === 'editorial-left' &&
+                    config.animation === 'Typewriter' &&
+                    config.audioFeedback === true &&
+                    config.vignetteStyle === 'dramatic'
+                      ? 'Rogue Terminal'
+                      : config.systemPrompt === ZEN_KOAN_PROMPT &&
+                        config.theme === 'Parchment' &&
+                        config.fontFamily === 'EB Garamond' &&
+                        config.layoutStyle === 'book-cover' &&
+                        config.animation === 'Fade' &&
+                        config.audioFeedback === false &&
+                        config.vignetteStyle === 'soft'
+                        ? 'Zen Study'
+                        : config.systemPrompt === GOTHIC_PURPLE_PROSE_PROMPT &&
+                          config.theme === 'Drift' &&
+                          config.fontFamily === 'Playfair Display' &&
+                          config.layoutStyle === 'asymmetrical' &&
+                          config.animation === 'DriftIn' &&
+                          config.audioFeedback === false &&
+                          config.vignetteStyle === 'dramatic'
+                          ? 'Gothic Novelist'
+                          : config.systemPrompt === WORST_NEWS_TITLE_PROMPT &&
+                            config.theme === 'Crimson' &&
+                            config.fontFamily === 'Outfit' &&
+                            config.layoutStyle === 'centered' &&
+                            config.animation === 'Instant' &&
+                            config.audioFeedback === false &&
+                            config.vignetteStyle === 'none'
+                            ? 'Clickbait Press'
+                            : 'Custom'
+                  }
+                  onChange={(e) => handleMoodChange(e.target.value)}
+                >
+                  <option value="Custom">Custom (Manual adjustments)</option>
+                  <option value="Rogue Terminal">🟢 Rogue Terminal (Cyberpunk Aesthetic)</option>
+                  <option value="Zen Study">🪶 Zen Study (Minimalist Paper Aesthetic)</option>
+                  <option value="Gothic Novelist">🌁 Gothic Novelist (Moody Literary Aesthetic)</option>
+                  <option value="Clickbait Press">🚨 Clickbait Press (Satirical News Aesthetic)</option>
+                </select>
               </div>
 
               <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-6">
