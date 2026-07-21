@@ -382,7 +382,7 @@ export default function App() {
                         <option value="Custom">Custom</option>
                       </select>
 
-                      {isPromptDirty && (
+                      {(isPromptDirty || showCheckmark) && (
                         <button
                           onClick={handleApplyPrompt}
                           disabled={isApplyingPrompt}
