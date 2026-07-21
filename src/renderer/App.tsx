@@ -15,6 +15,12 @@ export default function App() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
 
+  // Draft system prompt and apply states
+  const [draftPrompt, setDraftPrompt] = useState<string>('')
+  const [isPromptDirty, setIsPromptDirty] = useState<boolean>(false)
+  const [isApplyingPrompt, setIsApplyingPrompt] = useState<boolean>(false)
+  const [showCheckmark, setShowCheckmark] = useState<boolean>(false)
+
   // Setup Wizard fields
   const [wizardKey, setWizardKey] = useState('')
   const [wizardFeed, setWizardFeed] = useState('https://feeds.bbci.co.uk/news/rss.xml')
@@ -76,6 +82,47 @@ export default function App() {
       console.error(err)
       showToast(err.message || 'Failed to save settings', 'error')
     }
+  }
+
+  // Sync draft prompt when config is loaded or updated externally
+  useEffect(() => {
+    if (config) {
+      setDraftPrompt(config.systemPrompt)
+      setIsPromptDirty(false)
+    }
+  }, [config?.systemPrompt])
+
+  const handlePromptChange = (val: string) => {
+    setDraftPrompt(val)
+    setIsPromptDirty(val !== config?.systemPrompt)
+  }
+
+  const handleApplyPrompt = async () => {
+    if (isApplyingPrompt) return
+    setIsApplyingPrompt(true)
+    try {
+      await handleSave({ systemPrompt: draftPrompt })
+      setIsPromptDirty(false)
+      setShowCheckmark(true)
+      setTimeout(() => {
+        setShowCheckmark(false)
+      }, 1500)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setIsApplyingPrompt(false)
+    }
+  }
+
+  const handlePresetChange = (presetName: string) => {
+    let nextPrompt = config?.systemPrompt || ''
+    if (presetName === 'Absurd Proverb') nextPrompt = ABSURD_PROVERB_PROMPT
+    else if (presetName === 'Worst News Title') nextPrompt = WORST_NEWS_TITLE_PROMPT
+    else if (presetName === 'Best News Title') nextPrompt = BEST_NEWS_TITLE_PROMPT
+    
+    setDraftPrompt(nextPrompt)
+    setIsPromptDirty(false)
+    handleSave({ systemPrompt: nextPrompt })
   }
 
   const handleRefresh = async () => {
@@ -315,35 +362,60 @@ export default function App() {
                 <div>
                   <div className="flex justify-between items-center mb-2">
                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">AI System Prompt Preset</label>
-                    <select
-                      className="bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg px-2 py-1 text-xs text-slate-200 outline-none transition-all cursor-pointer"
-                      value={
-                        config.systemPrompt === ABSURD_PROVERB_PROMPT
-                          ? 'Absurd Proverb'
-                          : config.systemPrompt === WORST_NEWS_TITLE_PROMPT
-                            ? 'Worst News Title'
-                            : config.systemPrompt === BEST_NEWS_TITLE_PROMPT
-                              ? 'Best News Title'
-                              : 'Custom'
-                      }
-                      onChange={(e) => {
-                        const val = e.target.value
-                        if (val === 'Absurd Proverb') handleSave({ systemPrompt: ABSURD_PROVERB_PROMPT })
-                        else if (val === 'Worst News Title') handleSave({ systemPrompt: WORST_NEWS_TITLE_PROMPT })
-                        else if (val === 'Best News Title') handleSave({ systemPrompt: BEST_NEWS_TITLE_PROMPT })
-                      }}
-                    >
-                      <option value="Absurd Proverb">Absurd Proverb (Default)</option>
-                      <option value="Worst News Title">Worst News Title</option>
-                      <option value="Best News Title">Best News Title</option>
-                      <option value="Custom">Custom</option>
-                    </select>
+                    <div className="flex items-center space-x-2">
+                      <select
+                        className="bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg px-2 py-1 text-xs text-slate-200 outline-none transition-all cursor-pointer"
+                        value={
+                          draftPrompt === ABSURD_PROVERB_PROMPT
+                            ? 'Absurd Proverb'
+                            : draftPrompt === WORST_NEWS_TITLE_PROMPT
+                              ? 'Worst News Title'
+                              : draftPrompt === BEST_NEWS_TITLE_PROMPT
+                                ? 'Best News Title'
+                                : 'Custom'
+                        }
+                        onChange={(e) => handlePresetChange(e.target.value)}
+                      >
+                        <option value="Absurd Proverb">Absurd Proverb (Default)</option>
+                        <option value="Worst News Title">Worst News Title</option>
+                        <option value="Best News Title">Best News Title</option>
+                        <option value="Custom">Custom</option>
+                      </select>
+
+                      {isPromptDirty && (
+                        <button
+                          onClick={handleApplyPrompt}
+                          disabled={isApplyingPrompt}
+                          className={`flex items-center space-x-1.5 px-2.5 py-1 text-[10px] rounded font-semibold text-white transition-all shadow-md active:scale-95 duration-150 ${
+                            showCheckmark
+                              ? 'bg-emerald-600 hover:bg-emerald-500'
+                              : 'bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700'
+                          } animate-fade-in`}
+                        >
+                          {isApplyingPrompt ? (
+                            <svg className="animate-spin h-3 w-3 text-white" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                            </svg>
+                          ) : showCheckmark ? (
+                            <svg className="h-3 w-3 text-white animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          ) : (
+                            <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                          <span>{isApplyingPrompt ? 'Applying...' : showCheckmark ? 'Applied!' : 'Apply'}</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <textarea
                     rows={6}
                     className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg px-3 py-2 text-xs text-slate-200 outline-none transition-all font-mono leading-relaxed resize-y"
-                    value={config.systemPrompt}
-                    onChange={(e) => handleSave({ systemPrompt: e.target.value })}
+                    value={draftPrompt}
+                    onChange={(e) => handlePromptChange(e.target.value)}
                     placeholder="Enter system prompt guidelines..."
                   />
                 </div>
