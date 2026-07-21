@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { MurmurConfig, MurmurState, ThemeName, DEFAULT_SYSTEM_PROMPT, ABSURD_PROVERB_PROMPT, WORST_NEWS_TITLE_PROMPT, BEST_NEWS_TITLE_PROMPT, CYBERPUNK_TERMINAL_PROMPT, ZEN_KOAN_PROMPT, PARANOID_CONSPIRACY_PROMPT, EXISTENTIAL_DREAD_PROMPT, GOTHIC_PURPLE_PROSE_PROMPT } from '../domain/types'
 import WallpaperView from './WallpaperView'
+import MoodsTab from './components/MoodsTab'
 
 // Type cast helper for electron window API
 const api = (window as any).api
@@ -8,7 +9,7 @@ const api = (window as any).api
 export default function App() {
   const [config, setConfig] = useState<MurmurConfig | null>(null)
   const [state, setState] = useState<MurmurState | null>(null)
-  const [activeTab, setActiveTab] = useState<'feeds' | 'appearance' | 'monitors' | 'history'>('feeds')
+  const [activeTab, setActiveTab] = useState<'feeds' | 'appearance' | 'monitors' | 'history' | 'moods'>('feeds')
   const [newFeed, setNewFeed] = useState('')
   const [historyMonitorId, setHistoryMonitorId] = useState<string>('')
   const [historyPhrases, setHistoryPhrases] = useState<string[]>([])
@@ -348,6 +349,15 @@ export default function App() {
               </button>
               
               <button
+                onClick={() => setActiveTab('moods')}
+                className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                  activeTab === 'moods' ? 'bg-indigo-950 text-indigo-400 border-l-2 border-indigo-500' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                }`}
+              >
+                <span>Aesthetic Moods</span>
+              </button>
+              
+              <button
                 onClick={() => setActiveTab('appearance')}
                 className={`w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
                   activeTab === 'appearance' ? 'bg-indigo-950 text-indigo-400 border-l-2 border-indigo-500' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
@@ -395,6 +405,11 @@ export default function App() {
         {/* Main Content Area */}
         <main className="flex-1 bg-slate-950 overflow-y-auto p-10">
           
+          {/* TAB: MOODS */}
+          {activeTab === 'moods' && (
+            <MoodsTab config={config} onMoodChange={handleMoodChange} />
+          )}
+
           {/* TAB 1: FEEDS */}
           {activeTab === 'feeds' && (
             <div className="max-w-2xl space-y-8">
