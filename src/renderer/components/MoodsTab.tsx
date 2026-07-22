@@ -121,7 +121,8 @@ export default function MoodsTab({ config, onMoodChange }: MoodsTabProps) {
         config.layoutStyle === 'editorial-left' &&
         config.animation === 'Typewriter' &&
         config.audioFeedback === true &&
-        config.vignetteStyle === 'dramatic'
+        config.vignetteStyle === 'dramatic' &&
+        config.noiseIntensity === 'heavy'
       )
     }
     if (mood.id === 'Zen Study') {
@@ -132,7 +133,8 @@ export default function MoodsTab({ config, onMoodChange }: MoodsTabProps) {
         config.layoutStyle === 'book-cover' &&
         config.animation === 'Fade' &&
         config.audioFeedback === false &&
-        config.vignetteStyle === 'soft'
+        config.vignetteStyle === 'soft' &&
+        config.noiseIntensity === 'subtle'
       )
     }
     if (mood.id === 'Gothic Novelist') {
@@ -143,7 +145,8 @@ export default function MoodsTab({ config, onMoodChange }: MoodsTabProps) {
         config.layoutStyle === 'asymmetrical' &&
         config.animation === 'DriftIn' &&
         config.audioFeedback === false &&
-        config.vignetteStyle === 'dramatic'
+        config.vignetteStyle === 'dramatic' &&
+        config.noiseIntensity === 'subtle'
       )
     }
     if (mood.id === 'Clickbait Press') {
@@ -154,7 +157,8 @@ export default function MoodsTab({ config, onMoodChange }: MoodsTabProps) {
         config.layoutStyle === 'centered' &&
         config.animation === 'Instant' &&
         config.audioFeedback === false &&
-        config.vignetteStyle === 'none'
+        config.vignetteStyle === 'none' &&
+        config.noiseIntensity === 'none'
       )
     }
     return false

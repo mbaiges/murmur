@@ -155,6 +155,11 @@ test.describe.serial('AI System Prompt Presets and Aesthetic Moods E2E Suite', (
 
     await page.waitForLoadState('load')
 
+    const screenshotsDir = 'tests/e2e/artifacts/screenshots'
+    if (!existsSync(screenshotsDir)) {
+      mkdirSync(screenshotsDir, { recursive: true })
+    }
+
     const sidebar = page.locator('aside')
     await expect(sidebar).toBeVisible()
 
@@ -192,6 +197,23 @@ test.describe.serial('AI System Prompt Presets and Aesthetic Moods E2E Suite', (
     const animationSelect = page.locator('select').nth(3)
     expect(await animationSelect.inputValue()).toBe('Fade')
 
+    const layoutSelect = page.locator('select').nth(5)
+    expect(await layoutSelect.inputValue()).toBe('book-cover')
+
+    const noiseSelect = page.locator('select').nth(6)
+    expect(await noiseSelect.inputValue()).toBe('subtle')
+
+    const vignetteSelect = page.locator('select').nth(7)
+    expect(await vignetteSelect.inputValue()).toBe('soft')
+
+    // Take screenshot of Zen Study wallpaper view
+    const zenWallpaper = electronApp.windows().find(win => win.url().includes('view=wallpaper'))
+    if (zenWallpaper) {
+      await page.waitForTimeout(1000)
+      await zenWallpaper.screenshot({ path: join(screenshotsDir, '08_zen_study_wallpaper.png') })
+      console.log('Took screenshot: 08_zen_study_wallpaper.png')
+    }
+
     // 3. Navigate back to Aesthetic Moods and select "Rogue Terminal"
     await page.locator('button:has-text("Aesthetic Moods")').click()
     await page.waitForTimeout(500)
@@ -203,6 +225,13 @@ test.describe.serial('AI System Prompt Presets and Aesthetic Moods E2E Suite', (
 
     // Verify the button transitions
     await expect(terminalCard.locator('button:has-text("Currently Active")')).toBeVisible()
+
+    // Take screenshot of Rogue Terminal wallpaper view
+    if (zenWallpaper) {
+      await page.waitForTimeout(1000)
+      await zenWallpaper.screenshot({ path: join(screenshotsDir, '09_rogue_terminal_wallpaper.png') })
+      console.log('Took screenshot: 09_rogue_terminal_wallpaper.png')
+    }
 
     // Verify "Zen Study" button is no longer active
     await expect(zenCard.locator('button:has-text("Activate Mood")')).toBeVisible()

@@ -143,7 +143,8 @@ export default function App() {
         layoutStyle: 'editorial-left',
         animation: 'Typewriter',
         audioFeedback: true,
-        vignetteStyle: 'dramatic'
+        vignetteStyle: 'dramatic',
+        noiseIntensity: 'heavy'
       }
     } else if (moodName === 'Zen Study') {
       updates = {
@@ -153,7 +154,8 @@ export default function App() {
         layoutStyle: 'book-cover',
         animation: 'Fade',
         audioFeedback: false,
-        vignetteStyle: 'soft'
+        vignetteStyle: 'soft',
+        noiseIntensity: 'subtle'
       }
     } else if (moodName === 'Gothic Novelist') {
       updates = {
@@ -163,7 +165,8 @@ export default function App() {
         layoutStyle: 'asymmetrical',
         animation: 'DriftIn',
         audioFeedback: false,
-        vignetteStyle: 'dramatic'
+        vignetteStyle: 'dramatic',
+        noiseIntensity: 'subtle'
       }
     } else if (moodName === 'Clickbait Press') {
       updates = {
@@ -173,7 +176,8 @@ export default function App() {
         layoutStyle: 'centered',
         animation: 'Instant',
         audioFeedback: false,
-        vignetteStyle: 'none'
+        vignetteStyle: 'none',
+        noiseIntensity: 'none'
       }
     }
     
@@ -636,7 +640,8 @@ export default function App() {
                     config.layoutStyle === 'editorial-left' &&
                     config.animation === 'Typewriter' &&
                     config.audioFeedback === true &&
-                    config.vignetteStyle === 'dramatic'
+                    config.vignetteStyle === 'dramatic' &&
+                    config.noiseIntensity === 'heavy'
                       ? 'Rogue Terminal'
                       : config.systemPrompt === ZEN_KOAN_PROMPT &&
                         config.theme === 'Parchment' &&
@@ -644,7 +649,8 @@ export default function App() {
                         config.layoutStyle === 'book-cover' &&
                         config.animation === 'Fade' &&
                         config.audioFeedback === false &&
-                        config.vignetteStyle === 'soft'
+                        config.vignetteStyle === 'soft' &&
+                        config.noiseIntensity === 'subtle'
                         ? 'Zen Study'
                         : config.systemPrompt === GOTHIC_PURPLE_PROSE_PROMPT &&
                           config.theme === 'Drift' &&
@@ -652,7 +658,8 @@ export default function App() {
                           config.layoutStyle === 'asymmetrical' &&
                           config.animation === 'DriftIn' &&
                           config.audioFeedback === false &&
-                          config.vignetteStyle === 'dramatic'
+                          config.vignetteStyle === 'dramatic' &&
+                          config.noiseIntensity === 'subtle'
                           ? 'Gothic Novelist'
                           : config.systemPrompt === WORST_NEWS_TITLE_PROMPT &&
                             config.theme === 'Crimson' &&
@@ -660,7 +667,8 @@ export default function App() {
                             config.layoutStyle === 'centered' &&
                             config.animation === 'Instant' &&
                             config.audioFeedback === false &&
-                            config.vignetteStyle === 'none'
+                            config.vignetteStyle === 'none' &&
+                            config.noiseIntensity === 'none'
                             ? 'Clickbait Press'
                             : 'Custom'
                   }

@@ -121,6 +121,7 @@ export interface MurmurConfig {
   enableItalic: boolean
   enableNewlines: boolean
   enableDifferentFonts: boolean
+  noiseIntensity: 'none' | 'subtle' | 'heavy'
 }
 
 export interface RssItem {
@@ -141,6 +142,7 @@ export interface PaintOptions {
   textAlignment: 'center' | 'left' | 'right'
   layoutStyle: 'centered' | 'scattered' | 'editorial-left' | 'editorial-right' | 'asymmetrical' | 'book-cover'
   vignetteStyle: 'none' | 'soft' | 'medium' | 'dramatic'
+  noiseIntensity: 'none' | 'subtle' | 'heavy'
   audioFeedback: boolean
   transitionProgress?: number
 }
