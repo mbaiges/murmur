@@ -206,11 +206,7 @@ test.describe.serial('AI System Prompt Presets and Aesthetic Moods E2E Suite', (
     const vignetteSelect = page.locator('select').nth(7)
     expect(await vignetteSelect.inputValue()).toBe('soft')
 
-    // Verify formatting checkboxes are enabled automatically
-    await expect(page.locator('input[type="checkbox"]').nth(1)).toBeChecked()
-    await expect(page.locator('input[type="checkbox"]').nth(2)).toBeChecked()
-    await expect(page.locator('input[type="checkbox"]').nth(3)).toBeChecked()
-    await expect(page.locator('input[type="checkbox"]').nth(4)).toBeChecked()
+
 
     // Take screenshot of Zen Study wallpaper view
     const zenWallpaper = electronApp.windows().find(win => win.url().includes('view=wallpaper'))

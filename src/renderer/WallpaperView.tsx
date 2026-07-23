@@ -51,10 +51,10 @@ function compileToStyledChars(
   let currentText = text
 
   while (currentText.length > 0) {
-    const boldIdx = config.enableBold ? currentText.indexOf('**') : -1
-    const italicIdx = config.enableItalic ? currentText.indexOf('*') : -1
-    const codeIdx = config.enableDifferentFonts ? currentText.indexOf('`') : -1
-    const fontStartIdx = config.enableDifferentFonts ? currentText.indexOf('[font:') : -1
+    const boldIdx = currentText.indexOf('**')
+    const italicIdx = currentText.indexOf('*')
+    const codeIdx = currentText.indexOf('`')
+    const fontStartIdx = currentText.indexOf('[font:')
 
     const indices = [
       { type: 'font', index: fontStartIdx },
@@ -351,7 +351,7 @@ export default function WallpaperView() {
     else if (config.fontFamily === 'Garamond Bold') defaultFontClass = 'font-garamond-bold'
     else if (config.fontFamily === 'Monospace') defaultFontClass = 'font-monospace'
 
-    const lines = config.enableNewlines ? activePhrase.split('\\n') : [activePhrase.replace(/\\n/g, ' ')]
+    const lines = activePhrase.split('\\n')
     const compiled = lines.map(line => compileToStyledChars(line, defaultFontClass, config))
     
     setPhraseLines(compiled)

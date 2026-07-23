@@ -795,66 +795,7 @@ export default function App() {
                       <option value="scattered">Scattered Letters / Words</option>
                     </select>
                   </div>
-                </div>
-
-                {/* Formatting Checkboxes */}
-                <div className="space-y-4 pt-4 border-t border-slate-800">
-                  <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">AI Phrase Formatting Settings</h4>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="flex items-center justify-between p-3 bg-slate-950 rounded-lg border border-slate-850">
-                      <div>
-                        <h5 className="text-xs font-medium text-white">Allow Bold (**word**)</h5>
-                        <p className="text-[10px] text-slate-500">Emphasize key concepts in bold.</p>
-                      </div>
-                      <input
-                        type="checkbox"
-                        className="rounded border-slate-800 text-indigo-600 focus:ring-indigo-500 h-4 w-4 bg-slate-900"
-                        checked={config.enableBold}
-                        onChange={(e) => handleSave({ enableBold: e.target.checked })}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between p-3 bg-slate-950 rounded-lg border border-slate-855">
-                      <div>
-                        <h5 className="text-xs font-medium text-white">Allow Italic (*word*)</h5>
-                        <p className="text-[10px] text-slate-500">Render words in elegant italics.</p>
-                      </div>
-                      <input
-                        type="checkbox"
-                        className="rounded border-slate-800 text-indigo-600 focus:ring-indigo-500 h-4 w-4 bg-slate-900"
-                        checked={config.enableItalic}
-                        onChange={(e) => handleSave({ enableItalic: e.target.checked })}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between p-3 bg-slate-950 rounded-lg border border-slate-855">
-                      <div>
-                        <h5 className="text-xs font-medium text-white">Poetic Newlines (\\n)</h5>
-                        <p className="text-[10px] text-slate-500">Split phrases into multi-line poetry.</p>
-                      </div>
-                      <input
-                        type="checkbox"
-                        className="rounded border-slate-800 text-indigo-600 focus:ring-indigo-500 h-4 w-4 bg-slate-900"
-                        checked={config.enableNewlines}
-                        onChange={(e) => handleSave({ enableNewlines: e.target.checked })}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between p-3 bg-slate-950 rounded-lg border border-slate-855">
-                      <div>
-                        <h5 className="text-xs font-medium text-white">Juxtapose Fonts</h5>
-                        <p className="text-[10px] text-slate-500">Permit mixed font styles in proverbs.</p>
-                      </div>
-                      <input
-                        type="checkbox"
-                        className="rounded border-slate-800 text-indigo-600 focus:ring-indigo-500 h-4 w-4 bg-slate-900"
-                        checked={config.enableDifferentFonts}
-                        onChange={(e) => handleSave({ enableDifferentFonts: e.target.checked })}
-                      />
-                    </div>
                   </div>
-                </div>
 
                 {/* Background Filters */}
                 <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-800">
