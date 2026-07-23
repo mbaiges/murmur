@@ -4,6 +4,13 @@ import { existsSync } from 'fs'
 import { IWallpaperPainter } from '../../ports/IWallpaperPainter'
 import { PaintOptions } from '../../domain/types'
 
+interface CanvasStyledChar {
+  char: string
+  isBold: boolean
+  isItalic: boolean
+  fontFamily: string
+}
+
 export class NodeCanvasWallpaperPainterAdapter implements IWallpaperPainter {
   constructor() {
     const pathsToSearch = [
@@ -79,15 +86,15 @@ export class NodeCanvasWallpaperPainterAdapter implements IWallpaperPainter {
     this.applyNoise(ctx, width, height, options.noiseIntensity)
 
     // 3. Draw Overlays
-    const isDark = ['Midnight', 'Drift', 'Static'].includes(options.theme)
+    const isDark = ['Midnight', 'Drift', 'Static', 'Forest', 'Crimson', 'Cyberpunk', 'WarmGlow'].includes(options.theme)
     const textColor = isDark ? '#ffffff' : '#1a1a1a'
     const mutedColor = isDark ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)'
 
     this.drawOverlays(ctx, width, height, options, textColor, mutedColor)
 
     // 4. Apply Vignette Effect
-    if (options.vignette) {
-      this.applyVignette(ctx, width, height)
+    if (options.vignetteStyle && options.vignetteStyle !== 'none') {
+      this.applyVignette(ctx, width, height, options.vignetteStyle)
     }
 
     // 5. Draw Main Poetic Phrase (with layouts & animations)
@@ -114,6 +121,30 @@ export class NodeCanvasWallpaperPainterAdapter implements IWallpaperPainter {
       grad.addColorStop(1, '#0c2d3a')
       ctx.fillStyle = grad
       ctx.fillRect(0, 0, width, height)
+    } else if (theme === 'Forest') {
+      const grad = ctx.createLinearGradient(0, 0, width, height)
+      grad.addColorStop(0, '#051d14')
+      grad.addColorStop(1, '#02120b')
+      ctx.fillStyle = grad
+      ctx.fillRect(0, 0, width, height)
+    } else if (theme === 'Crimson') {
+      const grad = ctx.createLinearGradient(0, 0, width, height)
+      grad.addColorStop(0, '#1c050a')
+      grad.addColorStop(1, '#0d0104')
+      ctx.fillStyle = grad
+      ctx.fillRect(0, 0, width, height)
+    } else if (theme === 'Cyberpunk') {
+      const grad = ctx.createLinearGradient(0, 0, width, height)
+      grad.addColorStop(0, '#0b0214')
+      grad.addColorStop(1, '#031416')
+      ctx.fillStyle = grad
+      ctx.fillRect(0, 0, width, height)
+    } else if (theme === 'WarmGlow') {
+      const grad = ctx.createLinearGradient(0, 0, width, height)
+      grad.addColorStop(0, '#241407')
+      grad.addColorStop(1, '#100801')
+      ctx.fillStyle = grad
+      ctx.fillRect(0, 0, width, height)
     } else if (theme === 'Parchment') {
       ctx.fillStyle = '#f4efe2'
       ctx.fillRect(0, 0, width, height)
@@ -121,7 +152,7 @@ export class NodeCanvasWallpaperPainterAdapter implements IWallpaperPainter {
       ctx.fillStyle = '#f8f9fa'
       ctx.fillRect(0, 0, width, height)
     } else {
-      // Static (Noise/TV) Base
+      // Static Base
       ctx.fillStyle = '#111111'
       ctx.fillRect(0, 0, width, height)
     }
@@ -148,7 +179,7 @@ export class NodeCanvasWallpaperPainterAdapter implements IWallpaperPainter {
     }
   }
 
-  private applyVignette(ctx: CanvasRenderingContext2D, width: number, height: number): void {
+  private applyVignette(ctx: CanvasRenderingContext2D, width: number, height: number, style: 'soft' | 'medium' | 'dramatic'): void {
     const grad = ctx.createRadialGradient(
       width / 2,
       height / 2,
@@ -157,8 +188,13 @@ export class NodeCanvasWallpaperPainterAdapter implements IWallpaperPainter {
       height / 2,
       width * 0.75
     )
+    
+    let alpha = 0.35
+    if (style === 'soft') alpha = 0.2
+    else if (style === 'dramatic') alpha = 0.65
+
     grad.addColorStop(0, 'rgba(0, 0, 0, 0)')
-    grad.addColorStop(1, 'rgba(0, 0, 0, 0.45)')
+    grad.addColorStop(1, `rgba(0, 0, 0, ${alpha})`)
     ctx.fillStyle = grad
     ctx.fillRect(0, 0, width, height)
   }
@@ -221,6 +257,276 @@ export class NodeCanvasWallpaperPainterAdapter implements IWallpaperPainter {
     }
   }
 
+  private compileToStyledChars(
+    text: string,
+    defaultFontFamily: string,
+    isBold = false,
+    isItalic = false,
+    currentFontFamily = ''
+  ): CanvasStyledChar[] {
+    if (!text) return []
+
+    const result: CanvasStyledChar[] = []
+    let currentText = text
+
+    while (currentText.length > 0) {
+      const boldIdx = currentText.indexOf('**')
+      const italicIdx = currentText.indexOf('*')
+      const fontStartIdx = currentText.indexOf('[font:')
+
+      const indices = [
+        { type: 'font', index: fontStartIdx },
+        { type: 'bold', index: boldIdx },
+        { type: 'italic', index: italicIdx }
+      ].filter((item) => item.index !== -1)
+
+      if (indices.length === 0) {
+        for (const char of currentText) {
+          result.push({
+            char,
+            isBold,
+            isItalic,
+            fontFamily: currentFontFamily || defaultFontFamily
+          })
+        }
+        break
+      }
+
+      indices.sort((a, b) => {
+        if (a.index !== b.index) {
+          return a.index - b.index
+        }
+        const priority: Record<string, number> = { font: 0, bold: 1, italic: 2 }
+        return priority[a.type] - priority[b.type]
+      })
+
+      const nextMatch = indices[0]
+
+      if (nextMatch.index > 0) {
+        const plain = currentText.substring(0, nextMatch.index)
+        for (const char of plain) {
+          result.push({
+            char,
+            isBold,
+            isItalic,
+            fontFamily: currentFontFamily || defaultFontFamily
+          })
+        }
+        currentText = currentText.substring(nextMatch.index)
+      }
+
+      if (nextMatch.type === 'bold') {
+        const closeIdx = currentText.indexOf('**', 2)
+        if (closeIdx !== -1) {
+          const inner = currentText.substring(2, closeIdx)
+          result.push(
+            ...this.compileToStyledChars(
+              inner,
+              defaultFontFamily,
+              true,
+              isItalic,
+              currentFontFamily
+            )
+          )
+          currentText = currentText.substring(closeIdx + 2)
+        } else {
+          result.push({ char: '*', isBold, isItalic, fontFamily: currentFontFamily || defaultFontFamily })
+          result.push({ char: '*', isBold, isItalic, fontFamily: currentFontFamily || defaultFontFamily })
+          currentText = currentText.substring(2)
+        }
+      } else if (nextMatch.type === 'italic') {
+        const closeIdx = currentText.indexOf('*', 1)
+        if (closeIdx !== -1) {
+          const inner = currentText.substring(1, closeIdx)
+          result.push(
+            ...this.compileToStyledChars(
+              inner,
+              defaultFontFamily,
+              isBold,
+              true,
+              currentFontFamily
+            )
+          )
+          currentText = currentText.substring(closeIdx + 1)
+        } else {
+          result.push({ char: '*', isBold, isItalic, fontFamily: currentFontFamily || defaultFontFamily })
+          currentText = currentText.substring(1)
+        }
+      } else if (nextMatch.type === 'font') {
+        const closeIdx = currentText.indexOf(']', 6)
+        if (closeIdx !== -1) {
+          const fontName = currentText.substring(6, closeIdx)
+          const tagClose = `[/font]`
+          const tagCloseIdx = currentText.indexOf(tagClose, closeIdx + 1)
+          if (tagCloseIdx !== -1) {
+            const inner = currentText.substring(closeIdx + 1, tagCloseIdx)
+            result.push(
+              ...this.compileToStyledChars(
+                inner,
+                defaultFontFamily,
+                isBold,
+                isItalic,
+                fontName
+              )
+            )
+            currentText = currentText.substring(tagCloseIdx + tagClose.length)
+          } else {
+            for (let i = 0; i <= closeIdx; i++) {
+              result.push({ char: currentText[i], isBold, isItalic, fontFamily: currentFontFamily || defaultFontFamily })
+            }
+            currentText = currentText.substring(closeIdx + 1)
+          }
+        } else {
+          result.push({ char: '[', isBold, isItalic, fontFamily: currentFontFamily || defaultFontFamily })
+          currentText = currentText.substring(1)
+        }
+      }
+    }
+
+    return result
+  }
+
+  private wrapStyledChars(
+    ctx: CanvasRenderingContext2D,
+    chars: CanvasStyledChar[],
+    maxWidth: number,
+    baseFontSize: number
+  ): CanvasStyledChar[][] {
+    const words: CanvasStyledChar[][] = []
+    let currentWord: CanvasStyledChar[] = []
+
+    for (const char of chars) {
+      if (char.char === ' ') {
+        if (currentWord.length > 0) {
+          words.push(currentWord)
+          currentWord = []
+        }
+        words.push([char])
+      } else {
+        currentWord.push(char)
+      }
+    }
+    if (currentWord.length > 0) {
+      words.push(currentWord)
+    }
+
+    const lines: CanvasStyledChar[][] = []
+    let currentLine: CanvasStyledChar[] = []
+
+    for (const word of words) {
+      const testLine = [...currentLine, ...word]
+      const lineWidth = this.measureStyledChars(ctx, testLine, baseFontSize)
+      
+      if (lineWidth < maxWidth || currentLine.length === 0) {
+        currentLine = testLine
+      } else {
+        if (currentLine.length > 0 && currentLine[currentLine.length - 1].char === ' ') {
+          currentLine.pop()
+        }
+        lines.push(currentLine)
+        
+        if (word.length === 1 && word[0].char === ' ') {
+          currentLine = []
+        } else {
+          currentLine = word
+        }
+      }
+    }
+
+    if (currentLine.length > 0) {
+      lines.push(currentLine)
+    }
+
+    return lines
+  }
+
+  private measureStyledChars(
+    ctx: CanvasRenderingContext2D,
+    chars: CanvasStyledChar[],
+    baseFontSize: number
+  ): number {
+    let width = 0
+    const runs = this.groupToRuns(chars)
+    for (const run of runs) {
+      ctx.save()
+      let styleStr = ''
+      if (run.isBold) styleStr += 'bold '
+      if (run.isItalic) styleStr += 'italic '
+      ctx.font = `${styleStr}${baseFontSize}px "${run.fontFamily}"`
+      width += ctx.measureText(run.text).width
+      ctx.restore()
+    }
+    return width
+  }
+
+  private groupToRuns(chars: CanvasStyledChar[]): { text: string; isBold: boolean; isItalic: boolean; fontFamily: string }[] {
+    const runs: { text: string; isBold: boolean; isItalic: boolean; fontFamily: string }[] = []
+    if (chars.length === 0) return runs
+
+    let currentRun = {
+      text: chars[0].char,
+      isBold: chars[0].isBold,
+      isItalic: chars[0].isItalic,
+      fontFamily: chars[0].fontFamily
+    }
+
+    for (let i = 1; i < chars.length; i++) {
+      const char = chars[i]
+      if (
+        char.isBold === currentRun.isBold &&
+        char.isItalic === currentRun.isItalic &&
+        char.fontFamily === currentRun.fontFamily
+      ) {
+        currentRun.text += char.char
+      } else {
+        runs.push(currentRun)
+        currentRun = {
+          text: char.char,
+          isBold: char.isBold,
+          isItalic: char.isItalic,
+          fontFamily: char.fontFamily
+        }
+      }
+    }
+    runs.push(currentRun)
+    return runs
+  }
+
+  private drawStyledLine(
+    ctx: CanvasRenderingContext2D,
+    line: CanvasStyledChar[],
+    startX: number,
+    y: number,
+    alignment: 'center' | 'left' | 'right',
+    baseFontSize: number,
+    textColor: string,
+    textAlpha: number
+  ): void {
+    const totalWidth = this.measureStyledChars(ctx, line, baseFontSize)
+    
+    let currentX = startX
+    if (alignment === 'center') {
+      currentX = startX - (totalWidth / 2)
+    } else if (alignment === 'right') {
+      currentX = startX - totalWidth
+    }
+
+    const runs = this.groupToRuns(line)
+    for (const run of runs) {
+      ctx.save()
+      let styleStr = ''
+      if (run.isBold) styleStr += 'bold '
+      if (run.isItalic) styleStr += 'italic '
+      ctx.font = `${styleStr}${baseFontSize}px "${run.fontFamily}"`
+      ctx.textAlign = 'left'
+      ctx.fillStyle = `rgba(${this.hexToRgb(textColor)}, ${textAlpha})`
+      ctx.fillText(run.text, currentX, y)
+      
+      currentX += ctx.measureText(run.text).width
+      ctx.restore()
+    }
+  }
+
   private drawPhrase(
     ctx: CanvasRenderingContext2D,
     width: number,
@@ -233,48 +539,145 @@ export class NodeCanvasWallpaperPainterAdapter implements IWallpaperPainter {
 
     ctx.textBaseline = 'middle'
     const font = options.fontFamily
-    const baseFontSize = Math.max(32, Math.round(height * 0.05))
+    
+    // Scale font size based on phrase length to avoid overflows
+    const phraseLength = options.phrase.length
+    let scale = 1.0
+    if (phraseLength > 220) {
+      scale = 0.55
+    } else if (phraseLength > 130) {
+      scale = 0.70
+    } else if (phraseLength > 75) {
+      scale = 0.85
+    }
 
-    // Handle scattered letters/words separately
+    const baseFontSize = Math.max(20, Math.round(height * 0.05 * scale))
+
+    // Handle scattered layout separately
     if (options.layoutStyle === 'scattered') {
       const rand = this.createSeededRandom(options.phrase)
-      const words = options.phrase.split(' ')
+      const compiledChars = this.compileToStyledChars(options.phrase, font)
       
-      // Calculate how many words to draw if animating
+      // Split compiled characters by space into word arrays
+      const words: CanvasStyledChar[][] = []
+      let currentWord: CanvasStyledChar[] = []
+      for (const char of compiledChars) {
+        if (char.char === ' ') {
+          if (currentWord.length > 0) {
+            words.push(currentWord)
+            currentWord = []
+          }
+        } else {
+          currentWord.push(char)
+        }
+      }
+      if (currentWord.length > 0) {
+        words.push(currentWord)
+      }
+
       const wordsCount = Math.ceil(words.length * progress)
       
       for (let i = 0; i < wordsCount; i++) {
-        const word = words[i]
+        const wordChars = words[i]
         const x = width * 0.2 + rand() * (width * 0.6)
         const y = height * 0.25 + rand() * (height * 0.5)
         const rotation = (rand() - 0.5) * 0.25
-        const scale = 0.8 + rand() * 0.5
+        const sizeScale = 0.8 + rand() * 0.5
         
         ctx.save()
         ctx.translate(x, y)
         ctx.rotate(rotation)
         
-        const size = Math.round(baseFontSize * scale)
-        ctx.font = `${size}px "${font}", serif`
-        ctx.textAlign = 'center'
+        const size = Math.round(baseFontSize * sizeScale)
         
-        // Morph animation scales up from 0.7
         if (options.animation === 'Morph') {
           const s = 0.7 + 0.3 * progress
           ctx.scale(s, s)
         }
 
-        ctx.fillStyle = `rgba(${this.hexToRgb(textColor)}, ${textAlpha})`
-        ctx.fillText(word, 0, 0)
+        this.drawStyledLine(ctx, wordChars, 0, 0, 'center', size, textColor, textAlpha)
         ctx.restore()
       }
       return
     }
 
-    // Classic wrap text layout
+    // Wrap and layout standard text
+    const maxWidth = width * 0.7
+    const rawLines = options.phrase.split('\\n')
+    const phraseLines = rawLines.map(line => this.compileToStyledChars(line, font))
+    
+    // Perform wrapping on each pre-split line
+    const wrappedLines: CanvasStyledChar[][] = []
+    phraseLines.forEach(line => {
+      wrappedLines.push(...this.wrapStyledChars(ctx, line, maxWidth, baseFontSize))
+    })
+
+    const lineHeight = baseFontSize * 1.35
+    const totalHeight = wrappedLines.length * lineHeight
+    let startY = (height / 2) - (totalHeight / 2) + (lineHeight / 2)
+
+    let driftY = 0
+    if (options.animation === 'DriftIn') {
+      driftY = baseFontSize * (1.0 - progress) * 0.5
+    }
+
+    // Render asymmetrical alternating paragraphs
+    if (options.layoutStyle === 'asymmetrical') {
+      const chunkCount = Math.min(3, wrappedLines.length)
+      const chunkSize = Math.ceil(wrappedLines.length / chunkCount)
+      
+      wrappedLines.forEach((line, idx) => {
+        const chunkIndex = Math.floor(idx / chunkSize)
+        let lineAlign: 'left' | 'center' | 'right' = 'center'
+        let lineX = width / 2
+        
+        if (chunkIndex === 0) {
+          lineAlign = 'left'
+          lineX = width * 0.15
+        } else if (chunkIndex === 2) {
+          lineAlign = 'right'
+          lineX = width * 0.85
+        }
+        
+        this.drawStyledLine(ctx, line, lineX, startY + driftY, lineAlign, baseFontSize, textColor, textAlpha)
+        startY += lineHeight
+      })
+      return
+    }
+
+    // Render book cover template with line separator & custom subtext
+    if (options.layoutStyle === 'book-cover') {
+      wrappedLines.forEach((line) => {
+        this.drawStyledLine(ctx, line, width / 2, startY + driftY, 'center', baseFontSize, textColor, textAlpha)
+        startY += lineHeight
+      })
+
+      const lineY = startY + 20
+      ctx.save()
+      ctx.strokeStyle = textColor
+      ctx.globalAlpha = 0.2 * textAlpha
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      ctx.moveTo(width / 2 - 50, lineY)
+      ctx.lineTo(width / 2 + 50, lineY)
+      ctx.stroke()
+      ctx.restore()
+
+      if (options.overlays.dateTime) {
+        ctx.save()
+        ctx.fillStyle = textColor
+        ctx.globalAlpha = 0.5 * textAlpha
+        ctx.textAlign = 'center'
+        ctx.font = '12px "Outfit", sans-serif'
+        ctx.fillText(`Murmur Conceptual Poetry`, width / 2, lineY + 45)
+        ctx.restore()
+      }
+      return
+    }
+
+    // Render classic, editorial-left, or editorial-right layouts
     let alignment: 'center' | 'left' | 'right' = 'center'
     let startX = width / 2
-    const maxWidth = width * 0.7
 
     if (options.layoutStyle === 'editorial-left') {
       alignment = options.textAlignment || 'left'
@@ -286,63 +689,18 @@ export class NodeCanvasWallpaperPainterAdapter implements IWallpaperPainter {
       alignment = options.textAlignment || 'center'
     }
 
-    ctx.textAlign = alignment
-    ctx.font = `${baseFontSize}px "${font}", serif`
-
-    // Extract typewriter progress
-    let phraseToPaint = options.phrase
-    if (options.animation === 'Typewriter') {
-      const words = options.phrase.split(' ')
-      phraseToPaint = words.slice(0, Math.ceil(words.length * progress)).join(' ')
-    }
-
-    const lines = this.wrapText(ctx, phraseToPaint, maxWidth)
-    const lineHeight = baseFontSize * 1.35
-    const totalHeight = lines.length * lineHeight
-    let startY = (height / 2) - (totalHeight / 2) + (lineHeight / 2)
-
-    // Apply drift offset
-    let driftY = 0
-    if (options.animation === 'DriftIn') {
-      driftY = baseFontSize * (1.0 - progress) * 0.5
-    }
-
-    lines.forEach((line) => {
+    wrappedLines.forEach((line) => {
       ctx.save()
-      
-      // Morph scales the text layout
       if (options.animation === 'Morph') {
         ctx.translate(startX, startY + driftY)
         const s = 0.85 + 0.15 * progress
         ctx.scale(s, s)
-        ctx.fillStyle = `rgba(${this.hexToRgb(textColor)}, ${textAlpha})`
-        ctx.fillText(line, 0, 0)
+        this.drawStyledLine(ctx, line, 0, 0, alignment, baseFontSize, textColor, textAlpha)
       } else {
-        ctx.fillStyle = `rgba(${this.hexToRgb(textColor)}, ${textAlpha})`
-        ctx.fillText(line, startX, startY + driftY)
+        this.drawStyledLine(ctx, line, startX, startY + driftY, alignment, baseFontSize, textColor, textAlpha)
       }
-      
       ctx.restore()
       startY += lineHeight
     })
-  }
-
-  private wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
-    const words = text.split(' ')
-    const lines: string[] = []
-    let currentLine = words[0] || ''
-
-    for (let i = 1; i < words.length; i++) {
-      const word = words[i]
-      const width = ctx.measureText(currentLine + ' ' + word).width
-      if (width < maxWidth) {
-        currentLine += ' ' + word
-      } else {
-        lines.push(currentLine)
-        currentLine = word
-      }
-    }
-    lines.push(currentLine)
-    return lines
   }
 }
