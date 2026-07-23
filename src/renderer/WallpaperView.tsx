@@ -422,6 +422,21 @@ export default function WallpaperView() {
   const textColor = isDark ? 'text-white' : 'text-slate-900'
   const mutedColor = isDark ? 'text-white/40' : 'text-slate-700/60'
 
+  // Helper to dynamically scale font size clamp values based on phrase length to avoid overflows
+  const getScaledFontClamp = (minRem: number, vw: number, maxRem: number) => {
+    const phraseLength = activePhrase.length
+    let scale = 1.0
+    if (phraseLength > 220) {
+      scale = 0.55
+    } else if (phraseLength > 130) {
+      scale = 0.70
+    } else if (phraseLength > 75) {
+      scale = 0.85
+    }
+
+    return `clamp(${Number((minRem * scale).toFixed(2))}rem, ${Number((vw * scale).toFixed(2))}vw, ${Number((maxRem * scale).toFixed(2))}rem)`
+  }
+
   // Font class mapping
   let fontClass = 'font-serif'
   if (config.fontFamily === 'EB Garamond') fontClass = 'font-eb-garamond'
@@ -497,7 +512,7 @@ export default function WallpaperView() {
                 top: `${y}%`,
                 transform: `translate(-50%, -50%) rotate(${rotation}deg) scale(${scale})`,
                 opacity,
-                fontSize: 'clamp(1.2rem, 2.5vw, 2.8rem)',
+                fontSize: getScaledFontClamp(1.2, 2.5, 2.8),
                 textShadow: '0 4px 12px rgba(0,0,0,0.1)'
               }}
             >
@@ -554,7 +569,7 @@ export default function WallpaperView() {
               <h1
                 key={index}
                 className={`${textColor} ${fontClass} ${lineAlign} leading-relaxed select-none tracking-wide antialiased min-h-[1.5em]`}
-                style={{ fontSize: 'clamp(1.8rem, 3.8vw, 3.5rem)' }}
+                style={{ fontSize: getScaledFontClamp(1.8, 3.8, 3.5) }}
               />
             )
           }
@@ -566,7 +581,7 @@ export default function WallpaperView() {
             <h1
               key={index}
               className={`${textColor} ${fontClass} ${lineAlign} leading-relaxed select-none tracking-wide antialiased ${animClass}`}
-              style={{ fontSize: 'clamp(1.8rem, 3.8vw, 3.5rem)', textShadow: '0 2px 10px rgba(0,0,0,0.05)' }}
+              style={{ fontSize: getScaledFontClamp(1.8, 3.8, 3.5), textShadow: '0 2px 10px rgba(0,0,0,0.05)' }}
             >
               {renderStyledChars(visibleChunk)}
             </h1>
@@ -581,7 +596,7 @@ export default function WallpaperView() {
       <div className={`flex flex-col items-center text-center max-w-xl ${animClass}`}>
         <h1 
           className={`${textColor} ${fontClass} leading-loose select-none tracking-widest antialiased`}
-          style={{ fontSize: 'clamp(1.4rem, 2.8vw, 2.4rem)', textShadow: '0 2px 8px rgba(0,0,0,0.03)' }}
+          style={{ fontSize: getScaledFontClamp(1.4, 2.8, 2.4), textShadow: '0 2px 8px rgba(0,0,0,0.03)' }}
         >
           {renderSlicedPhrase(phraseLines, visibleCount)}
         </h1>
@@ -600,7 +615,7 @@ export default function WallpaperView() {
       <div className={`flex flex-col ${alignmentClass} ${animClass} w-full`}>
         <h1 
           className={`${textColor} ${fontClass} ${animClass} leading-relaxed select-none tracking-wide antialiased`}
-          style={{ fontSize: 'clamp(1.6rem, 3.6vw, 3.2rem)', textShadow: '0 2px 10px rgba(0,0,0,0.05)' }}
+          style={{ fontSize: getScaledFontClamp(1.6, 3.6, 3.2), textShadow: '0 2px 10px rgba(0,0,0,0.05)' }}
         >
           {renderSlicedPhrase(phraseLines, visibleCount)}
         </h1>
