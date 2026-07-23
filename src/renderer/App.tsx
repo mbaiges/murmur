@@ -144,7 +144,11 @@ export default function App() {
         animation: 'Typewriter',
         audioFeedback: true,
         vignetteStyle: 'dramatic',
-        noiseIntensity: 'heavy'
+        noiseIntensity: 'heavy',
+        enableBold: true,
+        enableItalic: true,
+        enableDifferentFonts: true,
+        enableNewlines: true
       }
     } else if (moodName === 'Zen Study') {
       updates = {
@@ -155,7 +159,11 @@ export default function App() {
         animation: 'Fade',
         audioFeedback: false,
         vignetteStyle: 'soft',
-        noiseIntensity: 'subtle'
+        noiseIntensity: 'subtle',
+        enableBold: true,
+        enableItalic: true,
+        enableDifferentFonts: true,
+        enableNewlines: true
       }
     } else if (moodName === 'Gothic Novelist') {
       updates = {
@@ -166,7 +174,11 @@ export default function App() {
         animation: 'DriftIn',
         audioFeedback: false,
         vignetteStyle: 'dramatic',
-        noiseIntensity: 'subtle'
+        noiseIntensity: 'subtle',
+        enableBold: true,
+        enableItalic: true,
+        enableDifferentFonts: true,
+        enableNewlines: true
       }
     } else if (moodName === 'Clickbait Press') {
       updates = {
@@ -177,7 +189,11 @@ export default function App() {
         animation: 'Instant',
         audioFeedback: false,
         vignetteStyle: 'none',
-        noiseIntensity: 'none'
+        noiseIntensity: 'none',
+        enableBold: true,
+        enableItalic: true,
+        enableDifferentFonts: true,
+        enableNewlines: true
       }
     }
     

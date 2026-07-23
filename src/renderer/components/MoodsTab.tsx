@@ -122,7 +122,11 @@ export default function MoodsTab({ config, onMoodChange }: MoodsTabProps) {
         config.animation === 'Typewriter' &&
         config.audioFeedback === true &&
         config.vignetteStyle === 'dramatic' &&
-        config.noiseIntensity === 'heavy'
+        config.noiseIntensity === 'heavy' &&
+        config.enableBold === true &&
+        config.enableItalic === true &&
+        config.enableDifferentFonts === true &&
+        config.enableNewlines === true
       )
     }
     if (mood.id === 'Zen Study') {
@@ -134,7 +138,11 @@ export default function MoodsTab({ config, onMoodChange }: MoodsTabProps) {
         config.animation === 'Fade' &&
         config.audioFeedback === false &&
         config.vignetteStyle === 'soft' &&
-        config.noiseIntensity === 'subtle'
+        config.noiseIntensity === 'subtle' &&
+        config.enableBold === true &&
+        config.enableItalic === true &&
+        config.enableDifferentFonts === true &&
+        config.enableNewlines === true
       )
     }
     if (mood.id === 'Gothic Novelist') {
@@ -146,7 +154,11 @@ export default function MoodsTab({ config, onMoodChange }: MoodsTabProps) {
         config.animation === 'DriftIn' &&
         config.audioFeedback === false &&
         config.vignetteStyle === 'dramatic' &&
-        config.noiseIntensity === 'subtle'
+        config.noiseIntensity === 'subtle' &&
+        config.enableBold === true &&
+        config.enableItalic === true &&
+        config.enableDifferentFonts === true &&
+        config.enableNewlines === true
       )
     }
     if (mood.id === 'Clickbait Press') {
@@ -158,7 +170,11 @@ export default function MoodsTab({ config, onMoodChange }: MoodsTabProps) {
         config.animation === 'Instant' &&
         config.audioFeedback === false &&
         config.vignetteStyle === 'none' &&
-        config.noiseIntensity === 'none'
+        config.noiseIntensity === 'none' &&
+        config.enableBold === true &&
+        config.enableItalic === true &&
+        config.enableDifferentFonts === true &&
+        config.enableNewlines === true
       )
     }
     return false
