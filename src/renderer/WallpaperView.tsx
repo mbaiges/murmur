@@ -447,7 +447,8 @@ export default function WallpaperView() {
 
   // Animation Transition Classes
   let animClass = 'transition-all duration-1000'
-  if (config.animation === 'Fade') animClass = 'animate-fade-in'
+  if (config.animation === 'Instant') animClass = 'transition-none'
+  else if (config.animation === 'Fade') animClass = 'animate-fade-in'
   else if (config.animation === 'DriftIn') animClass = 'animate-drift-in'
   else if (config.animation === 'Morph') animClass = 'animate-morph-in'
   else if (config.animation === 'Typewriter') animClass = 'animate-typewriter-fade'
