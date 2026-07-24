@@ -404,7 +404,7 @@ export default function WallpaperView() {
     } else {
       setVisibleCount(total)
     }
-  }, [activePhrase, config])
+  }, [activePhrase, config?.fontFamily, config?.animation, config?.audioFeedback])
 
   if (!config || !state) {
     return <div className="w-full h-full bg-slate-950" />
