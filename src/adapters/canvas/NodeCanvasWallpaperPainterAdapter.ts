@@ -440,6 +440,19 @@ export class NodeCanvasWallpaperPainterAdapter implements IWallpaperPainter {
     return lines
   }
 
+  private getCanvasFont(run: { isBold: boolean; isItalic: boolean; fontFamily: string }, baseFontSize: number): string {
+    const customFonts = ['EB Garamond', 'Playfair Display', 'Outfit']
+    const isCustom = customFonts.includes(run.fontFamily)
+    
+    let styleStr = ''
+    if (!isCustom) {
+      if (run.isBold) styleStr += 'bold '
+      if (run.isItalic) styleStr += 'italic '
+    }
+    
+    return `${styleStr}${baseFontSize}px "${run.fontFamily}"`
+  }
+
   private measureStyledChars(
     ctx: CanvasRenderingContext2D,
     chars: CanvasStyledChar[],
@@ -449,10 +462,7 @@ export class NodeCanvasWallpaperPainterAdapter implements IWallpaperPainter {
     const runs = this.groupToRuns(chars)
     for (const run of runs) {
       ctx.save()
-      let styleStr = ''
-      if (run.isBold) styleStr += 'bold '
-      if (run.isItalic) styleStr += 'italic '
-      ctx.font = `${styleStr}${baseFontSize}px "${run.fontFamily}"`
+      ctx.font = this.getCanvasFont(run, baseFontSize)
       width += ctx.measureText(run.text).width
       ctx.restore()
     }
@@ -514,13 +524,16 @@ export class NodeCanvasWallpaperPainterAdapter implements IWallpaperPainter {
     const runs = this.groupToRuns(line)
     for (const run of runs) {
       ctx.save()
-      let styleStr = ''
-      if (run.isBold) styleStr += 'bold '
-      if (run.isItalic) styleStr += 'italic '
-      ctx.font = `${styleStr}${baseFontSize}px "${run.fontFamily}"`
+      ctx.font = this.getCanvasFont(run, baseFontSize)
       ctx.textAlign = 'left'
       ctx.fillStyle = `rgba(${this.hexToRgb(textColor)}, ${textAlpha})`
       ctx.fillText(run.text, currentX, y)
+      
+      const customFonts = ['EB Garamond', 'Playfair Display', 'Outfit']
+      const isCustom = customFonts.includes(run.fontFamily)
+      if (run.isBold && isCustom) {
+        ctx.fillText(run.text, currentX + 1, y)
+      }
       
       currentX += ctx.measureText(run.text).width
       ctx.restore()

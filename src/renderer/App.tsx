@@ -284,7 +284,7 @@ export default function App() {
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
           
           <div className="flex items-center space-x-3 mb-6">
-            <img src="/logo.png" className="h-10 w-10 object-contain rounded-lg border border-slate-800 p-1 bg-slate-950" />
+            <img src="logo.png" className="h-10 w-10 object-contain rounded-lg border border-slate-800 p-1 bg-slate-955" />
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-white">Murmur</h1>
               <p className="text-xs text-slate-400">First-time Setup Wizard</p>
@@ -332,7 +332,7 @@ export default function App() {
       {/* Draggable Custom Header */}
       <header className="h-10 bg-slate-950 flex items-center justify-between px-6 select-none border-b border-slate-900 titlebar-drag">
         <div className="flex items-center space-x-2">
-          <img src="/logo.png" className="h-4 w-4 object-contain rounded p-[1px] bg-slate-800" />
+          <img src="logo.png" className="h-4 w-4 object-contain rounded p-[1px] bg-slate-800" />
           <span className="text-[11px] font-semibold text-slate-400 tracking-wider uppercase">Murmur Settings</span>
         </div>
       </header>
@@ -355,7 +355,7 @@ export default function App() {
                 <h1 className="text-xl font-bold tracking-tight text-white">Murmur</h1>
                 <p className="text-[10px] text-slate-400 font-medium tracking-wide uppercase">Windows Desktop App</p>
               </div>
-              <img src="/logo.png" className="h-10 w-10 object-contain rounded-lg border border-slate-800 p-1 bg-slate-950" />
+              <img src="logo.png" className="h-10 w-10 object-contain rounded-lg border border-slate-800 p-1 bg-slate-955" />
             </div>
 
             <nav className="space-y-1">

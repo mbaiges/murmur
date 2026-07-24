@@ -238,12 +238,73 @@ test.describe.serial('AI System Prompt Presets and Aesthetic Moods E2E Suite', (
     // Verify "Zen Study" button is no longer active
     await expect(zenCard.locator('button:has-text("Activate Mood")')).toBeVisible()
 
-    // 4. Navigate back to Feeds tab and verify the prompt updated to Cyberpunk
+    // 3.1 Navigate back to Aesthetic Moods and select "Gothic Novelist"
+    await page.locator('button:has-text("Aesthetic Moods")').click()
+    await page.waitForTimeout(500)
+
+    const gothicCard = page.getByTestId('mood-card-gothic-novelist')
+    await expect(gothicCard).toBeVisible()
+    await gothicCard.locator('button:has-text("Activate Mood")').click()
+    await page.waitForTimeout(1000)
+
+    // Verify button changes to "Currently Active"
+    await expect(gothicCard.locator('button:has-text("Currently Active")')).toBeVisible()
+
+    // Navigate to Appearance tab and verify inputs
+    await page.locator('button:has-text("Appearance")').click()
+    await page.waitForTimeout(500)
+
+    expect(await moodSelect.inputValue()).toBe('Gothic Novelist')
+    expect(await themeSelect.inputValue()).toBe('Drift')
+    expect(await fontSelect.inputValue()).toBe('Playfair Display')
+    expect(await layoutSelect.inputValue()).toBe('asymmetrical')
+
+    // Take screenshot of Gothic Novelist wallpaper view
+    if (zenWallpaper) {
+      await page.waitForTimeout(1000)
+      await zenWallpaper.screenshot({ path: join(screenshotsDir, '10_gothic_novelist_wallpaper.png') })
+      console.log('Took screenshot: 10_gothic_novelist_wallpaper.png')
+    }
+
+    // 3.2 Navigate back to Aesthetic Moods and select "Clickbait Press"
+    await page.locator('button:has-text("Aesthetic Moods")').click()
+    await page.waitForTimeout(500)
+
+    const clickbaitCard = page.getByTestId('mood-card-clickbait-press')
+    await expect(clickbaitCard).toBeVisible()
+    await clickbaitCard.locator('button:has-text("Activate Mood")').click()
+    await page.waitForTimeout(1000)
+
+    // Verify button changes to "Currently Active"
+    await expect(clickbaitCard.locator('button:has-text("Currently Active")')).toBeVisible()
+
+    // Navigate to Appearance tab and verify inputs
+    await page.locator('button:has-text("Appearance")').click()
+    await page.waitForTimeout(500)
+
+    expect(await moodSelect.inputValue()).toBe('Clickbait Press')
+    expect(await themeSelect.inputValue()).toBe('Crimson')
+    expect(await fontSelect.inputValue()).toBe('Outfit')
+    expect(await layoutSelect.inputValue()).toBe('centered')
+
+    // Clickbait Press activates 'Instant' transition which destroys the wallpaper window by design to save memory.
+    // To capture a screenshot of its rendering, we temporarily select 'Fade' animation to spawn the background window,
+    // take the screenshot, and proceed.
+    await animationSelect.selectOption('Fade')
+    await page.waitForTimeout(1500)
+
+    const activeWallpaperWin = electronApp.windows().find(win => win.url().includes('view=wallpaper'))
+    if (activeWallpaperWin) {
+      await activeWallpaperWin.screenshot({ path: join(screenshotsDir, '11_clickbait_press_wallpaper.png') })
+      console.log('Took screenshot: 11_clickbait_press_wallpaper.png')
+    }
+
+    // 4. Navigate back to Feeds tab and verify the prompt updated to Clickbait Press
     await page.locator('button:has-text("Ingestion & Feeds")').click()
     await page.waitForTimeout(500)
 
     const textarea = page.locator('textarea')
     const promptVal = await textarea.inputValue()
-    expect(promptVal).toContain('You are a rogue cyberpunk terminal')
+    expect(promptVal).toContain('You are a satirical copywriter')
   })
 })
