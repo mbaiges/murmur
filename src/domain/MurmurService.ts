@@ -157,17 +157,22 @@ export class MurmurService {
         }
 
         const theme = monitorConf?.themeOverride || config.theme
+        const isStaticMode = config.animation === 'Instant'
+        const phrase = isStaticMode ? (state.lastPhrases?.[screen.id] || '') : ''
+
         const staticOptions = {
-          phrase: '',
+          phrase,
           theme,
           fontFamily: config.fontFamily,
           animation: 'Instant' as any,
-          overlays: { dateTime: false, sourceCredit: false, inspiringHeadlines: false },
+          overlays: isStaticMode ? config.overlays : { dateTime: false, sourceCredit: false, inspiringHeadlines: false },
           resolution: { width: screen.width, height: screen.height },
           textAlignment: config.textAlignment,
           layoutStyle: config.layoutStyle,
           vignetteStyle: config.vignetteStyle,
-          audioFeedback: false
+          audioFeedback: false,
+          headlines: isStaticMode ? (state.lastHeadlines?.[screen.id] || []) : undefined,
+          sources: isStaticMode ? (state.lastSources?.[screen.id] || []) : undefined
         }
 
         const buffer = await this.painter.paint(staticOptions)
