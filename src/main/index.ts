@@ -5,17 +5,17 @@ import { FastXmlRssFetcherAdapter } from '../adapters/rss/FastXmlRssFetcherAdapt
 import { GeminiPhraseGeneratorAdapter } from '../adapters/gemini/GeminiPhraseGeneratorAdapter'
 import { NodeCanvasWallpaperPainterAdapter } from '../adapters/canvas/NodeCanvasWallpaperPainterAdapter'
 import { WinDesktopWallpaperAdapter } from '../adapters/wallpaper/WinDesktopWallpaperAdapter'
+import { MacDesktopWallpaperAdapter } from '../adapters/wallpaper/MacDesktopWallpaperAdapter'
 import { JsonConfigStoreAdapter } from '../adapters/config/JsonConfigStoreAdapter'
 import { JsonHistoryStoreAdapter } from '../adapters/history/JsonHistoryStoreAdapter'
 import { ElectronTrayAdapter } from '../adapters/tray/ElectronTrayAdapter'
 import { WinStartupAdapter } from '../adapters/startup/WinStartupAdapter'
+import { MacStartupAdapter } from '../adapters/startup/MacStartupAdapter'
 import { MurmurService } from '../domain/MurmurService'
 import { Scheduler } from '../domain/Scheduler'
 import { MurmurState } from '../domain/types'
 import { IRssFetcher } from '../ports/IRssFetcher'
-
-// Disable GPU acceleration globally to allow Electron windows to render reliably inside WorkerW
-app.disableHardwareAcceleration()
+import { IStartupIntegration } from '../ports/IStartupIntegration'
 
 // Disable GPU acceleration globally to allow Electron windows to render reliably inside WorkerW
 app.disableHardwareAcceleration()
@@ -38,7 +38,19 @@ const configStore = new JsonConfigStoreAdapter()
 const historyStore = new JsonHistoryStoreAdapter()
 const wallpaperPainter = new NodeCanvasWallpaperPainterAdapter()
 const trayAdapter = new ElectronTrayAdapter()
-const startupAdapter = new WinStartupAdapter()
+
+let startupAdapter: IStartupIntegration
+if (process.platform === 'win32') {
+  startupAdapter = new WinStartupAdapter()
+} else if (process.platform === 'darwin') {
+  startupAdapter = new MacStartupAdapter()
+} else {
+  startupAdapter = {
+    enable: async () => {},
+    disable: async () => {},
+    isEnabled: async () => false
+  }
+}
 
 let rssFetcher: IRssFetcher
 let phraseGenerator: IPhraseGenerator
@@ -64,7 +76,18 @@ if (process.env.MURMUR_E2E === 'true') {
 } else {
   rssFetcher = new FastXmlRssFetcherAdapter()
   phraseGenerator = new GeminiPhraseGeneratorAdapter(configStore)
-  wallpaperRenderer = new WinDesktopWallpaperAdapter()
+  if (process.platform === 'win32') {
+    wallpaperRenderer = new WinDesktopWallpaperAdapter()
+  } else if (process.platform === 'darwin') {
+    wallpaperRenderer = new MacDesktopWallpaperAdapter()
+  } else {
+    wallpaperRenderer = {
+      getScreens: async () => [{ id: 'mock', width: 1920, height: 1080 }],
+      set: async () => {},
+      backup: async () => {},
+      restore: async () => {}
+    }
+  }
 }
 
 const murmurService = new MurmurService(
@@ -136,6 +159,7 @@ function createBackgroundWindow(screenInfo: { id: string; width: number; height:
     height: screenInfo.height,
     frame: false,
     transparent: true,
+    type: process.platform === 'darwin' ? 'desktop' : undefined,
     enableLargerThanScreen: true,
     skipTaskbar: true,
     title: windowTitle,
@@ -165,14 +189,14 @@ function createBackgroundWindow(screenInfo: { id: string; width: number; height:
     bgWindow.setIgnoreMouseEvents(true)
     
     try {
-      if (typeof wallpaperRenderer.inject === 'function') {
+      if (process.platform === 'win32' && typeof (wallpaperRenderer as any).inject === 'function') {
         const hwndBuffer = bgWindow.getNativeWindowHandle()
         const hwndVal = process.arch === 'x64'
           ? hwndBuffer.readBigInt64LE(0).toString()
           : hwndBuffer.readInt32LE(0).toString()
 
         console.log(`Injecting live window for display ${screenInfo.id} (HWND: ${hwndVal}) into WorkerW container...`)
-        await wallpaperRenderer.inject(hwndVal)
+        await (wallpaperRenderer as any).inject(hwndVal)
       }
     } catch (err) {
       console.error(`Failed to inject window for display ${screenInfo.id} into desktop`, err)
