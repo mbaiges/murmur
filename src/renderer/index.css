@@ -1,0 +1,191 @@
+@import "tailwindcss";
+
+/* Force overflow hidden on HTML, body and root to prevent border scrollbars */
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden !important;
+}
+
+/* Font Faces for Live Browser Rendering */
+@font-face {
+  font-family: 'EB Garamond';
+  src: url('/fonts/EBGaramond-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Playfair Display';
+  src: url('/fonts/PlayfairDisplay-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Outfit';
+  src: url('/fonts/Outfit-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* Custom Scrollbar Styles for consistent dark theme UI */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #020617; /* slate-950 */
+}
+::-webkit-scrollbar-thumb {
+  background: #1e293b; /* slate-800 */
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #334155; /* slate-700 */
+}
+
+/* Electron drag region class */
+.titlebar-drag {
+  -webkit-app-region: drag;
+}
+.titlebar-no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* Animated Gradients */
+.bg-midnight-gradient {
+  background: linear-gradient(135deg, #0a0b1e, #16082c, #061324);
+  background-size: 400% 400%;
+}
+.bg-drift-gradient {
+  background: linear-gradient(135deg, #061726, #0c2d3a, #041f22);
+  background-size: 400% 400%;
+}
+.bg-forest-gradient {
+  background: linear-gradient(135deg, #051d14, #0b2f1f, #02120b);
+  background-size: 400% 400%;
+}
+.bg-crimson-gradient {
+  background: linear-gradient(135deg, #1c050a, #320a12, #0d0104);
+  background-size: 400% 400%;
+}
+.bg-cyberpunk-gradient {
+  background: linear-gradient(135deg, #0b0214, #1b0a2a, #031416);
+  background-size: 400% 400%;
+}
+.bg-warmglow-gradient {
+  background: linear-gradient(135deg, #241407, #3a1c02, #100801);
+  background-size: 400% 400%;
+}
+
+/* Animations */
+.animate-midnight-spin {
+  animation: gradientSlow 18s ease infinite;
+}
+.animate-drift-spin {
+  animation: gradientSlow 14s ease infinite;
+}
+.animate-forest-spin {
+  animation: gradientSlow 16s ease infinite;
+}
+.animate-crimson-spin {
+  animation: gradientSlow 15s ease infinite;
+}
+.animate-cyberpunk-spin {
+  animation: gradientSlow 12s ease infinite;
+}
+.animate-warmglow-spin {
+  animation: gradientSlow 17s ease infinite;
+}
+
+@keyframes gradientSlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Vignette overlays */
+.bg-vignette-soft {
+  background: radial-gradient(circle, transparent 40%, rgba(0, 0, 0, 0.25) 90%);
+}
+.bg-vignette-medium {
+  background: radial-gradient(circle, transparent 25%, rgba(0, 0, 0, 0.45) 85%);
+}
+.bg-vignette-dramatic {
+  background: radial-gradient(circle, transparent 10%, rgba(0, 0, 0, 0.7) 80%);
+}
+
+/* Layout animations */
+.animate-fade-in {
+  animation: fadeIn 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.animate-drift-in {
+  animation: driftIn 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+.animate-morph-in {
+  animation: morphIn 1.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.animate-typewriter-fade {
+  animation: typewriterFade 2s ease-out forwards;
+}
+
+.animate-glitch {
+  animation: glitchText 0.3s steps(2, end) infinite;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes driftIn {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes morphIn {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes typewriterFade {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes glitchText {
+  0% { text-shadow: 2px -1px 0 rgba(255,0,80,0.4), -2px 1px 0 rgba(0,240,255,0.4); }
+  50% { text-shadow: -2px 2px 0 rgba(255,0,80,0.4), 2px -2px 0 rgba(0,240,255,0.4); }
+  100% { text-shadow: 2px -1px 0 rgba(255,0,80,0.4), -2px 1px 0 rgba(0,240,255,0.4); }
+}
+
+/* Font family classes */
+.font-eb-garamond {
+  font-family: 'EB Garamond', serif;
+}
+.font-playfair {
+  font-family: 'Playfair Display', serif;
+}
+.font-outfit {
+  font-family: 'Outfit', sans-serif;
+}
+.font-garamond-bold {
+  font-family: 'EB Garamond', serif;
+  font-weight: 800;
+}
+.font-monospace {
+  font-family: 'Courier New', Courier, monospace;
+}

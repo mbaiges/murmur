@@ -1,0 +1,72 @@
+{
+  "name": "murmur",
+  "version": "0.1.0",
+  "main": "./out/main/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "electron-vite dev --watch",
+    "build": "electron-vite build",
+    "postinstall": "electron-builder install-app-deps",
+    "pack": "electron-vite build && electron-builder --dir",
+    "dist": "electron-vite build && electron-builder",
+    "test": "vitest run tests/unit",
+    "test:watch": "vitest tests/unit",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:all": "vitest run && playwright test"
+  },
+  "dependencies": {
+    "@google/genai": "^2.4.0",
+    "canvas": "^3.1.0",
+    "dotenv": "^17.2.3",
+    "fast-xml-parser": "^5.10.0",
+    "react": "^19.0.1",
+    "react-dom": "^19.0.1",
+    "sharp": "^0.33.5",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1",
+    "@tailwindcss/vite": "^4.1.14",
+    "@types/node": "^20.14.9",
+    "@types/react": "^19.0.1",
+    "@types/react-dom": "^19.0.1",
+    "@vitejs/plugin-react": "^5.2.0",
+    "electron": "^41.7.1",
+    "electron-builder": "^26.15.3",
+    "electron-playwright-helpers": "^1.7.1",
+    "electron-vite": "^5.0.0",
+    "tailwindcss": "^4.1.14",
+    "typescript": "~5.8.2",
+    "vite": "^6.4.3",
+    "vitest": "^3.2.4"
+  },
+  "overrides": {
+    "esbuild": "0.25.0",
+    "tar": "7.5.16"
+  },
+  "build": {
+    "appId": "com.mbaiges.murmur",
+    "productName": "Murmur",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis",
+      "requestedExecutionLevel": "asInvoker",
+      "icon": "resources/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false
+    },
+    "asarUnpack": [
+      "**/node_modules/sharp/**/*",
+      "**/node_modules/@img/**/*",
+      "**/node_modules/canvas/**/*"
+    ]
+  }
+}
