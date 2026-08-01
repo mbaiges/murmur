@@ -1,6 +1,7 @@
 node_modules/
 dist/
 out/
+.electron-dev/
 .env
 .DS_Store
 *.log
@@ -12,5 +13,9 @@ yarn-error.log*
 .idea/
 murmur.config.json
 murmur.history.json
-temp/
+test-results/
+playwright-report/
+tests/e2e/artifacts/
+tests/e2e/fixtures/captured-phrase.json
 *.png
+!src/renderer/public/logo.png

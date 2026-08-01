@@ -1,6 +1,17 @@
 export type ThemeName = 'Midnight' | 'Drift' | 'Parchment' | 'Blanc' | 'Static' | 'Forest' | 'Crimson' | 'Cyberpunk' | 'WarmGlow'
 export type AnimationName = 'Fade' | 'DriftIn' | 'Typewriter' | 'Morph' | 'Instant' | 'Glitch'
 
+export type LayoutStyleName =
+  | 'centered'
+  | 'scattered'
+  | 'editorial-left'
+  | 'editorial-right'
+  | 'asymmetrical'
+  | 'book-cover'
+  | 'split-spread'
+  | 'tabloid-stack'
+  | 'pull-quote'
+
 export const DEFAULT_SYSTEM_PROMPT = `You are a surrealist poet and conceptual artist.
 Given a list of recent headlines from different news sources, create a single short, surreal, nonsense phrase in the style of a traditional folk saying or proverb.
 
@@ -112,7 +123,7 @@ export interface MurmurConfig {
   monitors: MonitorConfig[]
   // Personalization fields
   textAlignment: 'center' | 'left' | 'right'
-  layoutStyle: 'centered' | 'scattered' | 'editorial-left' | 'editorial-right' | 'asymmetrical' | 'book-cover'
+  layoutStyle: LayoutStyleName
   vignetteStyle: 'none' | 'soft' | 'medium' | 'dramatic'
   audioFeedback: boolean
   // Prompt & formatting fields
@@ -140,10 +151,14 @@ export interface PaintOptions {
   headlines?: string[]
   sources?: string[]
   textAlignment: 'center' | 'left' | 'right'
-  layoutStyle: 'centered' | 'scattered' | 'editorial-left' | 'editorial-right' | 'asymmetrical' | 'book-cover'
+  layoutStyle: LayoutStyleName
   vignetteStyle: 'none' | 'soft' | 'medium' | 'dramatic'
   noiseIntensity: 'none' | 'subtle' | 'heavy'
   audioFeedback: boolean
+  enableBold: boolean
+  enableItalic: boolean
+  enableNewlines: boolean
+  enableDifferentFonts: boolean
   transitionProgress?: number
 }
 

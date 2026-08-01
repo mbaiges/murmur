@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { MurmurConfig, MurmurState } from '../domain/types'
+import { splitPhraseLines } from '../shared/phraseFormatFlags'
+import { splitFlatCharsAtWordMidpoint, splitPlainPhraseHeadlineDeck } from '../shared/phraseLayoutSplit'
+import { phraseToPlainText } from '../shared/phrasePlainText'
 
 const api = (window as any).api
 
@@ -109,7 +112,7 @@ function compileToStyledChars(
             inner,
             defaultFontClass,
             config,
-            true,
+            config.enableBold ? true : isBold,
             isItalic,
             isCode,
             currentFontClass
@@ -131,7 +134,7 @@ function compileToStyledChars(
             defaultFontClass,
             config,
             isBold,
-            true,
+            config.enableItalic ? true : isItalic,
             isCode,
             currentFontClass
           )
@@ -145,15 +148,16 @@ function compileToStyledChars(
       const closeIdx = currentText.indexOf('`', 1)
       if (closeIdx !== -1) {
         const inner = currentText.substring(1, closeIdx)
+        const useCode = config.enableDifferentFonts
         result.push(
           ...compileToStyledChars(
             inner,
-            'font-monospace',
+            useCode ? 'font-monospace' : defaultFontClass,
             config,
             isBold,
             isItalic,
-            true,
-            'font-monospace'
+            useCode ? true : isCode,
+            useCode ? 'font-monospace' : currentFontClass
           )
         )
         currentText = currentText.substring(closeIdx + 1)
@@ -169,11 +173,13 @@ function compileToStyledChars(
         const innerText = currentText.substring(closeBracketIdx + 1, closeFontIdx)
         
         let overrideClass = defaultFontClass
-        if (fontName === 'EB Garamond') overrideClass = 'font-eb-garamond'
-        else if (fontName === 'Playfair Display') overrideClass = 'font-playfair'
-        else if (fontName === 'Outfit') overrideClass = 'font-outfit'
-        else if (fontName === 'Garamond Bold') overrideClass = 'font-garamond-bold'
-        else if (fontName === 'Monospace') overrideClass = 'font-monospace'
+        if (config.enableDifferentFonts) {
+          if (fontName === 'EB Garamond') overrideClass = 'font-eb-garamond'
+          else if (fontName === 'Playfair Display') overrideClass = 'font-playfair'
+          else if (fontName === 'Outfit') overrideClass = 'font-outfit'
+          else if (fontName === 'Garamond Bold') overrideClass = 'font-garamond-bold'
+          else if (fontName === 'Monospace') overrideClass = 'font-monospace'
+        }
 
         result.push(
           ...compileToStyledChars(
@@ -183,7 +189,7 @@ function compileToStyledChars(
             isBold,
             isItalic,
             isCode,
-            overrideClass
+            config.enableDifferentFonts ? overrideClass : currentFontClass
           )
         )
         currentText = currentText.substring(closeFontIdx + 7)
@@ -351,7 +357,7 @@ export default function WallpaperView() {
     else if (config.fontFamily === 'Garamond Bold') defaultFontClass = 'font-garamond-bold'
     else if (config.fontFamily === 'Monospace') defaultFontClass = 'font-monospace'
 
-    const lines = activePhrase.split('\\n')
+    const lines = splitPhraseLines(activePhrase, config.enableNewlines)
     const compiled = lines.map(line => compileToStyledChars(line, defaultFontClass, config))
     
     setPhraseLines(compiled)
@@ -404,7 +410,16 @@ export default function WallpaperView() {
     } else {
       setVisibleCount(total)
     }
-  }, [activePhrase, config?.fontFamily, config?.animation, config?.audioFeedback])
+  }, [
+    activePhrase,
+    config?.fontFamily,
+    config?.animation,
+    config?.audioFeedback,
+    config?.enableBold,
+    config?.enableItalic,
+    config?.enableNewlines,
+    config?.enableDifferentFonts
+  ])
 
   if (!config || !state) {
     return <div className="w-full h-full bg-slate-950" />
@@ -458,6 +473,12 @@ export default function WallpaperView() {
     layoutClass = 'w-full max-w-xl pr-20 pl-6 justify-end items-end text-right'
   } else if (config.layoutStyle === 'scattered') {
     layoutClass = 'w-full h-full relative p-20'
+  } else if (config.layoutStyle === 'split-spread') {
+    layoutClass = 'w-full h-full max-w-none px-12 md:px-20 justify-center'
+  } else if (config.layoutStyle === 'tabloid-stack') {
+    layoutClass = 'w-full max-w-4xl px-12 justify-center items-center text-center'
+  } else if (config.layoutStyle === 'pull-quote') {
+    layoutClass = 'w-full max-w-3xl px-16 justify-center items-start'
   }
 
   // Animation Transition Classes
@@ -621,7 +642,94 @@ export default function WallpaperView() {
         </h1>
       </div>
     )
-  };
+  }
+
+  const renderSplitSpreadLayout = () => {
+    const flat = phraseLines.flat()
+    const { left, right } = splitFlatCharsAtWordMidpoint(flat)
+    let remaining = visibleCount
+    const take = (chars: StyledChar[]) => {
+      const slice = chars.slice(0, Math.max(0, remaining))
+      remaining -= chars.length
+      return slice
+    }
+
+    return (
+      <div
+        data-testid="layout-split-spread"
+        className={`grid grid-cols-2 gap-10 w-full items-center min-h-[40vh] ${animClass}`}
+      >
+        <h1
+          data-testid="layout-split-spread-left"
+          className={`${textColor} ${fontClass} text-left leading-snug select-none tracking-tight antialiased`}
+          style={{ fontSize: getScaledFontClamp(1.4, 3.2, 2.8) }}
+        >
+          {renderStyledChars(take(left))}
+        </h1>
+        <h1
+          data-testid="layout-split-spread-right"
+          className={`${textColor} ${fontClass} text-right leading-snug select-none tracking-tight antialiased`}
+          style={{ fontSize: getScaledFontClamp(1.4, 3.2, 2.8) }}
+        >
+          {renderStyledChars(take(right))}
+        </h1>
+      </div>
+    )
+  }
+
+  const renderTabloidStackLayout = () => {
+    const plain = phraseToPlainText(activePhrase)
+    const { headline, deck } = splitPlainPhraseHeadlineDeck(plain)
+    const headlineChars = compileToStyledChars(headline, fontClass, config)
+    const deckChars = deck
+      ? compileToStyledChars(deck, fontClass, config)
+      : []
+
+    let remaining = visibleCount
+    const headlineLen = headlineChars.length
+    const headlineVisible = headlineChars.slice(0, Math.min(remaining, headlineLen))
+    remaining -= headlineLen
+    const deckVisible = deckChars.slice(0, Math.max(0, remaining))
+
+    return (
+      <div data-testid="layout-tabloid-stack" className={`flex flex-col items-center text-center space-y-6 ${animClass}`}>
+        <h1
+          data-testid="layout-tabloid-headline"
+          className={`${textColor} ${fontClass} leading-tight select-none tracking-tight antialiased uppercase`}
+          style={{ fontSize: getScaledFontClamp(2, 4.5, 4), textShadow: '0 2px 12px rgba(0,0,0,0.08)' }}
+        >
+          {renderStyledChars(headlineVisible)}
+        </h1>
+        {deckChars.length > 0 && (
+          <p
+            data-testid="layout-tabloid-deck"
+            className={`${mutedColor} font-serif italic max-w-2xl leading-relaxed select-none`}
+            style={{ fontSize: getScaledFontClamp(1, 2.2, 1.75) }}
+          >
+            {renderStyledChars(deckVisible)}
+          </p>
+        )}
+      </div>
+    )
+  }
+
+  const renderPullQuoteLayout = () => {
+    const flat = phraseLines.flat()
+    const visible = flat.slice(0, visibleCount)
+    return (
+      <blockquote
+        data-testid="layout-pull-quote"
+        className={`border-l-4 border-current pl-8 py-2 ${textColor} ${fontClass} ${animClass} leading-snug select-none antialiased`}
+        style={{
+          fontSize: getScaledFontClamp(1.8, 4.2, 3.6),
+          borderColor: 'currentColor',
+          opacity: 0.95
+        }}
+      >
+        {renderStyledChars(visible)}
+      </blockquote>
+    )
+  }
 
   // Theme styles classes
   let bgThemeClass = ''
@@ -703,6 +811,12 @@ export default function WallpaperView() {
           renderAsymmetricalLayout()
         ) : config.layoutStyle === 'book-cover' ? (
           renderBookCoverLayout()
+        ) : config.layoutStyle === 'split-spread' ? (
+          renderSplitSpreadLayout()
+        ) : config.layoutStyle === 'tabloid-stack' ? (
+          renderTabloidStackLayout()
+        ) : config.layoutStyle === 'pull-quote' ? (
+          renderPullQuoteLayout()
         ) : (
           renderClassicLayout()
         )}

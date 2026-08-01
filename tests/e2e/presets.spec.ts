@@ -1,6 +1,5 @@
 import { test, expect, _electron as electron, ElectronApplication } from '@playwright/test'
-import { join } from 'path'
-import { existsSync, mkdirSync } from 'fs'
+import { e2eScreenshotPath } from './helpers/screenshotPaths'
 
 test.describe.serial('AI System Prompt Presets and Aesthetic Moods E2E Suite', () => {
   let electronApp: ElectronApplication
@@ -42,12 +41,6 @@ test.describe.serial('AI System Prompt Presets and Aesthetic Moods E2E Suite', (
     // Wait for loading spinner to detach
     await page.waitForSelector('.animate-spin', { state: 'detached', timeout: 15000 })
 
-    const screenshotsDir = 'tests/e2e/artifacts/screenshots'
-    if (!existsSync(screenshotsDir)) {
-      mkdirSync(screenshotsDir, { recursive: true })
-    }
-
-    // Handle Wizard if present
     const wizardHeader = page.locator('text=First-time Setup Wizard')
     const sidebar = page.locator('aside')
     
@@ -121,9 +114,9 @@ test.describe.serial('AI System Prompt Presets and Aesthetic Moods E2E Suite', (
     // Wait for success indicator
     await expect(page.locator('button:has-text("Applied!")')).toBeVisible()
     
-    // Take a screenshot of the applied state
-    await page.screenshot({ path: join(screenshotsDir, '07_applied_custom_prompt.png') })
-    console.log('Took screenshot: 07_applied_custom_prompt.png')
+    const appliedShot = e2eScreenshotPath('presets-custom-prompt', 'applied-custom-prompt.png')
+    await page.screenshot({ path: appliedShot })
+    console.log('Screenshot:', appliedShot)
 
     // Wait for success checkmark to fade out
     await page.waitForTimeout(2000)
@@ -155,10 +148,7 @@ test.describe.serial('AI System Prompt Presets and Aesthetic Moods E2E Suite', (
 
     await page.waitForLoadState('load')
 
-    const screenshotsDir = 'tests/e2e/artifacts/screenshots'
-    if (!existsSync(screenshotsDir)) {
-      mkdirSync(screenshotsDir, { recursive: true })
-    }
+    const moodCase = 'presets-aesthetic-moods'
 
     const sidebar = page.locator('aside')
     await expect(sidebar).toBeVisible()
@@ -212,8 +202,9 @@ test.describe.serial('AI System Prompt Presets and Aesthetic Moods E2E Suite', (
     const zenWallpaper = electronApp.windows().find(win => win.url().includes('view=wallpaper'))
     if (zenWallpaper) {
       await page.waitForTimeout(1000)
-      await zenWallpaper.screenshot({ path: join(screenshotsDir, '08_zen_study_wallpaper.png') })
-      console.log('Took screenshot: 08_zen_study_wallpaper.png')
+      const path = e2eScreenshotPath(moodCase, 'zen-study-wallpaper.png')
+      await zenWallpaper.screenshot({ path })
+      console.log('Screenshot:', path)
     }
 
     // 3. Navigate back to Aesthetic Moods and select "Rogue Terminal"
@@ -231,8 +222,9 @@ test.describe.serial('AI System Prompt Presets and Aesthetic Moods E2E Suite', (
     // Take screenshot of Rogue Terminal wallpaper view
     if (zenWallpaper) {
       await page.waitForTimeout(1000)
-      await zenWallpaper.screenshot({ path: join(screenshotsDir, '09_rogue_terminal_wallpaper.png') })
-      console.log('Took screenshot: 09_rogue_terminal_wallpaper.png')
+      const path = e2eScreenshotPath(moodCase, 'rogue-terminal-wallpaper.png')
+      await zenWallpaper.screenshot({ path })
+      console.log('Screenshot:', path)
     }
 
     // Verify "Zen Study" button is no longer active
@@ -262,8 +254,9 @@ test.describe.serial('AI System Prompt Presets and Aesthetic Moods E2E Suite', (
     // Take screenshot of Gothic Novelist wallpaper view
     if (zenWallpaper) {
       await page.waitForTimeout(1000)
-      await zenWallpaper.screenshot({ path: join(screenshotsDir, '10_gothic_novelist_wallpaper.png') })
-      console.log('Took screenshot: 10_gothic_novelist_wallpaper.png')
+      const path = e2eScreenshotPath(moodCase, 'gothic-novelist-wallpaper.png')
+      await zenWallpaper.screenshot({ path })
+      console.log('Screenshot:', path)
     }
 
     // 3.2 Navigate back to Aesthetic Moods and select "Clickbait Press"
@@ -286,17 +279,18 @@ test.describe.serial('AI System Prompt Presets and Aesthetic Moods E2E Suite', (
     expect(await themeSelect.inputValue()).toBe('Crimson')
     expect(await fontSelect.inputValue()).toBe('Outfit')
     expect(await layoutSelect.inputValue()).toBe('centered')
+    expect(await animationSelect.inputValue()).toBe('Fade')
 
-    // Clickbait Press activates 'Instant' transition which destroys the wallpaper window by design to save memory.
-    // To capture a screenshot of its rendering, we temporarily select 'Fade' animation to spawn the background window,
-    // take the screenshot, and proceed.
-    await animationSelect.selectOption('Fade')
     await page.waitForTimeout(1500)
 
     const activeWallpaperWin = electronApp.windows().find(win => win.url().includes('view=wallpaper'))
+    expect(activeWallpaperWin, 'Clickbait with Fade should keep the wallpaper overlay window').toBeDefined()
     if (activeWallpaperWin) {
-      await activeWallpaperWin.screenshot({ path: join(screenshotsDir, '11_clickbait_press_wallpaper.png') })
-      console.log('Took screenshot: 11_clickbait_press_wallpaper.png')
+      const wallpaperText = await activeWallpaperWin.evaluate(() => document.body.innerText.trim())
+      expect(wallpaperText.toLowerCase()).toContain('stubbed')
+      const path = e2eScreenshotPath(moodCase, 'clickbait-press-wallpaper.png')
+      await activeWallpaperWin.screenshot({ path })
+      console.log('Screenshot:', path)
     }
 
     // 4. Navigate back to Feeds tab and verify the prompt updated to Clickbait Press

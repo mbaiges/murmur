@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 import { MurmurConfig, MurmurState, ThemeName } from '../domain/types'
 
 contextBridge.exposeInMainWorld('api', {
+  platform: process.platform,
   getConfig: (): Promise<MurmurConfig> => ipcRenderer.invoke('config:get'),
   saveConfig: (config: Partial<MurmurConfig>): Promise<void> => ipcRenderer.invoke('config:save', config),
   getHistory: (monitorId: string): Promise<string[]> => ipcRenderer.invoke('history:get', monitorId),

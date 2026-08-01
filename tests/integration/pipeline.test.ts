@@ -63,6 +63,15 @@ describe('Pipeline Integration', () => {
       animation: 'Fade',
       overlays: { dateTime: true, sourceCredit: true, inspiringHeadlines: true },
       resolution: { width: 800, height: 600 },
+      textAlignment: 'center',
+      layoutStyle: 'centered',
+      vignetteStyle: 'none',
+      noiseIntensity: 'none',
+      audioFeedback: false,
+      enableBold: true,
+      enableItalic: true,
+      enableNewlines: true,
+      enableDifferentFonts: true,
       headlines: items.map((i) => i.title),
       sources: ['Mock News Source']
     })

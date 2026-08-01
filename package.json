@@ -4,7 +4,7 @@
   "main": "./out/main/index.js",
   "type": "commonjs",
   "scripts": {
-    "dev": "electron-vite dev --watch",
+    "dev": "node scripts/run-dev.mjs",
     "build": "electron-vite build",
     "postinstall": "electron-builder install-app-deps",
     "pack": "electron-vite build && electron-builder --dir",
@@ -57,6 +57,10 @@
       "target": "nsis",
       "requestedExecutionLevel": "asInvoker",
       "icon": "resources/icon.png"
+    },
+    "mac": {
+      "icon": "resources/icon.png",
+      "category": "public.app-category.utilities"
     },
     "nsis": {
       "oneClick": false,

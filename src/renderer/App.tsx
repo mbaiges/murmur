@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import { MurmurConfig, MurmurState, ThemeName, DEFAULT_SYSTEM_PROMPT, ABSURD_PROVERB_PROMPT, WORST_NEWS_TITLE_PROMPT, BEST_NEWS_TITLE_PROMPT, CYBERPUNK_TERMINAL_PROMPT, ZEN_KOAN_PROMPT, PARANOID_CONSPIRACY_PROMPT, EXISTENTIAL_DREAD_PROMPT, GOTHIC_PURPLE_PROSE_PROMPT } from '../domain/types'
+import { phraseToPlainText } from '../shared/phrasePlainText'
+import {
+  MOOD_LINKED_PROMPT_PRESETS,
+  STANDALONE_PROMPT_PRESETS,
+  presetIdToPrompt,
+  promptToPresetId
+} from '../shared/promptPresets'
 import WallpaperView from './WallpaperView'
 import MoodsTab from './components/MoodsTab'
 
@@ -116,16 +123,9 @@ export default function App() {
   }
 
   const handlePresetChange = (presetName: string) => {
-    let nextPrompt = config?.systemPrompt || ''
-    if (presetName === 'Absurd Proverb') nextPrompt = ABSURD_PROVERB_PROMPT
-    else if (presetName === 'Worst News Title') nextPrompt = WORST_NEWS_TITLE_PROMPT
-    else if (presetName === 'Best News Title') nextPrompt = BEST_NEWS_TITLE_PROMPT
-    else if (presetName === 'Cyberpunk Terminal') nextPrompt = CYBERPUNK_TERMINAL_PROMPT
-    else if (presetName === 'Zen Koan') nextPrompt = ZEN_KOAN_PROMPT
-    else if (presetName === 'Paranoid Conspiracy') nextPrompt = PARANOID_CONSPIRACY_PROMPT
-    else if (presetName === 'Existential Dread') nextPrompt = EXISTENTIAL_DREAD_PROMPT
-    else if (presetName === 'Gothic Purple Prose') nextPrompt = GOTHIC_PURPLE_PROSE_PROMPT
-    
+    const nextPrompt = presetIdToPrompt(presetName)
+    if (!nextPrompt) return
+
     setDraftPrompt(nextPrompt)
     setIsPromptDirty(false)
     handleSave({ systemPrompt: nextPrompt })
@@ -186,7 +186,7 @@ export default function App() {
         theme: 'Crimson',
         fontFamily: 'Outfit',
         layoutStyle: 'centered',
-        animation: 'Instant',
+        animation: 'Fade',
         audioFeedback: false,
         vignetteStyle: 'none',
         noiseIntensity: 'none',
@@ -284,7 +284,7 @@ export default function App() {
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
           
           <div className="flex items-center space-x-3 mb-6">
-            <img src="logo.png" className="h-10 w-10 object-contain rounded-lg border border-slate-800 p-1 bg-slate-955" />
+            <img src="/logo.png" className="h-10 w-10 object-contain rounded-lg border border-slate-800 p-1 bg-slate-955" />
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-white">Murmur</h1>
               <p className="text-xs text-slate-400">First-time Setup Wizard</p>
@@ -330,9 +330,13 @@ export default function App() {
   return (
     <div className="flex flex-col h-screen max-h-screen bg-slate-950 text-slate-100 font-sans antialiased overflow-hidden">
       {/* Draggable Custom Header */}
-      <header className="h-10 bg-slate-950 flex items-center justify-between px-6 select-none border-b border-slate-900 titlebar-drag">
+      <header
+        className={`h-10 bg-slate-950 flex items-center justify-between select-none border-b border-slate-900 titlebar-drag ${
+          (window as any).api?.platform === 'darwin' ? 'pl-[76px] pr-6' : 'px-6'
+        }`}
+      >
         <div className="flex items-center space-x-2">
-          <img src="logo.png" className="h-4 w-4 object-contain rounded p-[1px] bg-slate-800" />
+          <img src="/logo.png" className="h-4 w-4 object-contain rounded p-[1px] bg-slate-800" />
           <span className="text-[11px] font-semibold text-slate-400 tracking-wider uppercase">Murmur Settings</span>
         </div>
       </header>
@@ -355,7 +359,7 @@ export default function App() {
                 <h1 className="text-xl font-bold tracking-tight text-white">Murmur</h1>
                 <p className="text-[10px] text-slate-400 font-medium tracking-wide uppercase">Windows Desktop App</p>
               </div>
-              <img src="logo.png" className="h-10 w-10 object-contain rounded-lg border border-slate-800 p-1 bg-slate-955" />
+              <img src="/logo.png" className="h-10 w-10 object-contain rounded-lg border border-slate-800 p-1 bg-slate-955" />
             </div>
 
             <nav className="space-y-1">
@@ -455,68 +459,61 @@ export default function App() {
                 <div>
                   <div className="flex justify-between items-center mb-2">
                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">AI System Prompt Preset</label>
-                    <div className="flex items-center space-x-2">
-                      <select
-                        className="bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg px-2 py-1 text-xs text-slate-200 outline-none transition-all cursor-pointer"
-                        value={
-                          draftPrompt === ABSURD_PROVERB_PROMPT
-                            ? 'Absurd Proverb'
-                            : draftPrompt === WORST_NEWS_TITLE_PROMPT
-                              ? 'Worst News Title'
-                              : draftPrompt === BEST_NEWS_TITLE_PROMPT
-                                ? 'Best News Title'
-                                : draftPrompt === CYBERPUNK_TERMINAL_PROMPT
-                                  ? 'Cyberpunk Terminal'
-                                  : draftPrompt === ZEN_KOAN_PROMPT
-                                    ? 'Zen Koan'
-                                    : draftPrompt === PARANOID_CONSPIRACY_PROMPT
-                                      ? 'Paranoid Conspiracy'
-                                      : draftPrompt === EXISTENTIAL_DREAD_PROMPT
-                                        ? 'Existential Dread'
-                                        : draftPrompt === GOTHIC_PURPLE_PROSE_PROMPT
-                                          ? 'Gothic Purple Prose'
-                                          : 'Custom'
-                        }
-                        onChange={(e) => handlePresetChange(e.target.value)}
-                      >
-                        <option value="Absurd Proverb">Absurd Proverb (Default)</option>
-                        <option value="Worst News Title">Worst News Title</option>
-                        <option value="Best News Title">Best News Title</option>
-                        <option value="Cyberpunk Terminal">Cyberpunk Terminal</option>
-                        <option value="Zen Koan">Zen Koan</option>
-                        <option value="Paranoid Conspiracy">Paranoid Conspiracy</option>
-                        <option value="Existential Dread">Existential Dread</option>
-                        <option value="Gothic Purple Prose">Gothic Purple Prose</option>
-                        <option value="Custom">Custom</option>
-                      </select>
-
-                      {(isPromptDirty || showCheckmark) && (
-                        <button
-                          onClick={handleApplyPrompt}
-                          disabled={isApplyingPrompt}
-                          className={`flex items-center space-x-1.5 px-2.5 py-1 text-[10px] rounded font-semibold text-white transition-all shadow-md active:scale-95 duration-150 ${
-                            showCheckmark
-                              ? 'bg-emerald-600 hover:bg-emerald-500'
-                              : 'bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700'
-                          } animate-fade-in`}
+                    <div className="flex flex-col items-end gap-1">
+                      <div className="flex items-center space-x-2">
+                        <select
+                          className="bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg px-2 py-1 text-xs text-slate-200 outline-none transition-all cursor-pointer max-w-[220px]"
+                          value={promptToPresetId(draftPrompt)}
+                          onChange={(e) => handlePresetChange(e.target.value)}
                         >
-                          {isApplyingPrompt ? (
-                            <svg className="animate-spin h-3 w-3 text-white" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                            </svg>
-                          ) : showCheckmark ? (
-                            <svg className="h-3 w-3 text-white animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                            </svg>
-                          ) : (
-                            <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                            </svg>
-                          )}
-                          <span>{isApplyingPrompt ? 'Applying...' : showCheckmark ? 'Applied!' : 'Apply'}</span>
-                        </button>
-                      )}
+                          <optgroup label="Linked to Aesthetic Moods">
+                            {MOOD_LINKED_PROMPT_PRESETS.map((preset) => (
+                              <option key={preset.id} value={preset.id}>
+                                {preset.label} — {preset.moodName}
+                              </option>
+                            ))}
+                          </optgroup>
+                          <optgroup label="Prompt only (no mood)">
+                            {STANDALONE_PROMPT_PRESETS.map((preset) => (
+                              <option key={preset.id} value={preset.id}>
+                                {preset.label}
+                              </option>
+                            ))}
+                          </optgroup>
+                          <option value="Custom">Custom (edited below)</option>
+                        </select>
+
+                        {(isPromptDirty || showCheckmark) && (
+                          <button
+                            onClick={handleApplyPrompt}
+                            disabled={isApplyingPrompt}
+                            className={`flex items-center space-x-1.5 px-2.5 py-1 text-[10px] rounded font-semibold text-white transition-all shadow-md active:scale-95 duration-150 ${
+                              showCheckmark
+                                ? 'bg-emerald-600 hover:bg-emerald-500'
+                                : 'bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700'
+                            } animate-fade-in`}
+                          >
+                            {isApplyingPrompt ? (
+                              <svg className="animate-spin h-3 w-3 text-white" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                              </svg>
+                            ) : showCheckmark ? (
+                              <svg className="h-3 w-3 text-white animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                            ) : (
+                              <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                            <span>{isApplyingPrompt ? 'Applying...' : showCheckmark ? 'Applied!' : 'Apply'}</span>
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-slate-500 max-w-[280px] leading-snug text-right">
+                        Mood-linked prompts match Aesthetic Moods; prompt-only presets change the AI voice without switching theme or layout.
+                      </p>
                     </div>
                   </div>
                   <textarea
@@ -681,7 +678,7 @@ export default function App() {
                             config.theme === 'Crimson' &&
                             config.fontFamily === 'Outfit' &&
                             config.layoutStyle === 'centered' &&
-                            config.animation === 'Instant' &&
+                            config.animation === 'Fade' &&
                             config.audioFeedback === false &&
                             config.vignetteStyle === 'none' &&
                             config.noiseIntensity === 'none'
@@ -787,15 +784,88 @@ export default function App() {
                       value={config.layoutStyle}
                       onChange={(e) => handleSave({ layoutStyle: e.target.value as any })}
                     >
-                      <option value="centered">Classic Centered</option>
-                      <option value="editorial-left">Editorial Left Column</option>
-                      <option value="editorial-right">Editorial Right Column</option>
-                      <option value="asymmetrical">Asymmetrical Alternating</option>
-                      <option value="book-cover">Editorial Book Cover</option>
-                      <option value="scattered">Scattered Letters / Words</option>
+                      <optgroup label="Classic">
+                        <option value="centered">Classic Centered</option>
+                        <option value="editorial-left">Editorial Left Column</option>
+                        <option value="editorial-right">Editorial Right Column</option>
+                        <option value="asymmetrical">Asymmetrical Alternating</option>
+                        <option value="book-cover">Editorial Book Cover</option>
+                        <option value="scattered">Scattered Letters / Words</option>
+                      </optgroup>
+                      <optgroup label="Magazine &amp; news">
+                        <option value="split-spread">Split Spread (left / right halves)</option>
+                        <option value="tabloid-stack">Tabloid Stack (headline + deck)</option>
+                        <option value="pull-quote">Pull Quote (oversized margin quote)</option>
+                      </optgroup>
                     </select>
+                    <p className="text-[10px] text-slate-500 mt-1.5 leading-relaxed">
+                      Magazine layouts use editorial grids: split spread mirrors a two-page headline, tabloid stack separates
+                      display line from standfirst, pull quote emphasizes one line like a feature break.
+                    </p>
                   </div>
                   </div>
+
+                {/* AI phrase formatting (Gemini + wallpaper markup) */}
+                <div className="space-y-4 pt-4 border-t border-slate-800">
+                  <div>
+                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Phrase Formatting</h4>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Choose which markup the AI may use. Changing these regenerates the phrase for the current headlines.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h5 className="text-sm font-medium text-white">Bold emphasis</h5>
+                      <p className="text-xs text-slate-500">Allow **bold** markers in generated phrases.</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      className="rounded border-slate-800 text-indigo-600 focus:ring-indigo-500 h-4 w-4 bg-slate-950"
+                      checked={config.enableBold}
+                      onChange={(e) => handleSave({ enableBold: e.target.checked })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h5 className="text-sm font-medium text-white">Italic emphasis</h5>
+                      <p className="text-xs text-slate-500">Allow *italic* markers in generated phrases.</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      className="rounded border-slate-800 text-indigo-600 focus:ring-indigo-500 h-4 w-4 bg-slate-950"
+                      checked={config.enableItalic}
+                      onChange={(e) => handleSave({ enableItalic: e.target.checked })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h5 className="text-sm font-medium text-white">Multi-line layout</h5>
+                      <p className="text-xs text-slate-500">Allow line breaks for poetic multi-line phrases.</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      className="rounded border-slate-800 text-indigo-600 focus:ring-indigo-500 h-4 w-4 bg-slate-950"
+                      checked={config.enableNewlines}
+                      onChange={(e) => handleSave({ enableNewlines: e.target.checked })}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h5 className="text-sm font-medium text-white">Mixed fonts</h5>
+                      <p className="text-xs text-slate-500">Allow [font:…] tags for accent typography.</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      className="rounded border-slate-800 text-indigo-600 focus:ring-indigo-500 h-4 w-4 bg-slate-950"
+                      checked={config.enableDifferentFonts}
+                      onChange={(e) => handleSave({ enableDifferentFonts: e.target.checked })}
+                    />
+                  </div>
+                </div>
 
                 {/* Background Filters */}
                 <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-800">
@@ -906,7 +976,7 @@ export default function App() {
                           </div>
 
                           <div className="bg-slate-955 border border-slate-800 rounded-lg p-3 text-xs italic text-slate-400 min-h-[60px] flex items-center justify-center text-center">
-                            "{phrase || 'No phrase generated yet'}"
+                            "{phrase ? phraseToPlainText(phrase) : 'No phrase generated yet'}"
                           </div>
                         </div>
 
@@ -1028,7 +1098,7 @@ export default function App() {
                         {historyPhrases.map((phrase, i) => (
                           <div key={i} className="flex space-x-3 p-3 bg-slate-950 border border-slate-800 rounded-lg text-sm">
                             <span className="text-indigo-400 font-mono text-xs mt-0.5">#{i+1}</span>
-                            <span className="text-slate-200 italic">"{phrase}"</span>
+                            <span className="text-slate-200 italic">"{phraseToPlainText(phrase)}"</span>
                           </div>
                         ))}
                       </div>

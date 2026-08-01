@@ -90,7 +90,12 @@ export class MurmurService {
           textAlignment: config.textAlignment,
           layoutStyle: config.layoutStyle,
           vignetteStyle: config.vignetteStyle,
+          noiseIntensity: config.noiseIntensity,
           audioFeedback: false,
+          enableBold: config.enableBold,
+          enableItalic: config.enableItalic,
+          enableNewlines: config.enableNewlines,
+          enableDifferentFonts: config.enableDifferentFonts,
           headlines: isStaticMode ? sampled.map(item => item.title) : undefined,
           sources: isStaticMode ? Array.from(new Set(sampled.map(i => i.source))) : undefined
         }
@@ -133,7 +138,12 @@ export class MurmurService {
         textAlignment: config.textAlignment,
         layoutStyle: config.layoutStyle,
         vignetteStyle: config.vignetteStyle,
-        audioFeedback: false
+        noiseIntensity: config.noiseIntensity,
+        audioFeedback: false,
+        enableBold: config.enableBold,
+        enableItalic: config.enableItalic,
+        enableNewlines: config.enableNewlines,
+        enableDifferentFonts: config.enableDifferentFonts
       }
       const buffer = await this.painter.paint(staticOptions)
       await this.renderer.set(monitorId, buffer)
@@ -159,6 +169,9 @@ export class MurmurService {
         const theme = monitorConf?.themeOverride || config.theme
         const isStaticMode = config.animation === 'Instant'
         const phrase = isStaticMode ? (state.lastPhrases?.[screen.id] || '') : ''
+        if (isStaticMode && !phrase.trim()) {
+          continue
+        }
 
         const staticOptions = {
           phrase,
@@ -170,7 +183,12 @@ export class MurmurService {
           textAlignment: config.textAlignment,
           layoutStyle: config.layoutStyle,
           vignetteStyle: config.vignetteStyle,
+          noiseIntensity: config.noiseIntensity,
           audioFeedback: false,
+          enableBold: config.enableBold,
+          enableItalic: config.enableItalic,
+          enableNewlines: config.enableNewlines,
+          enableDifferentFonts: config.enableDifferentFonts,
           headlines: isStaticMode ? (state.lastHeadlines?.[screen.id] || []) : undefined,
           sources: isStaticMode ? (state.lastSources?.[screen.id] || []) : undefined
         }

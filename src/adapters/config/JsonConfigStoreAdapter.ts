@@ -4,6 +4,8 @@ import { readFileSync, writeFileSync, existsSync } from 'fs'
 import { IConfigStore } from '../../ports/IConfigStore'
 import { MurmurConfig, DEFAULT_SYSTEM_PROMPT } from '../../domain/types'
 import { MurmurConfigSchema } from '../../domain/config.schema'
+import { EXAMPLE_RSS_FEEDS } from '../../shared/exampleFeeds'
+import { isClickbaitPressConfig, preferredClickbaitAnimation } from '../../shared/clickbaitPreset'
 
 export class JsonConfigStoreAdapter implements IConfigStore {
   private filePath: string
@@ -16,7 +18,7 @@ export class JsonConfigStoreAdapter implements IConfigStore {
   private getDefaultConfig(): MurmurConfig {
     return {
       geminiApiKey: '',
-      feeds: ['https://feeds.bbci.co.uk/news/rss.xml'],
+      feeds: [...EXAMPLE_RSS_FEEDS],
       refreshIntervalMinutes: 60,
       language: 'auto',
       theme: 'Midnight',
@@ -65,8 +67,20 @@ export class JsonConfigStoreAdapter implements IConfigStore {
         parsed.systemPrompt = DEFAULT_SYSTEM_PROMPT
       }
 
+      let dirty = false
+      if (isClickbaitPressConfig(parsed) && parsed.animation === 'Instant') {
+        parsed.animation = preferredClickbaitAnimation()
+        dirty = true
+        console.log(
+          'JsonConfigStoreAdapter: Migrated Clickbait Press from Instant Cut to Fade (live desktop overlay).'
+        )
+      }
+
       const validated = MurmurConfigSchema.parse(parsed)
       this.cachedConfig = validated as MurmurConfig
+      if (dirty) {
+        writeFileSync(this.filePath, JSON.stringify(this.cachedConfig, null, 2), 'utf8')
+      }
       return this.cachedConfig
     } catch (error) {
       console.warn('JsonConfigStoreAdapter: Invalid config file, resetting to default.', error)

@@ -1,24 +1,47 @@
-import { Tray, Menu, app } from 'electron'
-import { join } from 'path'
+import { Tray, Menu, app, nativeImage } from 'electron'
+import { resolveBrandIconPath } from '../../shared/resolveBrandIcon'
 import { ISystemTray } from '../../ports/ISystemTray'
 import { MurmurState } from '../../domain/types'
+
+function createTrayImage() {
+  const iconPath = resolveBrandIconPath()
+  let image = nativeImage.createFromPath(iconPath)
+  if (image.isEmpty()) {
+    throw new Error(`Tray icon could not be loaded from ${iconPath}`)
+  }
+  if (process.platform === 'darwin') {
+    image = image.resize({ width: 22, height: 22 })
+    image.setTemplateImage(false)
+  }
+  return image
+}
 
 export class ElectronTrayAdapter implements ISystemTray {
   private tray: Tray | null = null
   private onRefresh: (() => Promise<void>) | null = null
   private onSettings: (() => void) | null = null
+  private onQuit: (() => void) | null = null
   private state: MurmurState = { isPaused: false, lastPhrases: {} }
 
-  public init(onRefresh: () => Promise<void>, onSettings: () => void): void {
+  public init(
+    onRefresh: () => Promise<void>,
+    onSettings: () => void,
+    onQuit?: () => void
+  ): void {
     this.onRefresh = onRefresh
     this.onSettings = onSettings
+    this.onQuit = onQuit ?? null
 
-    const iconPath = join(__dirname, '../../resources/tray.png')
-    this.tray = new Tray(iconPath)
-    this.tray.setToolTip('Murmur Wallpaper')
+    this.tray = new Tray(createTrayImage())
+    this.tray.setToolTip('Murmur')
     this.tray.on('double-click', () => {
       this.onSettings?.()
     })
+    if (process.platform === 'darwin') {
+      this.tray.on('click', () => {
+        this.onSettings?.()
+      })
+    }
     this.rebuildMenu()
   }
 
@@ -57,7 +80,11 @@ export class ElectronTrayAdapter implements ISystemTray {
       {
         label: 'Quit',
         click: () => {
-          app.quit()
+          if (this.onQuit) {
+            this.onQuit()
+          } else {
+            app.quit()
+          }
         }
       }
     ])

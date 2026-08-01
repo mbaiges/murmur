@@ -3,6 +3,9 @@ import { join } from 'path'
 import { existsSync } from 'fs'
 import { IWallpaperPainter } from '../../ports/IWallpaperPainter'
 import { PaintOptions } from '../../domain/types'
+import { PhraseFormatFlags, splitPhraseLines } from '../../shared/phraseFormatFlags'
+import { splitFlatCharsAtWordMidpoint, splitPlainPhraseHeadlineDeck } from '../../shared/phraseLayoutSplit'
+import { phraseToPlainText } from '../../shared/phrasePlainText'
 
 interface CanvasStyledChar {
   char: string
@@ -260,6 +263,7 @@ export class NodeCanvasWallpaperPainterAdapter implements IWallpaperPainter {
   private compileToStyledChars(
     text: string,
     defaultFontFamily: string,
+    flags: PhraseFormatFlags,
     isBold = false,
     isItalic = false,
     currentFontFamily = ''
@@ -323,7 +327,8 @@ export class NodeCanvasWallpaperPainterAdapter implements IWallpaperPainter {
             ...this.compileToStyledChars(
               inner,
               defaultFontFamily,
-              true,
+              flags,
+              flags.enableBold ? true : isBold,
               isItalic,
               currentFontFamily
             )
@@ -342,8 +347,9 @@ export class NodeCanvasWallpaperPainterAdapter implements IWallpaperPainter {
             ...this.compileToStyledChars(
               inner,
               defaultFontFamily,
+              flags,
               isBold,
-              true,
+              flags.enableItalic ? true : isItalic,
               currentFontFamily
             )
           )
@@ -364,9 +370,10 @@ export class NodeCanvasWallpaperPainterAdapter implements IWallpaperPainter {
               ...this.compileToStyledChars(
                 inner,
                 defaultFontFamily,
+                flags,
                 isBold,
                 isItalic,
-                fontName
+                flags.enableDifferentFonts ? fontName : currentFontFamily
               )
             )
             currentText = currentText.substring(tagCloseIdx + tagClose.length)
@@ -552,6 +559,12 @@ export class NodeCanvasWallpaperPainterAdapter implements IWallpaperPainter {
 
     ctx.textBaseline = 'middle'
     const font = options.fontFamily
+    const formatFlags: PhraseFormatFlags = {
+      enableBold: options.enableBold,
+      enableItalic: options.enableItalic,
+      enableNewlines: options.enableNewlines,
+      enableDifferentFonts: options.enableDifferentFonts
+    }
     
     // Scale font size based on phrase length to avoid overflows
     const phraseLength = options.phrase.length
@@ -569,7 +582,7 @@ export class NodeCanvasWallpaperPainterAdapter implements IWallpaperPainter {
     // Handle scattered layout separately
     if (options.layoutStyle === 'scattered') {
       const rand = this.createSeededRandom(options.phrase)
-      const compiledChars = this.compileToStyledChars(options.phrase, font)
+      const compiledChars = this.compileToStyledChars(options.phrase, font, formatFlags)
       
       // Split compiled characters by space into word arrays
       const words: CanvasStyledChar[][] = []
@@ -616,8 +629,8 @@ export class NodeCanvasWallpaperPainterAdapter implements IWallpaperPainter {
 
     // Wrap and layout standard text
     const maxWidth = width * 0.7
-    const rawLines = options.phrase.split('\\n')
-    const phraseLines = rawLines.map(line => this.compileToStyledChars(line, font))
+    const rawLines = splitPhraseLines(options.phrase, options.enableNewlines)
+    const phraseLines = rawLines.map((line) => this.compileToStyledChars(line, font, formatFlags))
     
     // Perform wrapping on each pre-split line
     const wrappedLines: CanvasStyledChar[][] = []
@@ -654,6 +667,85 @@ export class NodeCanvasWallpaperPainterAdapter implements IWallpaperPainter {
         
         this.drawStyledLine(ctx, line, lineX, startY + driftY, lineAlign, baseFontSize, textColor, textAlpha)
         startY += lineHeight
+      })
+      return
+    }
+
+    // Magazine split spread: headline halves on left and right pages
+    if (options.layoutStyle === 'split-spread') {
+      const flatChars = phraseLines.flat()
+      const { left, right } = splitFlatCharsAtWordMidpoint(flatChars)
+      const leftLines = this.wrapStyledChars(ctx, left, width * 0.38, baseFontSize * 1.05)
+      const rightLines = this.wrapStyledChars(ctx, right, width * 0.38, baseFontSize * 1.05)
+      const leftX = width * 0.12
+      const rightX = width * 0.88
+      let yLeft =
+        height / 2 - ((leftLines.length * lineHeight) / 2) + lineHeight / 2
+      let yRight =
+        height / 2 - ((rightLines.length * lineHeight) / 2) + lineHeight / 2
+      leftLines.forEach((line) => {
+        this.drawStyledLine(ctx, line, leftX, yLeft + driftY, 'left', baseFontSize * 1.05, textColor, textAlpha)
+        yLeft += lineHeight
+      })
+      rightLines.forEach((line) => {
+        this.drawStyledLine(ctx, line, rightX, yRight + driftY, 'right', baseFontSize * 1.05, textColor, textAlpha)
+        yRight += lineHeight
+      })
+      return
+    }
+
+    // Tabloid: display headline + smaller deck (standfirst)
+    if (options.layoutStyle === 'tabloid-stack') {
+      const plain = phraseToPlainText(options.phrase)
+      const { headline, deck } = splitPlainPhraseHeadlineDeck(plain)
+      const headlineChars = this.compileToStyledChars(headline, font, formatFlags)
+      const deckChars = deck ? this.compileToStyledChars(deck, font, formatFlags) : []
+      const headlineSize = Math.round(baseFontSize * 1.35)
+      const deckSize = Math.round(baseFontSize * 0.72)
+      const headlineLines = this.wrapStyledChars(ctx, headlineChars, width * 0.75, headlineSize)
+      const deckLines = deckChars.length
+        ? this.wrapStyledChars(ctx, deckChars, width * 0.55, deckSize)
+        : []
+      const blockHeight =
+        headlineLines.length * lineHeight * 1.1 + (deckLines.length ? deckLines.length * lineHeight * 0.95 + 28 : 0)
+      let y = height / 2 - blockHeight / 2 + lineHeight / 2
+      headlineLines.forEach((line) => {
+        this.drawStyledLine(ctx, line, width / 2, y + driftY, 'center', headlineSize, textColor, textAlpha)
+        y += lineHeight * 1.1
+      })
+      if (deckLines.length) {
+        y += 12
+        deckLines.forEach((line) => {
+          ctx.save()
+          ctx.globalAlpha = textAlpha * 0.55
+          this.drawStyledLine(ctx, line, width / 2, y + driftY, 'center', deckSize, textColor, textAlpha)
+          ctx.restore()
+          y += lineHeight * 0.95
+        })
+      }
+      return
+    }
+
+    // Pull quote: oversized line with vertical rule
+    if (options.layoutStyle === 'pull-quote') {
+      const flatChars = phraseLines.flat()
+      const quoteLines = this.wrapStyledChars(ctx, flatChars, width * 0.62, baseFontSize * 1.25)
+      const totalH = quoteLines.length * lineHeight * 1.15
+      let y = height / 2 - totalH / 2 + lineHeight / 2
+      const ruleX = width * 0.22
+      const textX = width * 0.26
+      ctx.save()
+      ctx.strokeStyle = textColor
+      ctx.globalAlpha = 0.35 * textAlpha
+      ctx.lineWidth = Math.max(3, baseFontSize * 0.08)
+      ctx.beginPath()
+      ctx.moveTo(ruleX, y - lineHeight * 0.4)
+      ctx.lineTo(ruleX, y + totalH - lineHeight * 0.5)
+      ctx.stroke()
+      ctx.restore()
+      quoteLines.forEach((line) => {
+        this.drawStyledLine(ctx, line, textX, y + driftY, 'left', baseFontSize * 1.25, textColor, textAlpha)
+        y += lineHeight * 1.15
       })
       return
     }

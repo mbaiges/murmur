@@ -105,7 +105,7 @@ export default function MoodsTab({ config, onMoodChange }: MoodsTabProps) {
         theme: 'Crimson',
         font: 'Outfit',
         layout: 'centered',
-        animation: 'Instant',
+        animation: 'Fade',
         audio: 'Disabled',
         vignette: 'None'
       }
@@ -167,7 +167,7 @@ export default function MoodsTab({ config, onMoodChange }: MoodsTabProps) {
         config.theme === 'Crimson' &&
         config.fontFamily === 'Outfit' &&
         config.layoutStyle === 'centered' &&
-        config.animation === 'Instant' &&
+        config.animation === 'Fade' &&
         config.audioFeedback === false &&
         config.vignetteStyle === 'none' &&
         config.noiseIntensity === 'none' &&

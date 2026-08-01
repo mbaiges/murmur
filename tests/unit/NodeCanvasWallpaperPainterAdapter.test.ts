@@ -1,6 +1,20 @@
 import { describe, it, expect } from 'vitest'
 import { NodeCanvasWallpaperPainterAdapter } from '../../src/adapters/canvas/NodeCanvasWallpaperPainterAdapter'
 import { ThemeName } from '../../src/domain/types'
+import { DEFAULT_PHRASE_FORMAT_FLAGS } from '../../src/shared/phraseFormatFlags'
+
+const basePaintOptions = {
+  fontFamily: 'Outfit',
+  animation: 'Fade' as const,
+  overlays: { dateTime: true, sourceCredit: true, inspiringHeadlines: true },
+  resolution: { width: 800, height: 600 },
+  textAlignment: 'center' as const,
+  layoutStyle: 'centered' as const,
+  vignetteStyle: 'none' as const,
+  noiseIntensity: 'none' as const,
+  audioFeedback: false,
+  ...DEFAULT_PHRASE_FORMAT_FLAGS
+}
 
 describe('NodeCanvasWallpaperPainterAdapter', () => {
   const painter = new NodeCanvasWallpaperPainterAdapter()
@@ -11,12 +25,9 @@ describe('NodeCanvasWallpaperPainterAdapter', () => {
       const buffer = await painter.paint({
         phrase: 'the interest rate of clouds fluctuations geopolitical coffee',
         theme,
-        fontFamily: 'Outfit',
-        animation: 'Fade',
-        overlays: { dateTime: true, sourceCredit: true, inspiringHeadlines: true },
-        resolution: { width: 800, height: 600 },
         headlines: ['Headline 1', 'Headline 2'],
-        sources: ['Source A']
+        sources: ['Source A'],
+        ...basePaintOptions
       })
 
       expect(Buffer.isBuffer(buffer)).toBe(true)

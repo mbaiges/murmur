@@ -1,6 +1,9 @@
 import { app, BrowserWindow, ipcMain, screen } from 'electron'
 import { join } from 'path'
-import { existsSync } from 'fs'
+import { configureAppBranding } from './configureAppBranding'
+import { resolveBrandIconPath } from '../shared/resolveBrandIcon'
+import { shouldRegeneratePhraseAfterConfigSave } from '../shared/appearanceRegenerate'
+import { existsSync, readFileSync } from 'fs'
 import { FastXmlRssFetcherAdapter } from '../adapters/rss/FastXmlRssFetcherAdapter'
 import { GeminiPhraseGeneratorAdapter } from '../adapters/gemini/GeminiPhraseGeneratorAdapter'
 import { NodeCanvasWallpaperPainterAdapter } from '../adapters/canvas/NodeCanvasWallpaperPainterAdapter'
@@ -17,6 +20,8 @@ import { MurmurState } from '../domain/types'
 import { IRssFetcher } from '../ports/IRssFetcher'
 import { IStartupIntegration } from '../ports/IStartupIntegration'
 
+configureAppBranding()
+
 // Disable GPU acceleration globally to allow Electron windows to render reliably inside WorkerW
 app.disableHardwareAcceleration()
 import { IPhraseGenerator } from '../ports/IPhraseGenerator'
@@ -25,6 +30,8 @@ import { IWallpaperRenderer } from '../ports/IWallpaperRenderer'
 let settingsWindow: BrowserWindow | null = null
 const bgWindows = new Map<string, BrowserWindow>()
 let isQuitting = false
+/** When false in dev, skip restore on electron-vite hot reload (not a real user quit). */
+let userRequestedWallpaperRestore = false
 
 let state: MurmurState = {
   isPaused: false,
@@ -56,8 +63,28 @@ let rssFetcher: IRssFetcher
 let phraseGenerator: IPhraseGenerator
 let wallpaperRenderer: IWallpaperRenderer
 
+function loadE2eFixturePhrase(): string | null {
+  const fixturePath =
+    process.env.MURMUR_E2E_FIXTURE_PHRASE_PATH ||
+    join(process.cwd(), 'tests/e2e/fixtures/captured-phrase.json')
+  if (!existsSync(fixturePath)) {
+    return null
+  }
+  try {
+    const parsed = JSON.parse(readFileSync(fixturePath, 'utf8')) as { phrase?: string }
+    return parsed.phrase?.trim() || null
+  } catch {
+    return null
+  }
+}
+
 if (process.env.MURMUR_E2E === 'true') {
-  console.log('MURMUR: Running in Playwright E2E Mode with stubs')
+  const fixturePhrase = loadE2eFixturePhrase()
+  console.log(
+    fixturePhrase
+      ? 'MURMUR: E2E mode with captured fixture phrase (no live Gemini on layout changes)'
+      : 'MURMUR: Running in Playwright E2E Mode with stubs'
+  )
   rssFetcher = {
     fetchAll: async () => [
       { title: 'Stub Headline 1', source: 'Stub Source', feedUrl: 'http://stub.com' },
@@ -65,7 +92,7 @@ if (process.env.MURMUR_E2E === 'true') {
     ]
   }
   phraseGenerator = {
-    generate: async () => 'stubbed surreal phrase'
+    generate: async () => fixturePhrase || 'stubbed surreal phrase'
   }
   wallpaperRenderer = {
     getScreens: async () => [{ id: 'stub-monitor', width: 800, height: 600 }],
@@ -105,15 +132,31 @@ const scheduler = new Scheduler(async () => {
   await murmurService.refresh()
 })
 
-function createSettingsWindow() {
-  if (settingsWindow) {
+function showSettingsWindow() {
+  if (settingsWindow && !settingsWindow.isDestroyed()) {
+    if (settingsWindow.isMinimized()) {
+      settingsWindow.restore()
+    }
+    settingsWindow.show()
     settingsWindow.focus()
     return
   }
 
-  const iconPath = existsSync(join(__dirname, '../../resources/icon.png'))
-    ? join(__dirname, '../../resources/icon.png')
-    : join(__dirname, '../../../resources/icon.png')
+  createSettingsWindow()
+}
+
+function createSettingsWindow() {
+  if (settingsWindow && !settingsWindow.isDestroyed()) {
+    showSettingsWindow()
+    return
+  }
+
+  let iconPath: string | undefined
+  try {
+    iconPath = resolveBrandIconPath()
+  } catch {
+    iconPath = undefined
+  }
 
   settingsWindow = new BrowserWindow({
     width: 900,
@@ -232,9 +275,10 @@ function setupIpc() {
       }
     }
 
-    // Manage background window lifecycles based on active animation preference
-    if (newConfig.animation === 'Instant') {
-      // Destroy all active background windows to free memory and return to native static background
+    // Manage background window lifecycles based on active animation preference.
+    // On macOS the live desktop overlay is required for reliable phrase display; Instant only drops it on Windows.
+    const useNativeStaticOnly = newConfig.animation === 'Instant' && process.platform !== 'darwin'
+    if (useNativeStaticOnly) {
       bgWindows.forEach((win) => {
         if (!win.isDestroyed()) {
           win.destroy()
@@ -263,7 +307,16 @@ function setupIpc() {
     settingsWindow?.webContents.send('config:updated', newConfig)
 
     if (newConfig.geminiApiKey) {
-      await murmurService.updateClockWallpapers(state)
+      const appearanceChanged = shouldRegeneratePhraseAfterConfigSave(prevConfig, newConfig)
+      const hasCachedPhrase = Object.values(state.lastPhrases || {}).some((p) => p && p.trim())
+      if (newConfig.animation === 'Instant' && hasCachedPhrase) {
+        await murmurService.updateClockWallpapers(state)
+      }
+      if (appearanceChanged) {
+        await murmurService.refresh()
+      } else if (newConfig.animation !== 'Instant') {
+        await murmurService.updateClockWallpapers(state)
+      }
     }
   })
 
@@ -291,10 +344,11 @@ app.whenReady().then(async () => {
     const displays = screen.getAllDisplays()
 
     const configTemp = await configStore.get()
-    const shouldSpawnBg = configTemp.animation !== 'Instant'
+    const shouldSpawnBg = configTemp.animation !== 'Instant' || process.platform === 'darwin'
 
     for (const s of screens) {
-      initialPhrases[s.id] = ''
+      const history = await historyStore.get(s.id)
+      initialPhrases[s.id] = history[0] || ''
       if (shouldSpawnBg) {
         const display = displays.find((d) => String(d.id) === s.id) || displays[0]
         const bounds = display ? display.bounds : { x: 0, y: 0, width: 1920, height: 1080 }
@@ -328,9 +382,20 @@ app.whenReady().then(async () => {
       await murmurService.refresh()
     },
     () => {
-      createSettingsWindow()
+      showSettingsWindow()
+    },
+    () => {
+      userRequestedWallpaperRestore = true
+      app.quit()
     }
   )
+
+  for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+    process.on(signal, () => {
+      userRequestedWallpaperRestore = true
+      app.quit()
+    })
+  }
 
   if (config.geminiApiKey || process.env.MURMUR_E2E === 'true') {
     scheduler.start(config.refreshIntervalMinutes)
@@ -339,8 +404,12 @@ app.whenReady().then(async () => {
   startClockScheduler()
 
   if (!app.isPackaged || !config.geminiApiKey || process.env.MURMUR_E2E === 'true') {
-    createSettingsWindow()
+    showSettingsWindow()
   }
+})
+
+app.on('activate', () => {
+  showSettingsWindow()
 })
 
 app.on('window-all-closed', () => {
@@ -352,8 +421,17 @@ app.on('before-quit', async (event) => {
     event.preventDefault()
     isQuitting = true
     try {
-      console.log('Restoring original wallpapers before quit...')
-      await wallpaperRenderer.restore()
+      const shouldRestore =
+        process.env.MURMUR_E2E !== 'true' &&
+        (app.isPackaged || userRequestedWallpaperRestore)
+      if (shouldRestore) {
+        console.log('Restoring original wallpapers before quit...')
+        await wallpaperRenderer.restore()
+      } else if (!app.isPackaged) {
+        console.log(
+          'Dev relaunch: wallpaper left unchanged (use tray Quit or stop the dev server to restore).'
+        )
+      }
     } catch (err) {
       console.error('Failed to restore wallpapers on quit:', err)
     } finally {
