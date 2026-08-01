@@ -1,0 +1,27 @@
+---
+description: Load agent skills from local open-agent-skills clone under .agentic/
+alwaysApply: true
+---
+
+Apply shared [guardrails](.agentic/open-agent-skills/skills/_shared/guardrails.md) whenever you follow a skill from this table.
+
+Clone the marketplace first if paths are missing: see [docs/agent-skills-setup.md](docs/agent-skills-setup.md).
+
+| Skill | Path | When to use |
+|-------|------|-------------|
+| functional-spec | [.agentic/open-agent-skills/skills/functional-spec/SKILL.md](.agentic/open-agent-skills/skills/functional-spec/SKILL.md) | New or updated product spec before engineering |
+| technical-spec | [.agentic/open-agent-skills/skills/technical-spec/SKILL.md](.agentic/open-agent-skills/skills/technical-spec/SKILL.md) | Engineering spec from a locked functional spec |
+| loop-build | [.agentic/open-agent-skills/skills/loop-build/SKILL.md](.agentic/open-agent-skills/skills/loop-build/SKILL.md) | Implement from specs with test + screenshot verification loops |
+
+**Pipeline order (spec-to-ship):** functional-spec → technical-spec → loop-build.
+
+Default feature artifacts for this repo:
+
+```text
+docs/features/<feature>/
+├── functional-spec.md
+├── technical-spec.md
+└── loop-state.md
+```
+
+Repo architecture and E2E conventions: [docs/architecture.md](docs/architecture.md).

@@ -17,5 +17,9 @@ test-results/
 playwright-report/
 tests/e2e/artifacts/
 tests/e2e/fixtures/captured-phrase.json
+
+# Local agent skills marketplace (open-agent-skills — see docs/agent-skills-setup.md)
+.agentic/
+.agents/
 *.png
 !src/renderer/public/logo.png

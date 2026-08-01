@@ -131,7 +131,9 @@ Main process loads the fixture in `loadE2eFixturePhrase()` when `MURMUR_E2E_FIXT
 
 ## Related docs
 
-- `docs/scaffolding/functional_spec.md` — product requirements  
-- `docs/scaffolding/technical_spec.md` — detailed technical spec  
+| Doc | Purpose |
+|-----|---------|
+| [agent-skills-setup.md](agent-skills-setup.md) | Local [open-agent-skills](https://github.com/mbaiges/open-agent-skills) clone under `.agentic/` |
+| [rfc-structured-phrase-generation.md](rfc-structured-phrase-generation.md) | Layout-scoped JSON generation (approved, pending implementation) |
 
 When in doubt, prefer **small diffs**, **match existing adapter/UI patterns**, and **pair renderer + canvas** for anything visible on the wallpaper.
