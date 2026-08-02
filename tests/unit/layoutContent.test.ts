@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { allLayoutContentSpecs, getLayoutContentSpec } from '../../src/core/lib/layoutContentSpecs'
-import { validateLayoutPayload } from '../../src/core/lib/layoutSpecToZod'
-import { parseHistoryEntry, serializeLayoutContentEnvelope } from '../../src/core/lib/layoutContentParse'
-import { layoutContentPreview } from '../../src/core/lib/layoutContentPreview'
+import { allLayoutContentSpecs, getLayoutContentSpec } from '../../src/core/lib/layout/layoutContentSpecs'
+import { validateLayoutPayload } from '../../src/core/lib/layout/layoutSpecToZod'
+import { parseHistoryEntry, serializeLayoutContentEnvelope } from '../../src/core/lib/layout/layoutContentParse'
+import { layoutContentPreview } from '../../src/core/lib/layout/layoutContentPreview'
 import { buildE2eStructuredResult } from '../../src/core/lib/e2eStructuredPhraseStub'
 
 describe('layoutContentSpecs', () => {

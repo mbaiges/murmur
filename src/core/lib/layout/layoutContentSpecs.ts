@@ -1,4 +1,4 @@
-import { LayoutStyleName } from '../domain/types'
+import { LayoutStyleName } from '../../domain/types'
 
 export type LayoutFieldType = 'string' | 'markdown'
 

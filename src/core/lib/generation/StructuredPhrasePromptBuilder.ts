@@ -1,6 +1,6 @@
-import { LayoutContentSpec } from './layoutContentSpecs'
+import { LayoutContentSpec } from '../layout/layoutContentSpecs'
 import { buildPhraseFormattingRules } from './geminiFormattingRules'
-import { PhraseFormatFlags } from './phraseFormatFlags'
+import { PhraseFormatFlags } from '../phrase/phraseFormatFlags'
 
 export function buildStructuredPhrasePrompt(
   spec: LayoutContentSpec,

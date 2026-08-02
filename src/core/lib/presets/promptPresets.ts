@@ -9,7 +9,7 @@ import {
   REAL_WORST_NEWS_PROMPT,
   WORST_NEWS_TITLE_PROMPT,
   ZEN_KOAN_PROMPT
-} from '../domain/types'
+} from '../../domain/types'
 
 export type PromptPresetId =
   | 'Absurd Proverb'

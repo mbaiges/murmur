@@ -4,8 +4,8 @@ import { readFileSync, writeFileSync, existsSync } from 'fs'
 import { IConfigStore } from '../../../core/ports/IConfigStore'
 import { MurmurConfig, DEFAULT_SYSTEM_PROMPT } from '../../../core/domain/types'
 import { MurmurConfigSchema } from '../../../core/domain/config.schema'
-import { EXAMPLE_RSS_FEEDS } from '../../../core/lib/exampleFeeds'
-import { isClickbaitPressConfig, preferredClickbaitAnimation } from '../../../core/lib/clickbaitPreset'
+import { EXAMPLE_RSS_FEEDS } from '../../../core/lib/presets/exampleFeeds'
+import { isClickbaitPressConfig, preferredClickbaitAnimation } from '../../../core/lib/presets/clickbaitPreset'
 
 export class JsonConfigStoreAdapter implements IConfigStore {
   private filePath: string

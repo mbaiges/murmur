@@ -1,5 +1,5 @@
-import { LayoutContentEnvelope } from '../domain/types'
-import { phraseToPlainText } from './phrasePlainText'
+import { LayoutContentEnvelope } from '../../domain/types'
+import { phraseToPlainText } from '../phrase/phrasePlainText'
 
 /** One-line preview for Phrase History (Preview mode). */
 export function layoutContentPreview(envelope: LayoutContentEnvelope): string {

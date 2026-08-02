@@ -1,4 +1,4 @@
-import { MurmurConfig } from '../domain/types'
+import { MurmurConfig } from '../../domain/types'
 
 /** Appearance choices that should produce a new AI phrase (not just re-render the old one). */
 export function shouldRegeneratePhraseAfterAppearanceChange(

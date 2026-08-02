@@ -5,8 +5,8 @@ import { e2eScreenshotPath } from './helpers/screenshotPaths'
 import { validateScreenshotImage } from './helpers/validateScreenshot'
 import { getSettingsPage, getWallpaperWindow } from './helpers/electronSettingsPage'
 import { e2eSemanticsDemoLaunchOptions } from './helpers/e2eLaunch'
-import { splitPlainPhraseHeadlineDeck } from '../../src/core/lib/phraseLayoutSplit'
-import { phraseToPlainText } from '../../src/core/lib/phrasePlainText'
+import { splitPlainPhraseHeadlineDeck } from '../../src/core/lib/phrase/phraseLayoutSplit'
+import { phraseToPlainText } from '../../src/core/lib/phrase/phrasePlainText'
 
 const CASE = 'structured-layout-semantics'
 const FIXTURE_PATH = join(process.cwd(), 'tests/e2e/fixtures/structured-semantics-demo.json')

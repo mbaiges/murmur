@@ -1,4 +1,4 @@
-import { MurmurConfig, WORST_NEWS_TITLE_PROMPT } from '../domain/types'
+import { MurmurConfig, WORST_NEWS_TITLE_PROMPT } from '../../domain/types'
 
 export function isClickbaitPressConfig(config: {
   systemPrompt?: string

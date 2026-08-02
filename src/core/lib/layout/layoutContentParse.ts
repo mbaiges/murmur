@@ -1,4 +1,4 @@
-import { LayoutStyleName, LayoutContentEnvelope } from '../domain/types'
+import { LayoutStyleName, LayoutContentEnvelope } from '../../domain/types'
 import { getLayoutContentSpec } from './layoutContentSpecs'
 import { validateLayoutPayload } from './layoutSpecToZod'
 

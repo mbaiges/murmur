@@ -1,4 +1,4 @@
-import { PhraseFormatFlags } from './phraseFormatFlags'
+import { PhraseFormatFlags } from '../phrase/phraseFormatFlags'
 
 /** LLM prompt fragment: only enabled formatters are allowed in generated phrases. */
 export function buildPhraseFormattingRules(flags: PhraseFormatFlags): string {

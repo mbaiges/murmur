@@ -3,9 +3,9 @@ import { join } from 'path'
 import { existsSync } from 'fs'
 import { IWallpaperPainter } from '../../../core/ports/IWallpaperPainter'
 import { PaintOptions } from '../../../core/domain/types'
-import { PhraseFormatFlags, splitPhraseLines } from '../../../core/lib/phraseFormatFlags'
-import { splitFlatCharsAtWordMidpoint, splitPlainPhraseHeadlineDeck } from '../../../core/lib/phraseLayoutSplit'
-import { phraseToPlainText } from '../../../core/lib/phrasePlainText'
+import { PhraseFormatFlags, splitPhraseLines } from '../../../core/lib/phrase/phraseFormatFlags'
+import { splitFlatCharsAtWordMidpoint, splitPlainPhraseHeadlineDeck } from '../../../core/lib/phrase/phraseLayoutSplit'
+import { phraseToPlainText } from '../../../core/lib/phrase/phrasePlainText'
 
 interface CanvasStyledChar {
   char: string

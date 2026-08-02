@@ -1,6 +1,6 @@
-import { LayoutContentSpec } from './layoutContentSpecs'
-import { layoutContentPreview } from './layoutContentPreview'
-import { LayoutContentEnvelope } from '../domain/types'
+import { LayoutContentSpec } from '../layout/layoutContentSpecs'
+import { layoutContentPreview } from '../layout/layoutContentPreview'
+import { LayoutContentEnvelope } from '../../domain/types'
 
 export function payloadToPlainSummary(spec: LayoutContentSpec, payload: Record<string, string>): string {
   const envelope: LayoutContentEnvelope = {

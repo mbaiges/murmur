@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { phraseToPlainText } from '../../src/core/lib/phrasePlainText'
+import { phraseToPlainText } from '../../src/core/lib/phrase/phrasePlainText'
 
 describe('phraseToPlainText', () => {
   it('removes font tags, markdown emphasis, and collapses whitespace', () => {
