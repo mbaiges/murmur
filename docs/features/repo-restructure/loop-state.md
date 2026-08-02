@@ -1,7 +1,7 @@
 # Loop state: repo-restructure
 
-Updated: 2026-08-02 (iteration 5 — Phase 4 complete)
-Iteration: 5
+Updated: 2026-08-02 (iteration 6 — Phase 5 complete)
+Iteration: 6
 Spec:
 
 - docs/features/repo-restructure/functional-spec.md
@@ -75,5 +75,5 @@ In-loop uses `murmur.spec.ts` smoke until restructure-specific spec added. Copy 
 
 ## Next iteration focus
 
-1. **Phase 5:** Renderer → `features/*`, `AppShell`, `renderer/components`.
-2. Re-run unit, integration, feature E2E.
+1. **Phase 6:** Tighten Vite/tsconfig aliases; verify AC-5.
+2. Re-run lint + feature E2E.

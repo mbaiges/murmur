@@ -1,5 +1,5 @@
 import React from 'react'
-import { MurmurConfig, CYBERPUNK_TERMINAL_PROMPT, ZEN_KOAN_PROMPT, GOTHIC_PURPLE_PROSE_PROMPT, WORST_NEWS_TITLE_PROMPT } from '../../core/domain/types'
+import { MurmurConfig, CYBERPUNK_TERMINAL_PROMPT, ZEN_KOAN_PROMPT, GOTHIC_PURPLE_PROSE_PROMPT, WORST_NEWS_TITLE_PROMPT } from '../../../core/domain/types'
 
 interface MoodDefinition {
   id: string
