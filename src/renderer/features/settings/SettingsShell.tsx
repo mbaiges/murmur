@@ -2,14 +2,14 @@ import React, { useEffect, useRef, useState } from 'react'
 import AppShell from '../../app/AppShell'
 import SetupWizard from './components/SetupWizard'
 import SettingsSidebar from './components/SettingsSidebar'
+import SettingsApplyBar from './components/SettingsApplyBar'
 import GeneralTab from './tabs/GeneralTab'
 import NewsSourcesTab from './tabs/NewsSourcesTab'
 import VoiceTab from './tabs/VoiceTab'
 import StyleTab from './tabs/StyleTab'
 import DisplaysTab from './tabs/DisplaysTab'
 import { useMurmurConfig, readSettingsUiState, writeSettingsUiState } from './hooks/useMurmurConfig'
-import { useSystemPromptDraft } from './hooks/useSystemPromptDraft'
-import { useMoodChange } from './hooks/useMoodChange'
+import { useSettingsDraft } from './hooks/useSettingsDraft'
 import { getWindowApi } from './hooks/getWindowApi'
 import type { DisplaysSection, SettingsTab, SettingsUiState } from './types'
 
@@ -26,8 +26,16 @@ function loadUiState(): SettingsUiState {
 
 export default function SettingsShell() {
   const { config, state, setState, toast, showToast, saveConfig } = useMurmurConfig()
-  const promptDraft = useSystemPromptDraft(config, saveConfig)
-  const handleMoodChange = useMoodChange(saveConfig, promptDraft.syncDraftFromPrompt)
+  const {
+    draft,
+    isDirty,
+    isApplying,
+    patchDraft,
+    applyMoodToDraft,
+    applyDraft,
+    resetDraft,
+    handlePromptPresetChange
+  } = useSettingsDraft({ committed: config, showToast })
 
   const [uiState, setUiState] = useState(loadUiState)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -49,7 +57,22 @@ export default function SettingsShell() {
     }
   }, [uiState.activeTab])
 
+  useEffect(() => {
+    if (!isDirty) return
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [isDirty])
+
   const handleTabChange = (tab: SettingsTab) => {
+    if (tab !== uiState.activeTab && isDirty) {
+      const discard = window.confirm('Discard unapplied Style and Voice changes?')
+      if (!discard) return
+      resetDraft()
+    }
     if (scrollRef.current) {
       persistUi({
         activeTab: tab,
@@ -130,6 +153,10 @@ export default function SettingsShell() {
     return <SetupWizard toast={toast} onSubmit={handleWizardSubmit} />
   }
 
+  const draftConfig = draft ?? config
+  const showApplyBar =
+    isDirty && (uiState.activeTab === 'style' || uiState.activeTab === 'voice')
+
   return (
     <AppShell
       toast={toast}
@@ -148,19 +175,11 @@ export default function SettingsShell() {
       {uiState.activeTab === 'general' && <GeneralTab config={config} state={state} saveConfig={saveConfig} />}
       {uiState.activeTab === 'news' && <NewsSourcesTab config={config} saveConfig={saveConfig} />}
       {uiState.activeTab === 'voice' && (
-        <VoiceTab
-          config={config}
-          saveConfig={saveConfig}
-          draftPrompt={promptDraft.draftPrompt}
-          isPromptDirty={promptDraft.isPromptDirty}
-          isApplyingPrompt={promptDraft.isApplyingPrompt}
-          showCheckmark={promptDraft.showCheckmark}
-          onPromptChange={promptDraft.handlePromptChange}
-          onApplyPrompt={promptDraft.handleApplyPrompt}
-          onPresetChange={promptDraft.handlePresetChange}
-        />
+        <VoiceTab config={draftConfig} patchDraft={patchDraft} onPresetChange={handlePromptPresetChange} />
       )}
-      {uiState.activeTab === 'style' && <StyleTab config={config} saveConfig={saveConfig} onMoodChange={handleMoodChange} />}
+      {uiState.activeTab === 'style' && (
+        <StyleTab config={draftConfig} patchDraft={patchDraft} onMoodChange={applyMoodToDraft} />
+      )}
       {uiState.activeTab === 'displays' && (
         <DisplaysTab
           config={config}
@@ -170,6 +189,9 @@ export default function SettingsShell() {
           section={uiState.displaysSection}
           onSectionChange={(s) => persistUi({ displaysSection: s })}
         />
+      )}
+      {showApplyBar && (
+        <SettingsApplyBar onApply={() => void applyDraft()} onReset={resetDraft} isApplying={isApplying} />
       )}
     </AppShell>
   )

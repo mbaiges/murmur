@@ -5,11 +5,6 @@ import { getWindowApi } from './getWindowApi'
 
 const STORAGE_KEY = 'murmur.settingsUi.v1'
 
-function isToneOnlyPatch(partial: Partial<MurmurConfig>): boolean {
-  const keys = Object.keys(partial)
-  return keys.length > 0 && keys.every((k) => k === 'tonePreset' || k === 'customToneText')
-}
-
 export function useMurmurConfig() {
   const [config, setConfig] = useState<MurmurConfig | null>(null)
   const [state, setState] = useState<import('@core/domain/types').MurmurState | null>(null)
@@ -61,11 +56,7 @@ export function useMurmurConfig() {
         await api.saveConfig(updatedConfig)
         const fresh = await api.getConfig()
         setConfig(fresh)
-        if (isToneOnlyPatch(updatedConfig)) {
-          showToast('Phrase updated with new tone')
-        } else {
-          showToast('Settings saved successfully')
-        }
+        showToast('Settings saved successfully')
       } catch (err: unknown) {
         console.error(err)
         const message = err instanceof Error ? err.message : 'Failed to save settings'
