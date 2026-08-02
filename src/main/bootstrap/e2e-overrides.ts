@@ -6,7 +6,7 @@ import { IWallpaperRenderer } from '../../core/ports/IWallpaperRenderer'
 import {
   buildE2eStructuredResult,
   E2eStructuredDemoFixtures
-} from '../../core/lib/e2eStructuredPhraseStub'
+} from '../e2e/e2eStructuredPhraseStub'
 
 export function isMurmurE2eMode(): boolean {
   return process.env.MURMUR_E2E === 'true' || process.argv.includes('--murmur-e2e')

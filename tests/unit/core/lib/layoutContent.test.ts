@@ -3,7 +3,7 @@ import { allLayoutContentSpecs, getLayoutContentSpec } from '../../../../src/cor
 import { validateLayoutPayload } from '../../../../src/core/lib/layout/layoutSpecToZod'
 import { parseHistoryEntry, serializeLayoutContentEnvelope } from '../../../../src/core/lib/layout/layoutContentParse'
 import { layoutContentPreview } from '../../../../src/core/lib/layout/layoutContentPreview'
-import { buildE2eStructuredResult } from '../../../../src/core/lib/e2eStructuredPhraseStub'
+import { buildE2eStructuredResult } from '../../../../src/main/e2e/e2eStructuredPhraseStub'
 
 describe('layoutContentSpecs', () => {
   it('registers every layout style', () => {

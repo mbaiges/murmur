@@ -1,7 +1,7 @@
 # Loop state: repo-restructure
 
-Updated: 2026-08-02 (iteration 10 — Phase 9 complete)
-Iteration: 10
+Updated: 2026-08-02 (iteration 11 — Phase 10 complete)
+Iteration: 11
 Spec:
 
 - docs/features/repo-restructure/functional-spec.md
@@ -75,5 +75,5 @@ In-loop uses `murmur.spec.ts` smoke until restructure-specific spec added. Copy 
 
 ## Next iteration focus
 
-1. **Phase 10:** Move E2E stub to `main/e2e/`; add `renderer/types/window-api.d.ts`.
-2. Re-run E2E groups.
+1. **Phase 11:** Rewrite `docs/architecture.md`; supersede `docs/scaffolding/*`.
+2. Final gate: full E2E + loop-state COMPLETE.

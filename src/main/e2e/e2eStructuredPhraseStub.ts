@@ -1,6 +1,6 @@
-import { PhraseGenerationRequest, PhraseGenerationResult } from '../ports/IPhraseGenerator'
-import { envelopeToRawJson } from './layout/layoutContentParse'
-import { LayoutStyleName } from '../domain/types'
+import type { PhraseGenerationRequest, PhraseGenerationResult } from '../../core/ports/IPhraseGenerator'
+import { envelopeToRawJson } from '../../core/lib/layout/layoutContentParse'
+import type { LayoutStyleName } from '../../core/domain/types'
 
 const DEFAULT_PHRASE = 'stubbed surreal phrase'
 
