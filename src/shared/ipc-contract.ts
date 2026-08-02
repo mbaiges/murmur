@@ -9,7 +9,8 @@ export const IpcChannel = {
   actionRefresh: 'action:refresh',
   actionPreviewTheme: 'action:previewTheme',
   stateGet: 'state:get',
-  stateUpdated: 'state:updated'
+  stateUpdated: 'state:updated',
+  shellOpenExternal: 'shell:open-external'
 } as const
 
 export type IpcChannelName = (typeof IpcChannel)[keyof typeof IpcChannel]

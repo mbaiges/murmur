@@ -1,29 +1,41 @@
 import React from 'react'
 import type { MurmurConfig, ThemeName } from '@core/domain/types'
 import { activeMoodPresetLabel } from '../hooks/moodPresetLabel'
+import SettingsSelect from '../components/SettingsSelect'
 
 type AppearanceTabProps = {
   config: MurmurConfig
   saveConfig: (partial: Partial<MurmurConfig>) => Promise<void>
   onMoodChange: (moodName: string) => void
+  hideMoodPreset?: boolean
+  hideFormatting?: boolean
+  showPageHeader?: boolean
 }
 
-export default function AppearanceTab({ config, saveConfig, onMoodChange }: AppearanceTabProps) {
+export default function AppearanceTab({
+  config,
+  saveConfig,
+  onMoodChange,
+  hideMoodPreset = false,
+  hideFormatting = false,
+  showPageHeader = true
+}: AppearanceTabProps) {
   return (
 <div className="max-w-2xl space-y-8">
+              {showPageHeader && (
               <div>
                 <h2 className="text-2xl font-bold tracking-tight text-white mb-2">Appearance</h2>
                 <p className="text-slate-400 text-sm">Customize visual style, typography layout, text formatting, and vignette overlays.</p>
               </div>
+              )}
 
-              {/* Aesthetic Mood Presets */}
+              {!hideMoodPreset && (
               <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4">
                 <div>
                   <h3 className="text-sm font-bold text-white mb-1">Aesthetic Mood Preset</h3>
                   <p className="text-xs text-slate-400">Instantly configure coordinated prompt, theme, font, layout, and animation settings.</p>
                 </div>
-                <select
-                  className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg px-3 py-2 text-sm text-slate-100 outline-none transition-all cursor-pointer"
+                <SettingsSelect
                   value={activeMoodPresetLabel(config)}
                   onChange={(e) => onMoodChange(e.target.value)}
                 >
@@ -32,16 +44,16 @@ export default function AppearanceTab({ config, saveConfig, onMoodChange }: Appe
                   <option value="Zen Study">🪶 Zen Study (Minimalist Paper Aesthetic)</option>
                   <option value="Gothic Novelist">🌁 Gothic Novelist (Moody Literary Aesthetic)</option>
                   <option value="Clickbait Press">🚨 Clickbait Press (Satirical News Aesthetic)</option>
-                </select>
+                </SettingsSelect>
               </div>
+              )}
 
               <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-6">
                 {/* Theme & Fonts */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Default Theme</label>
-                    <select
-                      className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg px-3 py-2 text-sm text-slate-100 outline-none transition-all"
+                    <SettingsSelect
                       value={config.theme}
                       onChange={(e) => saveConfig({ theme: e.target.value as ThemeName })}
                     >
@@ -53,12 +65,11 @@ export default function AppearanceTab({ config, saveConfig, onMoodChange }: Appe
                       <option value="WarmGlow">Warm Glow (Sunset Gradients)</option>
                       <option value="Parchment">Parchment (Warm Tan Paper)</option>
                       <option value="Blanc">Blanc (Minimalist Off-White)</option>
-                    </select>
+                    </SettingsSelect>
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Typography Font</label>
-                    <select
-                      className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg px-3 py-2 text-sm text-slate-100 outline-none transition-all"
+                    <SettingsSelect
                       value={config.fontFamily}
                       onChange={(e) => saveConfig({ fontFamily: e.target.value as any })}
                     >
@@ -67,7 +78,7 @@ export default function AppearanceTab({ config, saveConfig, onMoodChange }: Appe
                       <option value="Playfair Display">Playfair Display (Poetic Serif)</option>
                       <option value="Outfit">Outfit (Clean Sans-Serif)</option>
                       <option value="Monospace">Monospace (Terminal Code)</option>
-                    </select>
+                    </SettingsSelect>
                   </div>
                 </div>
 
@@ -75,8 +86,7 @@ export default function AppearanceTab({ config, saveConfig, onMoodChange }: Appe
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Transition Animation</label>
-                    <select
-                      className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg px-3 py-2 text-sm text-slate-100 outline-none transition-all"
+                    <SettingsSelect
                       value={config.animation}
                       onChange={(e) => saveConfig({ animation: e.target.value as any })}
                     >
@@ -86,7 +96,7 @@ export default function AppearanceTab({ config, saveConfig, onMoodChange }: Appe
                       <option value="Typewriter">Typewriter Reveal</option>
                       <option value="Glitch">Glitch (Scrambled Neon)</option>
                       <option value="Instant">Instant Cut</option>
-                    </select>
+                    </SettingsSelect>
                   </div>
                   <div className="flex items-center justify-between pt-6">
                     <div>
@@ -107,20 +117,18 @@ export default function AppearanceTab({ config, saveConfig, onMoodChange }: Appe
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Text Alignment</label>
-                    <select
-                      className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg px-3 py-2 text-sm text-slate-100 outline-none transition-all"
+                    <SettingsSelect
                       value={config.textAlignment}
                       onChange={(e) => saveConfig({ textAlignment: e.target.value as any })}
                     >
                       <option value="center">Centered</option>
                       <option value="left">Left Aligned</option>
                       <option value="right">Right Aligned</option>
-                    </select>
+                    </SettingsSelect>
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Layout Style</label>
-                    <select
-                      className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg px-3 py-2 text-sm text-slate-100 outline-none transition-all"
+                    <SettingsSelect
                       value={config.layoutStyle}
                       onChange={(e) => saveConfig({ layoutStyle: e.target.value as any })}
                     >
@@ -140,15 +148,20 @@ export default function AppearanceTab({ config, saveConfig, onMoodChange }: Appe
                         <option value="sidebar-rail">Sidebar Rail (main column + margin note)</option>
                         <option value="byline-lede">Byline &amp; Lede (headline + credit + opening)</option>
                       </optgroup>
-                    </select>
+                    </SettingsSelect>
                     <p className="text-[10px] text-slate-500 mt-1.5 leading-relaxed">
-                      Magazine layouts use editorial grids: split spread, tabloid stack, pull quote, feature opener,
-                      sidebar rail, and byline/lede — each with structured AI fields.
+                      Structured magazine layouts use editorial grids with dedicated AI fields.
                     </p>
+                    <details className="text-[10px] text-slate-500 mt-1">
+                      <summary className="cursor-pointer text-indigo-400/90 hover:text-indigo-300">About magazine layouts</summary>
+                      <p className="mt-1 leading-relaxed">
+                        Split spread, tabloid stack, pull quote, feature opener, sidebar rail, and byline/lede each map to structured JSON fields.
+                      </p>
+                    </details>
                   </div>
                   </div>
 
-                {/* AI phrase formatting (Gemini + wallpaper markup) */}
+                {!hideFormatting && (
                 <div className="space-y-4 pt-4 border-t border-slate-800">
                   <div>
                     <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Phrase Formatting</h4>
@@ -209,25 +222,24 @@ export default function AppearanceTab({ config, saveConfig, onMoodChange }: Appe
                     />
                   </div>
                 </div>
+                )}
 
                 {/* Background Filters */}
                 <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-800">
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Grain / Noise Intensity</label>
-                    <select
-                      className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg px-3 py-2 text-sm text-slate-100 outline-none transition-all"
+                    <SettingsSelect
                       value={config.noiseIntensity}
                       onChange={(e) => saveConfig({ noiseIntensity: e.target.value as any })}
                     >
                       <option value="none">None (Clean Background)</option>
                       <option value="subtle">Subtle Grain (Atmospheric)</option>
                       <option value="heavy">Heavy Grain (Analog Film)</option>
-                    </select>
+                    </SettingsSelect>
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Vignette Style</label>
-                    <select
-                      className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg px-3 py-2 text-sm text-slate-100 outline-none transition-all"
+                    <SettingsSelect
                       value={config.vignetteStyle}
                       onChange={(e) => saveConfig({ vignetteStyle: e.target.value as any })}
                     >
@@ -235,7 +247,7 @@ export default function AppearanceTab({ config, saveConfig, onMoodChange }: Appe
                       <option value="soft">Soft Vignette</option>
                       <option value="medium">Medium Vignette</option>
                       <option value="dramatic">Dramatic Vignette</option>
-                    </select>
+                    </SettingsSelect>
                   </div>
                 </div>
 

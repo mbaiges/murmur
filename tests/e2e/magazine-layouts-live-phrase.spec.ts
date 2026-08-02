@@ -7,6 +7,7 @@ import {
 import { e2eScreenshotPath } from './helpers/screenshotPaths'
 import { validateScreenshotImage } from './helpers/validateScreenshot'
 import { getSettingsPage, getWallpaperWindow } from './helpers/electronSettingsPage'
+import { e2eElectronLaunchOptions } from './helpers/e2eLaunch'
 
 test.describe.serial('Magazine layouts with one live-captured phrase', () => {
   let electronApp: ElectronApplication
@@ -22,11 +23,11 @@ test.describe.serial('Magazine layouts with one live-captured phrase', () => {
   })
 
   test.beforeAll(async () => {
+    const base = e2eElectronLaunchOptions()
     electronApp = await electron.launch({
-      args: ['.'],
+      ...base,
       env: {
-        ...process.env,
-        MURMUR_E2E: 'true',
+        ...base.env,
         MURMUR_E2E_REUSE_CAPTURED_PHRASE: 'true',
         MURMUR_E2E_FIXTURE_PHRASE_PATH: CAPTURED_PHRASE_FIXTURE_PATH
       }
@@ -65,9 +66,9 @@ test.describe.serial('Magazine layouts with one live-captured phrase', () => {
   test('split-spread with live phrase', async () => {
     test.setTimeout(60_000)
     const page = await getSettingsPage(electronApp)
-    await page.locator('button:has-text("Appearance")').click()
+    await page.locator('button:has-text("Style")').click()
     await page.waitForTimeout(400)
-    await page.locator('select').nth(5).selectOption('split-spread')
+    await page.locator('select').nth(4).selectOption('split-spread')
     await page.waitForTimeout(2000)
 
     const wallpaper = getWallpaperWindow(electronApp)
@@ -85,9 +86,9 @@ test.describe.serial('Magazine layouts with one live-captured phrase', () => {
   test('tabloid-stack with live phrase', async () => {
     test.setTimeout(60_000)
     const page = await getSettingsPage(electronApp)
-    await page.locator('button:has-text("Appearance")').click()
+    await page.locator('button:has-text("Style")').click()
     await page.waitForTimeout(400)
-    await page.locator('select').nth(5).selectOption('tabloid-stack')
+    await page.locator('select').nth(4).selectOption('tabloid-stack')
     await page.waitForTimeout(2000)
 
     const wallpaper = getWallpaperWindow(electronApp)
@@ -102,9 +103,9 @@ test.describe.serial('Magazine layouts with one live-captured phrase', () => {
   test('pull-quote with live phrase', async () => {
     test.setTimeout(60_000)
     const page = await getSettingsPage(electronApp)
-    await page.locator('button:has-text("Appearance")').click()
+    await page.locator('button:has-text("Style")').click()
     await page.waitForTimeout(400)
-    await page.locator('select').nth(5).selectOption('pull-quote')
+    await page.locator('select').nth(4).selectOption('pull-quote')
     await page.waitForTimeout(2000)
 
     const wallpaper = getWallpaperWindow(electronApp)

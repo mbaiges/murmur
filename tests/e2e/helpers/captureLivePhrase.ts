@@ -45,6 +45,7 @@ export async function captureLivePhraseOnce(): Promise<string> {
   delete env.MURMUR_E2E
   delete env.MURMUR_E2E_REUSE_CAPTURED_PHRASE
   delete env.MURMUR_E2E_FIXTURE_PHRASE_PATH
+  delete env.ELECTRON_RUN_AS_NODE
 
   let electronApp: ElectronApplication | null = null
   try {

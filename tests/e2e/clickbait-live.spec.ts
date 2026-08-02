@@ -14,6 +14,7 @@ test('live app: Clickbait Press shows phrase on desktop overlay', async () => {
 
   const env = { ...process.env }
   delete env.MURMUR_E2E
+  delete env.ELECTRON_RUN_AS_NODE
 
   const electronApp = await electron.launch({ args: ['.'], env })
 
@@ -28,9 +29,9 @@ test('live app: Clickbait Press shows phrase on desktop overlay', async () => {
     }
     await expect(page.locator('aside')).toBeVisible({ timeout: 15_000 })
 
-    await page.locator('button:has-text("Aesthetic Moods")').click()
+    await page.locator('button:has-text("Style")').click()
     await page.waitForTimeout(400)
-    await page.getByTestId('mood-card-clickbait-press').locator('button:has-text("Activate Mood")').click()
+    await page.getByTestId('mood-card-clickbait-press').click()
     await page.waitForTimeout(5000)
 
     const wallpaper = getWallpaperWindow(electronApp)

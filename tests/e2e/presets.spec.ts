@@ -1,14 +1,12 @@
 import { test, expect, _electron as electron, ElectronApplication } from '@playwright/test'
 import { e2eScreenshotPath } from './helpers/screenshotPaths'
+import { e2eElectronLaunchOptions } from './helpers/e2eLaunch'
 
 test.describe.serial('AI System Prompt Presets and Aesthetic Moods E2E Suite', () => {
   let electronApp: ElectronApplication
 
   test.beforeAll(async () => {
-    electronApp = await electron.launch({
-      args: ['.'],
-      env: { ...process.env, MURMUR_E2E: 'true' }
-    })
+    electronApp = await electron.launch(e2eElectronLaunchOptions())
   })
 
   test.afterAll(async () => {
@@ -59,7 +57,7 @@ test.describe.serial('AI System Prompt Presets and Aesthetic Moods E2E Suite', (
     // 1. Navigate to Ingestion & Feeds (which contains the Prompt template)
     await expect(sidebar).toBeVisible()
 
-    await page.locator('button:has-text("Ingestion & Feeds")').click()
+    await page.locator('button:has-text("Voice & prompts")').click()
     await page.waitForTimeout(500)
 
     // Verify dropdown has presets and Custom option
@@ -153,47 +151,35 @@ test.describe.serial('AI System Prompt Presets and Aesthetic Moods E2E Suite', (
     const sidebar = page.locator('aside')
     await expect(sidebar).toBeVisible()
 
-    // 1. Navigate to Aesthetic Moods Tab
-    await page.locator('button:has-text("Aesthetic Moods")').click()
+    // 1. Navigate to Style tab (mood gallery)
+    await page.locator('button:has-text("Style")').click()
     await page.waitForTimeout(500)
 
-    // 2. Activate "Zen Study" mood via the card button using getByTestId
+    // 2. Activate "Zen Study" by clicking the mood card
     const zenCard = page.getByTestId('mood-card-zen-study')
     await expect(zenCard).toBeVisible()
-    await zenCard.locator('button:has-text("Activate Mood")').click()
+    await zenCard.click()
     await page.waitForTimeout(1000)
 
-    // Verify that the button changes to "Currently Active"
-    await expect(zenCard.locator('button:has-text("Currently Active")')).toBeVisible()
+    await expect(zenCard.getByText('Active', { exact: true })).toBeVisible()
 
-    // Navigate to Appearance tab and verify options updated
-    await page.locator('button:has-text("Appearance")').click()
-    await page.waitForTimeout(500)
-
-    // Selectors indexes in Appearance tab:
-    // select.nth(0): Mood Preset dropdown
-    // select.nth(1): Theme dropdown
-    // select.nth(2): Font dropdown
-    // select.nth(3): Animation dropdown
-    const moodSelect = page.locator('select').first()
-    expect(await moodSelect.inputValue()).toBe('Zen Study')
-
-    const themeSelect = page.locator('select').nth(1)
+    // Customize block on Style (no mood dropdown): theme, font, animation, alignment, layout, noise, vignette
+    const themeSelect = page.locator('select').nth(0)
     expect(await themeSelect.inputValue()).toBe('Parchment')
 
-    const fontSelect = page.locator('select').nth(2)
+    const fontSelect = page.locator('select').nth(1)
     expect(await fontSelect.inputValue()).toBe('EB Garamond')
 
-    const animationSelect = page.locator('select').nth(3)
+    const animationSelect = page.locator('select').nth(2)
     expect(await animationSelect.inputValue()).toBe('Fade')
 
-    const layoutSelect = page.locator('select').nth(5)
+    const layoutSelect = page.locator('select').nth(4)
     expect(await layoutSelect.inputValue()).toBe('book-cover')
 
-    const noiseSelect = page.locator('select').nth(6)
+    const noiseSelect = page.locator('select').nth(5)
     expect(await noiseSelect.inputValue()).toBe('subtle')
 
-    const vignetteSelect = page.locator('select').nth(7)
+    const vignetteSelect = page.locator('select').nth(6)
     expect(await vignetteSelect.inputValue()).toBe('soft')
 
 
@@ -207,17 +193,13 @@ test.describe.serial('AI System Prompt Presets and Aesthetic Moods E2E Suite', (
       console.log('Screenshot:', path)
     }
 
-    // 3. Navigate back to Aesthetic Moods and select "Rogue Terminal"
-    await page.locator('button:has-text("Aesthetic Moods")').click()
-    await page.waitForTimeout(500)
-
+    // 3. Select "Rogue Terminal" on Style
     const terminalCard = page.getByTestId('mood-card-rogue-terminal')
     await expect(terminalCard).toBeVisible()
-    await terminalCard.locator('button:has-text("Activate Mood")').click()
+    await terminalCard.click()
     await page.waitForTimeout(1000)
 
-    // Verify the button transitions
-    await expect(terminalCard.locator('button:has-text("Currently Active")')).toBeVisible()
+    await expect(terminalCard.getByText('Active', { exact: true })).toBeVisible()
 
     // Take screenshot of Rogue Terminal wallpaper view
     if (zenWallpaper) {
@@ -227,26 +209,16 @@ test.describe.serial('AI System Prompt Presets and Aesthetic Moods E2E Suite', (
       console.log('Screenshot:', path)
     }
 
-    // Verify "Zen Study" button is no longer active
-    await expect(zenCard.locator('button:has-text("Activate Mood")')).toBeVisible()
+    await expect(zenCard.getByText('Active', { exact: true })).not.toBeVisible()
 
-    // 3.1 Navigate back to Aesthetic Moods and select "Gothic Novelist"
-    await page.locator('button:has-text("Aesthetic Moods")').click()
-    await page.waitForTimeout(500)
-
+    // 3.1 Select "Gothic Novelist"
     const gothicCard = page.getByTestId('mood-card-gothic-novelist')
     await expect(gothicCard).toBeVisible()
-    await gothicCard.locator('button:has-text("Activate Mood")').click()
+    await gothicCard.click()
     await page.waitForTimeout(1000)
 
-    // Verify button changes to "Currently Active"
-    await expect(gothicCard.locator('button:has-text("Currently Active")')).toBeVisible()
+    await expect(gothicCard.getByText('Active', { exact: true })).toBeVisible()
 
-    // Navigate to Appearance tab and verify inputs
-    await page.locator('button:has-text("Appearance")').click()
-    await page.waitForTimeout(500)
-
-    expect(await moodSelect.inputValue()).toBe('Gothic Novelist')
     expect(await themeSelect.inputValue()).toBe('Drift')
     expect(await fontSelect.inputValue()).toBe('Playfair Display')
     expect(await layoutSelect.inputValue()).toBe('asymmetrical')
@@ -259,23 +231,14 @@ test.describe.serial('AI System Prompt Presets and Aesthetic Moods E2E Suite', (
       console.log('Screenshot:', path)
     }
 
-    // 3.2 Navigate back to Aesthetic Moods and select "Clickbait Press"
-    await page.locator('button:has-text("Aesthetic Moods")').click()
-    await page.waitForTimeout(500)
-
+    // 3.2 Select "Clickbait Press"
     const clickbaitCard = page.getByTestId('mood-card-clickbait-press')
     await expect(clickbaitCard).toBeVisible()
-    await clickbaitCard.locator('button:has-text("Activate Mood")').click()
+    await clickbaitCard.click()
     await page.waitForTimeout(1000)
 
-    // Verify button changes to "Currently Active"
-    await expect(clickbaitCard.locator('button:has-text("Currently Active")')).toBeVisible()
+    await expect(clickbaitCard.getByText('Active', { exact: true })).toBeVisible()
 
-    // Navigate to Appearance tab and verify inputs
-    await page.locator('button:has-text("Appearance")').click()
-    await page.waitForTimeout(500)
-
-    expect(await moodSelect.inputValue()).toBe('Clickbait Press')
     expect(await themeSelect.inputValue()).toBe('Crimson')
     expect(await fontSelect.inputValue()).toBe('Outfit')
     expect(await layoutSelect.inputValue()).toBe('centered')
@@ -294,7 +257,7 @@ test.describe.serial('AI System Prompt Presets and Aesthetic Moods E2E Suite', (
     }
 
     // 4. Navigate back to Feeds tab and verify the prompt updated to Clickbait Press
-    await page.locator('button:has-text("Ingestion & Feeds")').click()
+    await page.locator('button:has-text("Voice & prompts")').click()
     await page.waitForTimeout(500)
 
     const textarea = page.locator('textarea')

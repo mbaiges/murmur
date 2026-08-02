@@ -1,6 +1,8 @@
 export type ThemeName = 'Midnight' | 'Drift' | 'Parchment' | 'Blanc' | 'Static' | 'Forest' | 'Crimson' | 'Cyberpunk' | 'WarmGlow'
 export type AnimationName = 'Fade' | 'DriftIn' | 'Typewriter' | 'Morph' | 'Instant' | 'Glitch'
 
+export type TonePreset = 'none' | 'neutral' | 'professional' | 'villero' | 'custom'
+
 export type LayoutStyleName =
   | 'centered'
   | 'scattered'
@@ -49,6 +51,8 @@ export interface MurmurConfig {
   enableNewlines: boolean
   enableDifferentFonts: boolean
   noiseIntensity: 'none' | 'subtle' | 'heavy'
+  tonePreset: TonePreset
+  customToneText: string
 }
 
 export interface RssItem {

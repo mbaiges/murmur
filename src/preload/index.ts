@@ -21,5 +21,6 @@ contextBridge.exposeInMainWorld('api', {
     const listener = (_event: any, config: MurmurConfig) => callback(config)
     ipcRenderer.on(IpcChannel.configUpdated, listener)
     return () => ipcRenderer.removeListener(IpcChannel.configUpdated, listener)
-  }
+  },
+  openExternal: (url: string): Promise<void> => ipcRenderer.invoke(IpcChannel.shellOpenExternal, url)
 })

@@ -15,7 +15,9 @@ export function shouldRegeneratePhraseAfterAppearanceChange(
     prev.fontFamily !== next.fontFamily ||
     prev.animation !== next.animation ||
     prev.textAlignment !== next.textAlignment ||
-    prev.layoutStyle !== next.layoutStyle
+    prev.layoutStyle !== next.layoutStyle ||
+    prev.tonePreset !== next.tonePreset ||
+    prev.customToneText !== next.customToneText
   )
 }
 

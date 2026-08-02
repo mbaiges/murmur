@@ -12,71 +12,61 @@ test.afterAll(async () => {
   await electronApp.close()
 })
 
-test('Settings Dashboard loads and saves configuration with screenshots', async () => {
-  test.setTimeout(60000)
-  const caseSlug = 'settings-dashboard'
+test('Settings IA — five tabs with screenshots', async () => {
+  test.setTimeout(90000)
+  const caseSlug = 'settings-ui-reorg'
 
   let page = await electronApp.firstWindow()
-
   for (let attempt = 0; attempt < 25; attempt++) {
-    const windows = electronApp.windows()
-    let found = false
-    for (const win of windows) {
+    for (const win of electronApp.windows()) {
       const url = win.url()
       if (url && !url.includes('view=wallpaper')) {
         page = win
-        found = true
         break
       }
     }
-    if (found) break
     await page.waitForTimeout(200)
   }
 
   await page.waitForLoadState('load')
-
-  const title = await page.title()
-  expect(title).toBe('Murmur Settings')
-
   await page.waitForSelector('.animate-spin', { state: 'detached', timeout: 15000 })
 
-  const logShot = (name: string) => {
-    const path = e2eScreenshotPath(caseSlug, name)
-    console.log('Screenshot:', path)
-    return path
-  }
-
-  await page.screenshot({ path: logShot('01-wizard-or-dashboard.png') })
+  const shot = (name: string) => e2eScreenshotPath(caseSlug, name)
 
   const wizardHeader = page.locator('text=First-time Setup Wizard')
   const sidebar = page.locator('aside')
-
   await Promise.race([
     wizardHeader.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {}),
     sidebar.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {})
   ])
 
-  const isWizard = await wizardHeader.isVisible()
-  if (isWizard) {
+  if (await wizardHeader.isVisible()) {
     await page.locator('input[type="password"]').fill('test-api-key')
-    await page.screenshot({ path: logShot('02-filled-wizard.png') })
     await page.locator('button:has-text("Start Murmur")').click()
     await sidebar.waitFor({ state: 'visible', timeout: 10000 })
   }
 
-  await expect(sidebar).toBeVisible()
+  await expect(page.locator('button:has-text("General")')).toBeVisible()
 
-  await page.screenshot({ path: logShot('03-main-dashboard-general.png') })
+  await page.screenshot({ path: shot('01-general.png'), fullPage: true })
+
+  await page.locator('button:has-text("News sources")').click()
+  await page.waitForTimeout(400)
+  await page.screenshot({ path: shot('02-news.png'), fullPage: true })
+
+  await page.locator('button:has-text("Voice & prompts")').click()
+  await page.waitForTimeout(400)
+  await page.screenshot({ path: shot('03-voice.png'), fullPage: true })
 
   await page.locator('button:has-text("Style")').click()
-  await page.waitForTimeout(500)
-  await page.screenshot({ path: logShot('04-style-tab.png') })
+  await page.waitForTimeout(400)
+  await page.screenshot({ path: shot('04-style.png'), fullPage: true })
 
   await page.locator('button:has-text("Displays")').click()
-  await page.waitForTimeout(500)
-  await page.screenshot({ path: logShot('05-displays-tab.png') })
+  await page.waitForTimeout(400)
+  await page.screenshot({ path: shot('05-displays-monitors.png'), fullPage: true })
 
   await page.locator('button:has-text("History")').click()
-  await page.waitForTimeout(500)
-  await page.screenshot({ path: logShot('06-history-tab.png') })
+  await page.waitForTimeout(400)
+  await page.screenshot({ path: shot('06-displays-history.png'), fullPage: true })
 })

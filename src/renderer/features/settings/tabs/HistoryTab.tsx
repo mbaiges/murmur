@@ -2,6 +2,7 @@ import React from 'react'
 import type { MurmurConfig, MurmurState } from '@core/domain/types'
 import { parseHistoryEntry } from '@core/lib/layout/layoutContentParse'
 import { layoutContentPreview } from '@core/lib/layout/layoutContentPreview'
+import SettingsSelect from '../components/SettingsSelect'
 
 type HistoryTabProps = {
   config: MurmurConfig
@@ -46,15 +47,14 @@ export default function HistoryTab({
                   {/* Select Monitor */}
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Target Monitor</label>
-                    <select
-                      className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg px-3 py-2 text-sm text-slate-100 outline-none transition-all"
+                    <SettingsSelect
                       value={historyMonitorId}
                       onChange={(e) => setHistoryMonitorId(e.target.value)}
                     >
                       {Object.keys(state.lastPhrases).map((id, index) => (
                         <option key={id} value={id}>Display {index + 1} (ID: {id})</option>
                       ))}
-                    </select>
+                    </SettingsSelect>
                   </div>
 
                   {/* History List */}

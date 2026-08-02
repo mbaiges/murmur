@@ -1,15 +1,13 @@
 import { test, expect, _electron as electron, ElectronApplication } from '@playwright/test'
 import { e2eScreenshotPath } from './helpers/screenshotPaths'
 import { getSettingsPage, getWallpaperWindow } from './helpers/electronSettingsPage'
+import { e2eElectronLaunchOptions } from './helpers/e2eLaunch'
 
 test.describe.serial('Clickbait Press diagnostics', () => {
   let electronApp: ElectronApplication
 
   test.beforeAll(async () => {
-    electronApp = await electron.launch({
-      args: ['.'],
-      env: { ...process.env, MURMUR_E2E: 'true' }
-    })
+    electronApp = await electron.launch(e2eElectronLaunchOptions())
   })
 
   test.afterAll(async () => {
@@ -29,16 +27,14 @@ test.describe.serial('Clickbait Press diagnostics', () => {
       await page.locator('aside').waitFor({ state: 'visible', timeout: 10_000 })
     }
 
-    await page.locator('button:has-text("Aesthetic Moods")').click()
+    await page.locator('button:has-text("Style")').click()
     await page.waitForTimeout(500)
 
     const clickbaitCard = page.getByTestId('mood-card-clickbait-press')
-    await clickbaitCard.locator('button:has-text("Activate Mood")').click()
+    await clickbaitCard.click()
     await page.waitForTimeout(2500)
 
-    await page.locator('button:has-text("Appearance")').click()
-    await page.waitForTimeout(300)
-    expect(await page.locator('select').nth(3).inputValue()).toBe('Fade')
+    expect(await page.locator('select').nth(2).inputValue()).toBe('Fade')
 
     const wallpaper = getWallpaperWindow(electronApp)
     await wallpaper.waitForTimeout(1500)
@@ -55,10 +51,10 @@ test.describe.serial('Clickbait Press diagnostics', () => {
   test('Instant animation removes overlay (explains blank desktop if native paint fails)', async () => {
     test.setTimeout(90_000)
     const page = await getSettingsPage(electronApp)
-    await page.locator('button:has-text("Appearance")').click()
+    await page.locator('button:has-text("Style")').click()
     await page.waitForTimeout(300)
 
-    await page.locator('select').nth(3).selectOption('Instant')
+    await page.locator('select').nth(2).selectOption('Instant')
     await page.waitForTimeout(2500)
 
     const wins = electronApp.windows().filter((w) => w.url().includes('view=wallpaper'))
@@ -72,7 +68,7 @@ test.describe.serial('Clickbait Press diagnostics', () => {
     await page.screenshot({ path: settingsShot })
     console.log('Screenshot:', settingsShot)
 
-    await page.locator('button:has-text("Monitors")').click()
+    await page.locator('button:has-text("Displays")').click()
     await page.waitForTimeout(500)
     const monitorsText = await page.locator('main').innerText()
     expect(monitorsText.toLowerCase()).toContain('stubbed')
