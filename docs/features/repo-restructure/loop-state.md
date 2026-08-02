@@ -1,7 +1,7 @@
 # Loop state: repo-restructure
 
-Updated: 2026-08-02 (iteration 8 — Phase 7 complete)
-Iteration: 8
+Updated: 2026-08-02 (iteration 9 — Phase 8 complete)
+Iteration: 9
 Spec:
 
 - docs/features/repo-restructure/functional-spec.md
@@ -38,7 +38,7 @@ E2E screenshot dir (gitignored): `tests/e2e/artifacts/screenshots/repo-restructu
 - [x] AC-12 lint script (`npm run lint` passes — boundary rules on renderer/preload)
 - [x] AC-13 core/lib subfolders
 - [x] AC-14 domain split (config-types + prompts; types barrel)
-- [ ] AC-15 settings granularity
+- [x] AC-15 settings granularity (tabs, hooks, SetupWizard, sidebar; files under ~400 lines)
 - [ ] AC-16 test mirror
 - [ ] AC-17 window.api types
 - [ ] AC-18 wallpaper port (delete IWallpaperBackup)
@@ -75,5 +75,5 @@ In-loop uses `murmur.spec.ts` smoke until restructure-specific spec added. Copy 
 
 ## Next iteration focus
 
-1. **Phase 8:** Settings granularity (tabs/hooks); ~400-line limit.
-2. Re-run build + feature E2E.
+1. **Phase 9:** Mirror unit tests under `tests/unit/**`; move integration to `tests/integration/core/`.
+2. Re-run full unit + integration.
