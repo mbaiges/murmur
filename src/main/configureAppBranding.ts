@@ -1,5 +1,5 @@
 import { app, nativeImage } from 'electron'
-import { resolveBrandIconPath } from './lib/resolveBrandIcon'
+import { resolveDockIconPath } from './lib/resolveBrandIcon'
 
 export function configureAppBranding(): void {
   if (process.platform !== 'darwin') {
@@ -12,7 +12,7 @@ export function configureAppBranding(): void {
       applicationName: 'Murmur',
       applicationVersion: app.getVersion()
     })
-    const icon = nativeImage.createFromPath(resolveBrandIconPath())
+    const icon = nativeImage.createFromPath(resolveDockIconPath())
     if (!icon.isEmpty()) {
       app.dock?.setIcon(icon)
     }

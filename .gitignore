@@ -23,3 +23,8 @@ tests/e2e/fixtures/captured-phrase.json
 .agents/
 *.png
 !src/renderer/public/logo.png
+!src/renderer/public/logo-tray.png
+!src/renderer/public/logo-source.png
+!src/renderer/public/logo-source.jpeg
+!src/renderer/public/favicon-32.png
+!resources/icon.png

@@ -19,7 +19,7 @@ export default function AppShell({ toast, sidebar, children, mainScrollRef, onMa
         }`}
       >
         <div className="flex items-center space-x-2">
-          <img src="./logo.png" className="h-4 w-4 object-contain" alt="" />
+          <img src="./logo.png" className="h-5 w-5 object-contain shrink-0" alt="" />
           <span className="text-[11px] font-semibold text-slate-400 tracking-wider uppercase">Murmur Settings</span>
         </div>
       </header>

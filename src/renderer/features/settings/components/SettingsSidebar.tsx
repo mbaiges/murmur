@@ -100,7 +100,7 @@ export default function SettingsSidebar({
             <h1 className="text-xl font-bold tracking-tight text-white">Murmur</h1>
             <p className="text-[10px] text-slate-400 font-medium tracking-wide uppercase">Desktop wallpaper app</p>
           </div>
-          <img src="./logo.png" className="h-10 w-10 object-contain rounded-lg" alt="" />
+          <img src="./logo.png" className="h-11 w-11 object-contain shrink-0" alt="" />
         </div>
 
         {displayOptions.length > 0 ? (
