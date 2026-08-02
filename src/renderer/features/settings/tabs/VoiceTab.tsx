@@ -27,8 +27,9 @@ export default function VoiceTab({ config, patchDraft, onPresetChange }: VoiceTa
       </div>
 
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4">
+        <h3 className="text-sm font-bold text-white">System prompt</h3>
         <div className="flex flex-wrap justify-between items-center gap-2">
-          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">AI System Prompt Preset</label>
+          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Preset</label>
           <SettingsSelect
             selectSize="sm"
             className="max-w-[220px]"
