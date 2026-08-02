@@ -68,25 +68,43 @@ export default function SettingsShell() {
   useEffect(() => {
     const api = getWindowApi()
     if (!api) return
-    api.getScreens().then((screens) => {
-      const ids = screens.map((s) => s.id)
-      setScreenIds(ids)
+    void api.getScreens().then((screens) => {
+      setScreenIds(screens.map((s) => s.id))
     })
-  }, [state?.lastPhrases])
+  }, [])
+
+  useEffect(() => {
+    const api = getWindowApi()
+    if (!api) return
+    void api.getScreens().then((screens) => {
+      setScreenIds(screens.map((s) => s.id))
+    })
+  }, [state?.lastRefreshTime, state?.lastPhrases])
 
   const displayOptions = useMemo(() => {
+    if (screenIds.length > 0) {
+      return screenIds.map((id, i) => ({ id, label: `Display ${i + 1}` }))
+    }
     if (config?.monitors.length) {
       return config.monitors.map((m, i) => ({ id: m.id, label: `Display ${i + 1}` }))
     }
-    const ids = screenIds.length > 0 ? screenIds : Object.keys(state?.lastPhrases ?? {})
+    const ids = Object.keys(state?.lastPhrases ?? {})
     return ids.map((id, i) => ({ id, label: `Display ${i + 1}` }))
   }, [screenIds, state?.lastPhrases, config?.monitors])
 
   useEffect(() => {
     if (!selectedMonitorId && displayOptions[0]) {
       persistUi({ selectedMonitorId: displayOptions[0].id })
+      return
     }
-  }, [displayOptions, uiState.selectedMonitorId])
+    if (
+      selectedMonitorId &&
+      displayOptions.length > 0 &&
+      !displayOptions.some((d) => d.id === selectedMonitorId)
+    ) {
+      persistUi({ selectedMonitorId: displayOptions[0].id })
+    }
+  }, [displayOptions, selectedMonitorId])
 
   useEffect(() => {
     const top = uiState.scrollByTab[uiState.activeTab]
@@ -125,6 +143,8 @@ export default function SettingsShell() {
       await api.refreshWallpaper()
       const freshState = await api.getState()
       setState(freshState)
+      const screens = await api.getScreens()
+      setScreenIds(screens.map((s) => s.id))
       showToast('Wallpapers refreshed successfully!')
     } catch (err: unknown) {
       console.error(err)
@@ -172,7 +192,10 @@ export default function SettingsShell() {
   const showApplyBar = isDirty
   const showSyncControls = displayOptions.length > 1
 
-  const previewPhrase = state?.lastPhrases?.[selectedMonitorId] ?? ''
+  const previewPhrase =
+    state?.lastContent?.[selectedMonitorId]?.payload?.phrase ??
+    state?.lastPhrases?.[selectedMonitorId] ??
+    ''
   const previewLayoutEnvelope = state?.lastContent?.[selectedMonitorId] ?? null
 
   const handleSyncAllTabs = () => {

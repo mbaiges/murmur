@@ -129,9 +129,17 @@ export class MurmurService {
           continue
         }
 
-        const profile = getMonitorProfile(config, screen.id)
+        const monitorEntry = getMonitorEntry(config, screen.id)
+        const profile = monitorEntry?.profile ?? getMonitorProfile(config, screen.id)
         const feedSet = new Set(profile.feeds)
-        const itemsForMonitor = rssItems.filter((item) => feedSet.has(item.feedUrl))
+        let itemsForMonitor = rssItems.filter((item) => feedSet.has(item.feedUrl))
+        // After display id remapping, a profile may briefly lack the feeds that were fetched.
+        if (itemsForMonitor.length === 0 && rssItems.length > 0) {
+          console.warn(
+            `MurmurService: No RSS items matched feeds for display ${screen.id}; using union headlines.`
+          )
+          itemsForMonitor = rssItems
+        }
         if (itemsForMonitor.length === 0) {
           console.warn(`MurmurService: No RSS items for display ${screen.id}`)
           continue
@@ -165,14 +173,17 @@ export class MurmurService {
           const summary = payloadToPlainSummary(contentSpec, result.payload)
 
           lastContent[screen.id] = envelope
-          lastPhrases[screen.id] = summary
+          // Prefer raw phrase (keeps `\n` breaks) over plain summary for wallpaper/preview.
+          lastPhrases[screen.id] = result.payload.phrase ?? summary
           lastHeadlines[screen.id] = sampled.map((item) => item.title)
           lastSources[screen.id] = Array.from(new Set(sampled.map((item) => item.source)))
           anySuccess = true
 
           await this.historyStore.save(screen.id, result.rawJson)
 
-          const isStaticMode = profile.animation === 'Instant'
+          // Always bake phrase/layout into the OS wallpaper PNG. Live overlay windows
+          // (Fade/Typewriter/etc.) draw on top when present; Instant relies on this PNG.
+          // On macOS the desktop overlay is unreliable, so the PNG must carry the content.
           const phraseForPaint = result.payload.phrase ?? summary
           const staticOptions = paintOptionsFromProfile(
             profile,
@@ -180,7 +191,7 @@ export class MurmurService {
             screen,
             envelope,
             phraseForPaint,
-            isStaticMode,
+            true,
             sampled.map((item) => item.title),
             Array.from(new Set(sampled.map((i) => i.source)))
           )
@@ -253,12 +264,10 @@ export class MurmurService {
         }
 
         const profile = getMonitorProfile(config, screen.id)
-        const isStaticMode = profile.animation === 'Instant'
         const envelope = state.lastContent?.[screen.id]
-        const phrase = isStaticMode
-          ? (envelope?.payload?.phrase ?? state.lastPhrases?.[screen.id] ?? '')
-          : ''
-        if (isStaticMode && !phrase.trim() && !envelope) {
+        const phrase =
+          envelope?.payload?.phrase ?? state.lastPhrases?.[screen.id] ?? ''
+        if (!phrase.trim() && !envelope) {
           continue
         }
 
@@ -268,7 +277,7 @@ export class MurmurService {
           screen,
           envelope,
           phrase,
-          isStaticMode,
+          true,
           state.lastHeadlines?.[screen.id] || [],
           state.lastSources?.[screen.id] || []
         )

@@ -14,6 +14,63 @@ type StyleMiniPreviewProps = {
   scrollContainerRef?: React.RefObject<HTMLElement | null>
 }
 
+function PreviewFrame({
+  frameWidth,
+  frameHeight,
+  aspectRatio,
+  config,
+  phrase,
+  displayWidth,
+  displayHeight,
+  committedLayoutEnvelope,
+  testId
+}: {
+  frameWidth: number
+  frameHeight: number
+  aspectRatio: string
+  config: MonitorProfile
+  phrase: string
+  displayWidth: number
+  displayHeight: number
+  committedLayoutEnvelope?: LayoutContentEnvelope | null
+  testId?: string
+}) {
+  const frameRef = useRef<HTMLDivElement>(null)
+  const [paintedWidth, setPaintedWidth] = useState(frameWidth)
+
+  useEffect(() => {
+    const el = frameRef.current
+    if (!el) return
+    const update = () => {
+      const w = el.getBoundingClientRect().width
+      if (w > 0) setPaintedWidth(w)
+    }
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [frameWidth, frameHeight])
+
+  return (
+    <div
+      ref={frameRef}
+      className="overflow-hidden rounded-lg border border-slate-700/80 shadow-lg shadow-black/40"
+      style={{ width: frameWidth, height: frameHeight, maxWidth: '100%', aspectRatio }}
+      data-testid={testId}
+    >
+      <WallpaperPreviewContent
+        config={config}
+        phrase={phrase}
+        className="w-full h-full"
+        frameWidthPx={paintedWidth}
+        displayWidthPx={displayWidth}
+        displayHeightPx={displayHeight}
+        committedLayoutEnvelope={committedLayoutEnvelope}
+      />
+    </div>
+  )
+}
+
 export default function StyleMiniPreview({
   config,
   phrase,
@@ -48,21 +105,17 @@ export default function StyleMiniPreview({
   const compactThumbHeight = Math.round(COMPACT_THUMB_MAX_WIDTH * (height / width))
 
   const previewFrame = (frameWidth: number, frameHeight: number, testId?: string) => (
-    <div
-      className="overflow-hidden rounded-lg border border-slate-700/80 shadow-lg shadow-black/40"
-      style={{ width: frameWidth, height: frameHeight, maxWidth: '100%', aspectRatio }}
-      data-testid={testId}
-    >
-      <WallpaperPreviewContent
-        config={config}
-        phrase={phrase}
-        className="w-full h-full"
-        frameWidthPx={frameWidth}
-        displayWidthPx={displayWidth}
-        displayHeightPx={displayHeight}
-        committedLayoutEnvelope={committedLayoutEnvelope}
-      />
-    </div>
+    <PreviewFrame
+      frameWidth={frameWidth}
+      frameHeight={frameHeight}
+      aspectRatio={aspectRatio}
+      config={config}
+      phrase={phrase}
+      displayWidth={displayWidth}
+      displayHeight={displayHeight}
+      committedLayoutEnvelope={committedLayoutEnvelope}
+      testId={testId}
+    />
   )
 
   return (

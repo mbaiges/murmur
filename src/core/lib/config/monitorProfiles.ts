@@ -60,10 +60,16 @@ export function ensureMonitorsForScreens(
 ): { config: MurmurConfig; dirty: boolean } {
   let dirty = false
   const monitors = [...config.monitors]
-  const primary = findPrimaryMonitorId(config, screens.map((s) => s.id), primaryId)
-  const primaryEntry = getMonitorEntry(config, primary)
-  const seedProfile = primaryEntry?.profile
-    ? cloneMonitorProfile(primaryEntry.profile)
+  const screenIds = screens.map((s) => s.id)
+  const primary = findPrimaryMonitorId(config, screenIds, primaryId)
+  // Prefer an existing profile with feeds. Using a brand-new screen id as "primary"
+  // before it exists in config would seed empty/example feeds and skip painting.
+  const seedSource =
+    getMonitorEntry(config, primary)?.profile ??
+    config.monitors.find((m) => m.profile.feeds.length > 0)?.profile ??
+    config.monitors[0]?.profile
+  const seedProfile = seedSource
+    ? cloneMonitorProfile(seedSource)
     : getDefaultMonitorProfile()
 
   for (const screen of screens) {

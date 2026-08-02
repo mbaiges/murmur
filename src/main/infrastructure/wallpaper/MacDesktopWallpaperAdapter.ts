@@ -7,7 +7,8 @@ import {
   copyFileSync,
   existsSync,
   mkdirSync,
-  unlinkSync
+  unlinkSync,
+  statSync
 } from 'fs'
 import { app, screen } from 'electron'
 import { IWallpaperRenderer } from '../../../core/ports/IWallpaperRenderer'
@@ -105,9 +106,19 @@ export class MacDesktopWallpaperAdapter implements IWallpaperRenderer {
     writeFileSync(filePath, pngBuffer)
 
     const escapedPath = filePath.replace(/"/g, '\\"')
-    const appleScript = `tell application "System Events" to set picture of every desktop to "${escapedPath}"`
+    const appleScript = `tell application "System Events" to set picture of every desktop to POSIX file "${escapedPath}"`
 
-    return this.runOsascriptCommand(appleScript)
+    try {
+      await this.runOsascriptCommand(appleScript)
+      console.log(`MacDesktopWallpaperAdapter: Set desktop picture → ${filePath} (${pngBuffer.length} bytes)`)
+    } catch (err) {
+      console.error(
+        'MacDesktopWallpaperAdapter: Failed to set desktop picture via System Events.',
+        'Grant Murmur / Electron Accessibility (and Automation for System Events) in System Settings if needed.',
+        err
+      )
+      throw err
+    }
   }
 
   public async backup(): Promise<void> {
@@ -141,7 +152,16 @@ export class MacDesktopWallpaperAdapter implements IWallpaperRenderer {
         }
 
         let backupCopyPath = existing?.backupCopyPath
-        if (existsSync(currentPath)) {
+        // macOS Dynamic Desktop / Photos wallpapers are often not regular files
+        // (e.g. com.apple.desktop.photos); copyFileSync then fails with ENOTSUP.
+        // We still store originalPath and restore by reference when possible.
+        let canCopy = false
+        try {
+          canCopy = existsSync(currentPath) && statSync(currentPath).isFile()
+        } catch {
+          canCopy = false
+        }
+        if (canCopy) {
           const ext = currentPath.includes('.')
             ? currentPath.slice(currentPath.lastIndexOf('.'))
             : '.png'
@@ -151,8 +171,8 @@ export class MacDesktopWallpaperAdapter implements IWallpaperRenderer {
             backupCopyPath = copyTarget
           } catch (copyErr) {
             console.warn(
-              `MacDesktopWallpaperAdapter: Could not copy wallpaper file; will restore by original path (${currentPath})`,
-              copyErr
+              `MacDesktopWallpaperAdapter: Could not copy wallpaper; will restore by original path (${currentPath})`,
+              copyErr instanceof Error ? copyErr.message : copyErr
             )
           }
         }

@@ -6,6 +6,7 @@ import { buildPhraseFormattingRules } from '../../../core/lib/generation/geminiF
 import { buildStructuredPhrasePrompt } from '../../../core/lib/generation/StructuredPhrasePromptBuilder'
 import { validateLayoutPayload } from '../../../core/lib/layout/layoutSpecToZod'
 import { isValidPoemSyntax, validateMarkdownFields } from '../../../core/lib/phrase/phraseSyntaxValidation'
+import { normalizeLayoutPayloadFields } from '../../../core/lib/phrase/convertSentencePeriodsToNewlines'
 import { getLayoutContentSpec } from '../../../core/lib/layout/layoutContentSpecs'
 import { envelopeToRawJson } from '../../../core/lib/layout/layoutContentParse'
 import { LayoutContentEnvelope } from '../../../core/domain/types'
@@ -85,7 +86,13 @@ export class GeminiPhraseGeneratorAdapter implements IPhraseGenerator {
           continue
         }
 
-        if (!validateMarkdownFields(request.contentSpec, validated.payload)) {
+        const normalizedPayload = normalizePayloadSentenceBreaks(
+          request.contentSpec,
+          validated.payload,
+          request.formatFlags.enableNewlines
+        )
+
+        if (!validateMarkdownFields(request.contentSpec, normalizedPayload)) {
           console.warn(`GeminiPhraseGeneratorAdapter: Attempt ${attempt} invalid markdown in payload`)
           continue
         }
@@ -93,14 +100,14 @@ export class GeminiPhraseGeneratorAdapter implements IPhraseGenerator {
         const envelope: LayoutContentEnvelope = {
           schemaId: request.contentSpec.schemaId,
           layoutStyle: request.contentSpec.layoutStyle,
-          payload: validated.payload
+          payload: normalizedPayload
         }
 
         return {
           schemaId: request.contentSpec.schemaId,
           layoutStyle: request.contentSpec.layoutStyle,
           rawJson: envelopeToRawJson(envelope),
-          payload: validated.payload
+          payload: normalizedPayload
         }
       } catch (error) {
         console.error(`GeminiPhraseGeneratorAdapter: Attempt ${attempt} generation failed:`, error)
@@ -127,6 +134,14 @@ function extractJsonObject(text: string): string | null {
     return text.slice(start, end + 1)
   }
   return null
+}
+
+function normalizePayloadSentenceBreaks(
+  _spec: PhraseGenerationRequest['contentSpec'],
+  payload: Record<string, string>,
+  enableNewlines: boolean
+): Record<string, string> {
+  return normalizeLayoutPayloadFields(payload, enableNewlines)
 }
 
 /** @deprecated exported for legacy tests referencing poem syntax */

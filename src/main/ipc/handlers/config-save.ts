@@ -57,7 +57,11 @@ export async function handleConfigSave(
     }
   }
 
-  const useNativeStaticOnly = newConfig.animation === 'Instant' && process.platform !== 'darwin'
+  const allInstant =
+    newConfig.monitors.length > 0 &&
+    newConfig.monitors.every((m) => m.profile.animation === 'Instant')
+  // Match pre-per-monitor behavior: macOS keeps overlays; Windows Instant drops them.
+  const useNativeStaticOnly = allInstant && process.platform !== 'darwin'
   if (useNativeStaticOnly) {
     destroyAllBackgroundWindows()
   } else {
@@ -93,9 +97,9 @@ export async function handleConfigSave(
       await murmurService.refresh({ lastContent: state.lastContent, lastPhrases: state.lastPhrases })
     } else if (deltaKind === 'visual') {
       await murmurService.reRenderWallpapers(state)
-    } else if (newConfig.animation === 'Instant' && hasCachedPhrase) {
+    } else if (allInstant && hasCachedPhrase) {
       await murmurService.updateClockWallpapers(state)
-    } else if (newConfig.animation !== 'Instant' && deltaKind !== 'none') {
+    } else if (!allInstant && deltaKind !== 'none') {
       await murmurService.updateClockWallpapers(state)
     }
   }

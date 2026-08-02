@@ -1,3 +1,9 @@
+import {
+  convertSentencePeriodsToNewlines,
+  normalizePhraseLineBreaks,
+  PHRASE_LINE_BREAK
+} from './convertSentencePeriodsToNewlines'
+
 export interface PhraseFormatFlags {
   enableBold: boolean
   enableItalic: boolean
@@ -21,13 +27,13 @@ export function phraseFormatFlagsFromConfig(config: PhraseFormatFlags): PhraseFo
   }
 }
 
-/** Split stored phrase into display lines; raw \\n escapes are preserved in storage. */
+/** Split stored phrase into display lines; canonical breaks are the two-char sequence `\n`. */
 export function splitPhraseLines(phrase: string, enableNewlines: boolean): string[] {
   if (!phrase) {
     return ['']
   }
   if (enableNewlines) {
-    return phrase.split('\\n')
+    return convertSentencePeriodsToNewlines(phrase).split(PHRASE_LINE_BREAK)
   }
-  return [phrase.replace(/\\n/g, ' ')]
+  return [normalizePhraseLineBreaks(phrase, 'lf').replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim()]
 }

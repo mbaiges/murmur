@@ -4,6 +4,7 @@ import { existsSync } from 'fs'
 import { IWallpaperPainter } from '../../../core/ports/IWallpaperPainter'
 import { PaintOptions } from '../../../core/domain/types'
 import { PhraseFormatFlags, splitPhraseLines } from '../../../core/lib/phrase/phraseFormatFlags'
+import { prepareMarkupForCompile } from '../../../core/lib/phrase/convertSentencePeriodsToNewlines'
 import { splitFlatCharsAtWordMidpoint, splitPlainPhraseHeadlineDeck } from '../../../core/lib/phrase/phraseLayoutSplit'
 import { phraseToPlainText } from '../../../core/lib/phrase/phrasePlainText'
 
@@ -266,12 +267,13 @@ export class NodeCanvasWallpaperPainterAdapter implements IWallpaperPainter {
     flags: PhraseFormatFlags,
     isBold = false,
     isItalic = false,
-    currentFontFamily = ''
+    currentFontFamily = '',
+    depth = 0
   ): CanvasStyledChar[] {
     if (!text) return []
 
     const result: CanvasStyledChar[] = []
-    let currentText = text
+    let currentText = depth === 0 ? prepareMarkupForCompile(text, flags.enableNewlines) : text
 
     while (currentText.length > 0) {
       const boldIdx = currentText.indexOf('**')
@@ -330,7 +332,8 @@ export class NodeCanvasWallpaperPainterAdapter implements IWallpaperPainter {
               flags,
               flags.enableBold ? true : isBold,
               isItalic,
-              currentFontFamily
+              currentFontFamily,
+              depth + 1
             )
           )
           currentText = currentText.substring(closeIdx + 2)
@@ -350,7 +353,8 @@ export class NodeCanvasWallpaperPainterAdapter implements IWallpaperPainter {
               flags,
               isBold,
               flags.enableItalic ? true : isItalic,
-              currentFontFamily
+              currentFontFamily,
+              depth + 1
             )
           )
           currentText = currentText.substring(closeIdx + 1)
@@ -373,7 +377,8 @@ export class NodeCanvasWallpaperPainterAdapter implements IWallpaperPainter {
                 flags,
                 isBold,
                 isItalic,
-                flags.enableDifferentFonts ? fontName : currentFontFamily
+                flags.enableDifferentFonts ? fontName : currentFontFamily,
+                depth + 1
               )
             )
             currentText = currentText.substring(tagCloseIdx + tagClose.length)
@@ -403,6 +408,14 @@ export class NodeCanvasWallpaperPainterAdapter implements IWallpaperPainter {
     let currentWord: CanvasStyledChar[] = []
 
     for (const char of chars) {
+      if (char.char === '\n') {
+        if (currentWord.length > 0) {
+          words.push(currentWord)
+          currentWord = []
+        }
+        words.push([char])
+        continue
+      }
       if (char.char === ' ') {
         if (currentWord.length > 0) {
           words.push(currentWord)
@@ -421,6 +434,15 @@ export class NodeCanvasWallpaperPainterAdapter implements IWallpaperPainter {
     let currentLine: CanvasStyledChar[] = []
 
     for (const word of words) {
+      if (word.length === 1 && word[0].char === '\n') {
+        if (currentLine.length > 0 && currentLine[currentLine.length - 1].char === ' ') {
+          currentLine.pop()
+        }
+        lines.push(currentLine)
+        currentLine = []
+        continue
+      }
+
       const testLine = [...currentLine, ...word]
       const lineWidth = this.measureStyledChars(ctx, testLine, baseFontSize)
       

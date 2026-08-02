@@ -70,8 +70,12 @@ app.whenReady().then(async () => {
     const displays = screen.getAllDisplays()
 
     const configTemp = await configStore.get()
-    const shouldSpawnBg = configTemp.animation !== 'Instant' || process.platform === 'darwin'
-    const layoutForHistory = configTemp.layoutStyle
+    // Same rule as before per-monitor: macOS always keeps a desktop overlay; Windows only
+    // when any monitor is not Instant. Style fields now live on monitor profiles.
+    const shouldSpawnBg =
+      process.platform === 'darwin' ||
+      configTemp.monitors.some((m) => m.profile.animation !== 'Instant')
+    const layoutForHistory = configTemp.monitors[0]?.profile.layoutStyle ?? 'centered'
 
     for (const s of screens) {
       const history = await historyStore.get(s.id)

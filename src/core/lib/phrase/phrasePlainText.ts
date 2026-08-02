@@ -10,7 +10,8 @@ export function phraseToPlainText(phrase: string): string {
     .replace(/\*\*/g, '')
     .replace(/\*/g, '')
     .replace(/`/g, '')
-    .replace(/\\n/g, ' ')
+    .replace(/\\+n/g, ' ')
+    .replace(/\n+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
 }

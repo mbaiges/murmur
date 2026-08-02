@@ -30,7 +30,7 @@ Fields:
 ${fieldLines.join('\n')}
 
 Language: respond in "${language}". If "${language}" is "auto", match the dominant language of the headlines.
-Do NOT end string values with a period unless it is part of the proverb rhythm.
+Follow the Formatting Rules above for periods and line breaks. Separate sentences with periods when needed; do not break lines around proper names.
 
 Headlines:
 ${headlines.map((h) => `- ${h}`).join('\n')}`
