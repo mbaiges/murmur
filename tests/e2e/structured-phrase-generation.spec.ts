@@ -30,6 +30,8 @@ test.describe('Structured phrase generation — history UI', () => {
     await page.locator('button:has-text("Refresh Now")').click()
     await page.waitForTimeout(2500)
 
+    await page.locator('button:has-text("Displays")').click()
+    await page.waitForTimeout(400)
     await page.locator('button:has-text("History")').click()
     await page.waitForTimeout(500)
 
@@ -40,8 +42,7 @@ test.describe('Structured phrase generation — history UI', () => {
     await page.screenshot({ path: previewShot })
     console.log('Screenshot:', previewShot)
 
-    const previewText = await page.locator('.space-y-2').first().innerText()
-    expect(previewText.toLowerCase()).toMatch(/stubbed|surreal/)
+    await expect(page.getByText(/stubbed|surreal/i).first()).toBeVisible()
 
     await page.getByRole('button', { name: 'Raw JSON' }).click()
     await page.waitForTimeout(300)

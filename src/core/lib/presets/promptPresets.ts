@@ -116,3 +116,7 @@ export function presetIdToPrompt(presetId: string): string | null {
   const match = ALL_PRESETS.find((p) => p.id === presetId)
   return match?.prompt ?? null
 }
+
+export function getPromptPresetById(presetId: string): PromptPresetDefinition | undefined {
+  return ALL_PRESETS.find((p) => p.id === presetId)
+}

@@ -1,6 +1,7 @@
 import React from 'react'
 import type { MurmurConfig, MurmurState, ThemeName } from '@core/domain/types'
 import { phraseToPlainText } from '@core/lib/phrase/phrasePlainText'
+import SettingsSelect from '../components/SettingsSelect'
 
 type MonitorsTabProps = {
   config: MurmurConfig
@@ -64,9 +65,10 @@ export default function MonitorsTab({ config, state, saveConfig, onPreviewTheme 
                           {/* Theme override */}
                           <div className="flex items-center justify-between text-xs">
                             <span className="text-slate-400">Theme Override</span>
-                            <select
+                            <SettingsSelect
+                              selectSize="sm"
                               disabled={!enabled}
-                              className="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-slate-300 outline-none text-xs text-no-drag"
+                              className="text-slate-300 text-no-drag"
                               value={mConf?.themeOverride || ''}
                               onChange={(e) => {
                                 const updatedMonitors = [...config.monitors]
@@ -89,7 +91,7 @@ export default function MonitorsTab({ config, state, saveConfig, onPreviewTheme 
                               <option value="WarmGlow">Warm Glow</option>
                               <option value="Parchment">Parchment</option>
                               <option value="Blanc">Blanc</option>
-                            </select>
+                            </SettingsSelect>
                           </div>
 
                           {/* Preview Buttons */}

@@ -5,6 +5,7 @@ import type { IHistoryStore } from '@core/ports/IHistoryStore'
 import type { MurmurService } from '@core/domain/MurmurService'
 import { IpcChannel } from '@shared/ipc'
 import { handleConfigSave, type ConfigSaveHandlerDeps } from './handlers/config-save'
+import { handleOpenExternal } from './handlers/open-external'
 
 export type RegisterIpcDeps = ConfigSaveHandlerDeps & {
   historyStore: IHistoryStore
@@ -28,4 +29,5 @@ export function registerIpcHandlers(deps: RegisterIpcDeps): void {
     murmurService.previewTheme(monitorId, theme)
   )
   ipcMain.handle(IpcChannel.stateGet, () => getState())
+  ipcMain.handle(IpcChannel.shellOpenExternal, (_event, url: string) => handleOpenExternal(url))
 }

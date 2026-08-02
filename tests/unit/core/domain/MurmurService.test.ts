@@ -39,6 +39,8 @@ describe('MurmurService', () => {
     enableItalic: true,
     enableNewlines: true,
     enableDifferentFonts: false,
+    tonePreset: 'none',
+    customToneText: '',
     noiseIntensity: 'none',
     monitors: [
       { id: 'screen-1', enabled: true },

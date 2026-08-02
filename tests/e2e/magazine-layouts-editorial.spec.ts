@@ -32,9 +32,9 @@ test.describe.serial('Editorial structured layouts (feature opener, sidebar, byl
   }
 
   async function selectLayout(page: Awaited<ReturnType<typeof getSettingsPage>>, value: string) {
-    await page.locator('button:has-text("Appearance")').click()
+    await page.locator('button:has-text("Style")').click()
     await page.waitForTimeout(400)
-    await page.locator('select').nth(5).selectOption(value)
+    await page.locator('select').nth(4).selectOption(value)
     await page.waitForTimeout(2200)
   }
 

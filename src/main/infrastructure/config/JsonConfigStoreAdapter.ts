@@ -36,7 +36,9 @@ export class JsonConfigStoreAdapter implements IConfigStore {
       enableBold: true,
       enableItalic: true,
       enableNewlines: true,
-      enableDifferentFonts: true
+      enableDifferentFonts: true,
+      tonePreset: 'none',
+      customToneText: ''
     }
   }
 

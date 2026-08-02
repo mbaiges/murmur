@@ -9,6 +9,8 @@ import { sampleHeadlines } from './HeadlineSampler'
 import { LayoutContentEnvelope, MurmurState, ThemeName } from './types'
 import { getLayoutContentSpec } from '../lib/layout/layoutContentSpecs'
 import { payloadToPlainSummary } from '../lib/phrase/payloadToPlainSummary'
+import { resolveToneInstruction } from '../lib/generation/toneInstructions'
+import { buildEffectiveSystemPrompt } from '../lib/generation/buildEffectiveSystemPrompt'
 
 export type MurmurRefreshContext = Pick<MurmurState, 'lastContent' | 'lastPhrases'>
 
@@ -73,10 +75,12 @@ export class MurmurService {
         const generatorInputs = sampled.map((item) => `[Source: ${item.source}] ${item.title}`)
 
         try {
+          const toneInstruction = resolveToneInstruction(config)
+          const effectiveSystemPrompt = buildEffectiveSystemPrompt(config.systemPrompt, toneInstruction)
           const result = await this.ai.generateStructured({
             headlines: generatorInputs,
             language: config.language,
-            systemPrompt: config.systemPrompt,
+            systemPrompt: effectiveSystemPrompt,
             contentSpec,
             formatFlags: {
               enableBold: config.enableBold,

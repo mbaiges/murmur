@@ -1,42 +1,74 @@
-import React, { useEffect, useState } from 'react'
-import type { ThemeName } from '@core/domain/types'
+import React, { useEffect, useRef, useState } from 'react'
 import AppShell from '../../app/AppShell'
-import MoodsTab from '../moods/MoodsTab'
 import SetupWizard from './components/SetupWizard'
 import SettingsSidebar from './components/SettingsSidebar'
-import FeedsTab from './tabs/FeedsTab'
-import AppearanceTab from './tabs/AppearanceTab'
-import MonitorsTab from './tabs/MonitorsTab'
-import HistoryTab from './tabs/HistoryTab'
-import { useMurmurConfig } from './hooks/useMurmurConfig'
+import GeneralTab from './tabs/GeneralTab'
+import NewsSourcesTab from './tabs/NewsSourcesTab'
+import VoiceTab from './tabs/VoiceTab'
+import StyleTab from './tabs/StyleTab'
+import DisplaysTab from './tabs/DisplaysTab'
+import { useMurmurConfig, readSettingsUiState, writeSettingsUiState } from './hooks/useMurmurConfig'
 import { useSystemPromptDraft } from './hooks/useSystemPromptDraft'
 import { useMoodChange } from './hooks/useMoodChange'
 import { getWindowApi } from './hooks/getWindowApi'
-import type { SettingsTab } from './types'
+import type { DisplaysSection, SettingsTab, SettingsUiState } from './types'
+
+const WIZARD_FLAG = 'murmur.wizardJustCompleted'
+
+function loadUiState(): SettingsUiState {
+  const stored = readSettingsUiState()
+  return {
+    activeTab: sessionStorage.getItem(WIZARD_FLAG) ? 'general' : (stored?.activeTab ?? 'general'),
+    displaysSection: stored?.displaysSection ?? 'monitors',
+    scrollByTab: stored?.scrollByTab ?? {}
+  }
+}
 
 export default function SettingsShell() {
   const { config, state, setState, toast, showToast, saveConfig } = useMurmurConfig()
   const promptDraft = useSystemPromptDraft(config, saveConfig)
   const handleMoodChange = useMoodChange(saveConfig, promptDraft.syncDraftFromPrompt)
 
-  const [activeTab, setActiveTab] = useState<SettingsTab>('feeds')
+  const [uiState, setUiState] = useState(loadUiState)
   const [isRefreshing, setIsRefreshing] = useState(false)
-  const [historyMonitorId, setHistoryMonitorId] = useState('')
-  const [historyPhrases, setHistoryPhrases] = useState<string[]>([])
-  const [historyViewMode, setHistoryViewMode] = useState<'preview' | 'raw'>('preview')
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const scrollSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const persistUi = (patch: Partial<SettingsUiState>) => {
+    setUiState((prev) => {
+      const next = { ...prev, ...patch }
+      writeSettingsUiState(next)
+      return next
+    })
+  }
 
   useEffect(() => {
-    const api = getWindowApi()
-    if (api && historyMonitorId && activeTab === 'history') {
-      api.getHistory(historyMonitorId).then(setHistoryPhrases).catch(console.error)
+    const top = uiState.scrollByTab[uiState.activeTab]
+    if (scrollRef.current && top != null) {
+      scrollRef.current.scrollTop = top
     }
-  }, [historyMonitorId, activeTab])
+  }, [uiState.activeTab])
 
-  useEffect(() => {
-    if (state && Object.keys(state.lastPhrases).length > 0 && !historyMonitorId) {
-      setHistoryMonitorId(Object.keys(state.lastPhrases)[0])
+  const handleTabChange = (tab: SettingsTab) => {
+    if (scrollRef.current) {
+      persistUi({
+        activeTab: tab,
+        scrollByTab: { ...uiState.scrollByTab, [uiState.activeTab]: scrollRef.current.scrollTop }
+      })
+    } else {
+      persistUi({ activeTab: tab })
     }
-  }, [state, historyMonitorId])
+  }
+
+  const handleMainScroll = () => {
+    if (!scrollRef.current) return
+    if (scrollSaveTimer.current) clearTimeout(scrollSaveTimer.current)
+    scrollSaveTimer.current = setTimeout(() => {
+      persistUi({
+        scrollByTab: { ...uiState.scrollByTab, [uiState.activeTab]: scrollRef.current!.scrollTop }
+      })
+    }, 200)
+  }
 
   const handleRefresh = async () => {
     const api = getWindowApi()
@@ -56,7 +88,7 @@ export default function SettingsShell() {
     }
   }
 
-  const handlePreviewTheme = async (monitorId: string, theme: ThemeName) => {
+  const handlePreviewTheme = async (monitorId: string, theme: import('@core/domain/types').ThemeName) => {
     const api = getWindowApi()
     if (!api) return
     showToast(`Applying preview for theme: ${theme}...`)
@@ -69,33 +101,27 @@ export default function SettingsShell() {
     }
   }
 
-  const handleClearHistory = async (monitorId: string) => {
-    const api = getWindowApi()
-    if (!api) return
-    try {
-      await api.clearHistory(monitorId)
-      setHistoryPhrases([])
-      showToast('History logs cleared')
-    } catch (err) {
-      console.error(err)
-    }
-  }
-
   const handleWizardSubmit = async (geminiApiKey: string, feedUrl: string) => {
     if (!geminiApiKey) {
       showToast('Please enter a valid Gemini API Key', 'error')
       return
     }
-    await saveConfig({
-      geminiApiKey,
-      feeds: [feedUrl]
-    })
+    await saveConfig({ geminiApiKey, feeds: [feedUrl] })
+    sessionStorage.setItem(WIZARD_FLAG, '1')
+    persistUi({ activeTab: 'general' })
+    showToast('Settings saved successfully. Pick a look in Style when you’re ready.')
   }
+
+  useEffect(() => {
+    if (sessionStorage.getItem(WIZARD_FLAG) && config?.geminiApiKey) {
+      sessionStorage.removeItem(WIZARD_FLAG)
+    }
+  }, [config?.geminiApiKey])
 
   if (!config) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-950 text-slate-300">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-500"></div>
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-500" />
       </div>
     )
   }
@@ -109,18 +135,20 @@ export default function SettingsShell() {
       toast={toast}
       sidebar={
         <SettingsSidebar
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
+          activeTab={uiState.activeTab}
+          onTabChange={handleTabChange}
           onRefresh={handleRefresh}
           isRefreshing={isRefreshing}
           state={state}
         />
       }
+      mainScrollRef={scrollRef}
+      onMainScroll={handleMainScroll}
     >
-      {activeTab === 'moods' && <MoodsTab config={config} onMoodChange={handleMoodChange} />}
-
-      {activeTab === 'feeds' && (
-        <FeedsTab
+      {uiState.activeTab === 'general' && <GeneralTab config={config} state={state} saveConfig={saveConfig} />}
+      {uiState.activeTab === 'news' && <NewsSourcesTab config={config} saveConfig={saveConfig} />}
+      {uiState.activeTab === 'voice' && (
+        <VoiceTab
           config={config}
           saveConfig={saveConfig}
           draftPrompt={promptDraft.draftPrompt}
@@ -132,30 +160,15 @@ export default function SettingsShell() {
           onPresetChange={promptDraft.handlePresetChange}
         />
       )}
-
-      {activeTab === 'appearance' && (
-        <AppearanceTab config={config} saveConfig={saveConfig} onMoodChange={handleMoodChange} />
-      )}
-
-      {activeTab === 'monitors' && (
-        <MonitorsTab
+      {uiState.activeTab === 'style' && <StyleTab config={config} saveConfig={saveConfig} onMoodChange={handleMoodChange} />}
+      {uiState.activeTab === 'displays' && (
+        <DisplaysTab
           config={config}
           state={state}
           saveConfig={saveConfig}
           onPreviewTheme={handlePreviewTheme}
-        />
-      )}
-
-      {activeTab === 'history' && (
-        <HistoryTab
-          config={config}
-          state={state}
-          historyMonitorId={historyMonitorId}
-          setHistoryMonitorId={setHistoryMonitorId}
-          historyPhrases={historyPhrases}
-          historyViewMode={historyViewMode}
-          setHistoryViewMode={setHistoryViewMode}
-          onClearHistory={handleClearHistory}
+          section={uiState.displaysSection}
+          onSectionChange={(s) => persistUi({ displaysSection: s })}
         />
       )}
     </AppShell>

@@ -6,9 +6,11 @@ type AppShellProps = {
   toast: ToastState
   sidebar: React.ReactNode
   children: React.ReactNode
+  mainScrollRef?: React.RefObject<HTMLDivElement | null>
+  onMainScroll?: () => void
 }
 
-export default function AppShell({ toast, sidebar, children }: AppShellProps) {
+export default function AppShell({ toast, sidebar, children, mainScrollRef, onMainScroll }: AppShellProps) {
   return (
     <div className="flex flex-col h-screen max-h-screen bg-slate-950 text-slate-100 font-sans antialiased overflow-hidden">
       <header
@@ -37,7 +39,7 @@ export default function AppShell({ toast, sidebar, children }: AppShellProps) {
 
         {sidebar}
 
-        <main className="flex-1 bg-slate-950 overflow-y-auto p-10">{children}</main>
+        <main ref={mainScrollRef} onScroll={onMainScroll} className="flex-1 bg-slate-950 overflow-y-auto p-10">{children}</main>
       </div>
     </div>
   )

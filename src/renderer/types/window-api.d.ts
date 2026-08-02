@@ -11,6 +11,7 @@ export interface MurmurWindowApi {
   getState: () => Promise<MurmurState>
   onStateUpdated: (callback: (state: MurmurState) => void) => () => void
   onConfigUpdated: (callback: (config: MurmurConfig) => void) => () => void
+  openExternal: (url: string) => Promise<void>
 }
 
 declare global {

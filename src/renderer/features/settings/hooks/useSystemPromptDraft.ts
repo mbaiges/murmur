@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { MurmurConfig } from '@core/domain/types'
-import { presetIdToPrompt } from '@core/lib/presets/promptPresets'
+import { getPromptPresetById, presetIdToPrompt } from '@core/lib/presets/promptPresets'
+import { applyAestheticMood, type AestheticMoodId } from '@core/lib/presets/aestheticMoods'
 
 export function useSystemPromptDraft(
   config: MurmurConfig | null,
@@ -43,6 +44,16 @@ export function useSystemPromptDraft(
 
   const handlePresetChange = useCallback(
     (presetName: string) => {
+      const preset = getPromptPresetById(presetName)
+      if (preset?.moodName) {
+        const updates = applyAestheticMood(preset.moodName as AestheticMoodId)
+        if (updates.systemPrompt) {
+          setDraftPrompt(updates.systemPrompt)
+          setIsPromptDirty(false)
+        }
+        void saveConfig(updates)
+        return
+      }
       const nextPrompt = presetIdToPrompt(presetName)
       if (!nextPrompt) return
       setDraftPrompt(nextPrompt)

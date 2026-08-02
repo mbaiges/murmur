@@ -41,10 +41,10 @@ test.describe.serial('Magazine layout styles E2E', () => {
   test('split-spread layout: DOM structure, text split, screenshot', async () => {
     test.setTimeout(60_000)
     const page = await getSettingsPage(electronApp)
-    await page.locator('button:has-text("Appearance")').click()
+    await page.locator('button:has-text("Style")').click()
     await page.waitForTimeout(400)
 
-    await page.locator('select').nth(5).selectOption('split-spread')
+    await page.locator('select').nth(4).selectOption('split-spread')
     await page.waitForTimeout(2000)
 
     const wallpaper = getWallpaperWindow(electronApp)
@@ -77,10 +77,10 @@ test.describe.serial('Magazine layout styles E2E', () => {
   test('tabloid-stack layout: headline + deck, screenshot', async () => {
     test.setTimeout(60_000)
     const page = await getSettingsPage(electronApp)
-    await page.locator('button:has-text("Appearance")').click()
+    await page.locator('button:has-text("Style")').click()
     await page.waitForTimeout(400)
 
-    await page.locator('select').nth(5).selectOption('tabloid-stack')
+    await page.locator('select').nth(4).selectOption('tabloid-stack')
     await page.waitForTimeout(2000)
 
     const wallpaper = getWallpaperWindow(electronApp)
@@ -115,10 +115,10 @@ test.describe.serial('Magazine layout styles E2E', () => {
   test('pull-quote layout: blockquote rule, screenshot', async () => {
     test.setTimeout(60_000)
     const page = await getSettingsPage(electronApp)
-    await page.locator('button:has-text("Appearance")').click()
+    await page.locator('button:has-text("Style")').click()
     await page.waitForTimeout(400)
 
-    await page.locator('select').nth(5).selectOption('pull-quote')
+    await page.locator('select').nth(4).selectOption('pull-quote')
     await page.waitForTimeout(2000)
 
     const wallpaper = getWallpaperWindow(electronApp)

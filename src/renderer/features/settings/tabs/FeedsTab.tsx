@@ -5,6 +5,7 @@ import {
   STANDALONE_PROMPT_PRESETS,
   promptToPresetId
 } from '@core/lib/presets/promptPresets'
+import SettingsSelect from '../components/SettingsSelect'
 
 type FeedsTabProps = {
   config: MurmurConfig
@@ -57,8 +58,9 @@ export default function FeedsTab({
                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">AI System Prompt Preset</label>
                     <div className="flex flex-col items-end gap-1">
                       <div className="flex items-center space-x-2">
-                        <select
-                          className="bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg px-2 py-1 text-xs text-slate-200 outline-none transition-all cursor-pointer max-w-[220px]"
+                        <SettingsSelect
+                          selectSize="sm"
+                          className="max-w-[220px]"
                           value={promptToPresetId(draftPrompt)}
                           onChange={(e) => onPresetChange(e.target.value)}
                         >
@@ -77,7 +79,7 @@ export default function FeedsTab({
                             ))}
                           </optgroup>
                           <option value="Custom">Custom (edited below)</option>
-                        </select>
+                        </SettingsSelect>
 
                         {(isPromptDirty || showCheckmark) && (
                           <button
@@ -125,8 +127,7 @@ export default function FeedsTab({
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Refresh Interval</label>
-                    <select
-                      className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg px-3 py-2 text-sm text-slate-100 outline-none transition-all"
+                    <SettingsSelect
                       value={config.refreshIntervalMinutes}
                       onChange={(e) => saveConfig({ refreshIntervalMinutes: Number(e.target.value) })}
                     >
@@ -137,12 +138,11 @@ export default function FeedsTab({
                       <option value={360}>Every 6 hours</option>
                       <option value={720}>Every 12 hours</option>
                       <option value={1440}>Every 24 hours</option>
-                    </select>
+                    </SettingsSelect>
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Output Language</label>
-                    <select
-                      className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg px-3 py-2 text-sm text-slate-100 outline-none transition-all"
+                    <SettingsSelect
                       value={config.language}
                       onChange={(e) => saveConfig({ language: e.target.value })}
                     >
@@ -151,7 +151,7 @@ export default function FeedsTab({
                       <option value="Spanish">Spanish</option>
                       <option value="French">French</option>
                       <option value="German">German</option>
-                    </select>
+                    </SettingsSelect>
                   </div>
                 </div>
 
