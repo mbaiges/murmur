@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { sampleHeadlines } from '../../src/core/domain/HeadlineSampler'
-import { RssItem } from '../../src/core/domain/types'
+import { sampleHeadlines } from '../../../../src/core/domain/HeadlineSampler'
+import { RssItem } from '../../../../src/core/domain/types'
 
 describe('HeadlineSampler', () => {
   const items: RssItem[] = [

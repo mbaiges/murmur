@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { Scheduler } from '../../src/core/domain/Scheduler'
+import { Scheduler } from '../../../../src/core/domain/Scheduler'
 
 describe('Scheduler', () => {
   beforeEach(() => {

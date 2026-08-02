@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { splitPlainPhraseHeadlineDeck } from '../../src/core/lib/phrase/phraseLayoutSplit'
+import { splitPlainPhraseHeadlineDeck } from '../../../../src/core/lib/phrase/phraseLayoutSplit'
 
 describe('splitPlainPhraseHeadlineDeck', () => {
   it('splits on sentence boundary when present', () => {

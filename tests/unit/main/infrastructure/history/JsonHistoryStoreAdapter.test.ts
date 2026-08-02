@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { join } from 'path'
 import { existsSync, unlinkSync } from 'fs'
-import { JsonHistoryStoreAdapter } from '../../src/main/infrastructure/history/JsonHistoryStoreAdapter'
+import { JsonHistoryStoreAdapter } from '../../../../../src/main/infrastructure/history/JsonHistoryStoreAdapter'
 
 vi.mock('electron', () => ({
   app: {
