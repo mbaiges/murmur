@@ -25,7 +25,7 @@
       "@core/domain/*": ["src/core/domain/*"],
       "@core/ports/*": ["src/core/ports/*"],
       "@core/lib/*": ["src/core/lib/*"],
-      "@adapters/*": ["src/adapters/*"],
+      "@adapters/*": ["src/main/infrastructure/*"],
       "@shared/ipc": ["src/shared/ipc-contract.ts"]
     }
   },

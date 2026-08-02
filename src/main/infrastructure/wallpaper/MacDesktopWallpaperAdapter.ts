@@ -10,7 +10,7 @@ import {
   unlinkSync
 } from 'fs'
 import { app, screen } from 'electron'
-import { IWallpaperRenderer } from '../../core/ports/IWallpaperRenderer'
+import { IWallpaperRenderer } from '../../../core/ports/IWallpaperRenderer'
 
 const execAsync = promisify(exec)
 

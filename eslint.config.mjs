@@ -22,7 +22,7 @@ export default tseslint.config(
         {
           patterns: [
             {
-              group: ['**/main/infrastructure/**', '**/main/bootstrap/**', '**/adapters/**'],
+              group: ['**/main/infrastructure/**', '**/main/bootstrap/**'],
               message:
                 'Renderer/preload must not import main infrastructure or bootstrap. Use window.api / ipc-contract / core only.'
             },

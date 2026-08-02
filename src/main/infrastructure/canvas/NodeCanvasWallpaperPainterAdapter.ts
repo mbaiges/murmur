@@ -1,11 +1,11 @@
 import { registerFont, createCanvas, CanvasRenderingContext2D } from 'canvas'
 import { join } from 'path'
 import { existsSync } from 'fs'
-import { IWallpaperPainter } from '../../core/ports/IWallpaperPainter'
-import { PaintOptions } from '../../core/domain/types'
-import { PhraseFormatFlags, splitPhraseLines } from '../../core/lib/phraseFormatFlags'
-import { splitFlatCharsAtWordMidpoint, splitPlainPhraseHeadlineDeck } from '../../core/lib/phraseLayoutSplit'
-import { phraseToPlainText } from '../../core/lib/phrasePlainText'
+import { IWallpaperPainter } from '../../../core/ports/IWallpaperPainter'
+import { PaintOptions } from '../../../core/domain/types'
+import { PhraseFormatFlags, splitPhraseLines } from '../../../core/lib/phraseFormatFlags'
+import { splitFlatCharsAtWordMidpoint, splitPlainPhraseHeadlineDeck } from '../../../core/lib/phraseLayoutSplit'
+import { phraseToPlainText } from '../../../core/lib/phrasePlainText'
 
 interface CanvasStyledChar {
   char: string

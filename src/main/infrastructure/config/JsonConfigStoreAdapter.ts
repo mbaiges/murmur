@@ -1,11 +1,11 @@
 import { app } from 'electron'
 import { join } from 'path'
 import { readFileSync, writeFileSync, existsSync } from 'fs'
-import { IConfigStore } from '../../core/ports/IConfigStore'
-import { MurmurConfig, DEFAULT_SYSTEM_PROMPT } from '../../core/domain/types'
-import { MurmurConfigSchema } from '../../core/domain/config.schema'
-import { EXAMPLE_RSS_FEEDS } from '../../core/lib/exampleFeeds'
-import { isClickbaitPressConfig, preferredClickbaitAnimation } from '../../core/lib/clickbaitPreset'
+import { IConfigStore } from '../../../core/ports/IConfigStore'
+import { MurmurConfig, DEFAULT_SYSTEM_PROMPT } from '../../../core/domain/types'
+import { MurmurConfigSchema } from '../../../core/domain/config.schema'
+import { EXAMPLE_RSS_FEEDS } from '../../../core/lib/exampleFeeds'
+import { isClickbaitPressConfig, preferredClickbaitAnimation } from '../../../core/lib/clickbaitPreset'
 
 export class JsonConfigStoreAdapter implements IConfigStore {
   private filePath: string

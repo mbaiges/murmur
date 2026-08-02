@@ -1,5 +1,5 @@
 import { app } from 'electron'
-import { IStartupIntegration } from '../../core/ports/IStartupIntegration'
+import { IStartupIntegration } from '../../../core/ports/IStartupIntegration'
 
 export class MacStartupAdapter implements IStartupIntegration {
   public async enable(): Promise<void> {

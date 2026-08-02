@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { join } from 'path'
-import { MacDesktopWallpaperAdapter } from '../../src/adapters/wallpaper/MacDesktopWallpaperAdapter'
+import { MacDesktopWallpaperAdapter } from '../../src/main/infrastructure/wallpaper/MacDesktopWallpaperAdapter'
 
 const mockExec = vi.fn()
 vi.mock('child_process', () => ({

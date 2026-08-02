@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { NodeCanvasWallpaperPainterAdapter } from '../../src/adapters/canvas/NodeCanvasWallpaperPainterAdapter'
+import { NodeCanvasWallpaperPainterAdapter } from '../../src/main/infrastructure/canvas/NodeCanvasWallpaperPainterAdapter'
 import { ThemeName } from '../../src/core/domain/types'
 import { DEFAULT_PHRASE_FORMAT_FLAGS } from '../../src/core/lib/phraseFormatFlags'
 

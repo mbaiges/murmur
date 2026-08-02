@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { MacStartupAdapter } from '../../src/adapters/startup/MacStartupAdapter'
+import { MacStartupAdapter } from '../../src/main/infrastructure/startup/MacStartupAdapter'
 
 const mockSetLoginItemSettings = vi.fn()
 const mockGetLoginItemSettings = vi.fn()

@@ -1,7 +1,7 @@
 import { createServer, Server } from 'http'
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { FastXmlRssFetcherAdapter } from '../../src/adapters/rss/FastXmlRssFetcherAdapter'
-import { NodeCanvasWallpaperPainterAdapter } from '../../src/adapters/canvas/NodeCanvasWallpaperPainterAdapter'
+import { FastXmlRssFetcherAdapter } from '../../src/main/infrastructure/rss/FastXmlRssFetcherAdapter'
+import { NodeCanvasWallpaperPainterAdapter } from '../../src/main/infrastructure/canvas/NodeCanvasWallpaperPainterAdapter'
 
 describe('Pipeline Integration', () => {
   let server: Server

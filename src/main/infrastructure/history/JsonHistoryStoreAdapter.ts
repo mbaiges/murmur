@@ -1,7 +1,7 @@
 import { app } from 'electron'
 import { join } from 'path'
 import { readFileSync, writeFileSync, existsSync } from 'fs'
-import { IHistoryStore } from '../../core/ports/IHistoryStore'
+import { IHistoryStore } from '../../../core/ports/IHistoryStore'
 
 export class JsonHistoryStoreAdapter implements IHistoryStore {
   private filePath: string
