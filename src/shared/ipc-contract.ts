@@ -10,6 +10,9 @@ export const IpcChannel = {
   actionPreviewTheme: 'action:previewTheme',
   stateGet: 'state:get',
   stateUpdated: 'state:updated',
+  screensGet: 'screens:get',
+  e2eGenerationCountGet: 'e2e:generationCount',
+  e2eGenerationCountReset: 'e2e:generationCount:reset',
   shellOpenExternal: 'shell:open-external'
 } as const
 

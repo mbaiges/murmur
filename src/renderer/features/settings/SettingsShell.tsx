@@ -2,14 +2,15 @@ import React, { useEffect, useRef, useState } from 'react'
 import AppShell from '../../app/AppShell'
 import SetupWizard from './components/SetupWizard'
 import SettingsSidebar from './components/SettingsSidebar'
+import SettingsApplyBar from './components/SettingsApplyBar'
 import GeneralTab from './tabs/GeneralTab'
 import NewsSourcesTab from './tabs/NewsSourcesTab'
 import VoiceTab from './tabs/VoiceTab'
 import StyleTab from './tabs/StyleTab'
 import DisplaysTab from './tabs/DisplaysTab'
 import { useMurmurConfig, readSettingsUiState, writeSettingsUiState } from './hooks/useMurmurConfig'
-import { useSystemPromptDraft } from './hooks/useSystemPromptDraft'
-import { useMoodChange } from './hooks/useMoodChange'
+import { useSettingsDraft } from './hooks/useSettingsDraft'
+import { usePrimaryDisplaySize } from './hooks/usePrimaryDisplaySize'
 import { getWindowApi } from './hooks/getWindowApi'
 import type { DisplaysSection, SettingsTab, SettingsUiState } from './types'
 
@@ -20,14 +21,24 @@ function loadUiState(): SettingsUiState {
   return {
     activeTab: sessionStorage.getItem(WIZARD_FLAG) ? 'general' : (stored?.activeTab ?? 'general'),
     displaysSection: stored?.displaysSection ?? 'monitors',
-    scrollByTab: stored?.scrollByTab ?? {}
+    scrollByTab: stored?.scrollByTab ?? {},
   }
 }
 
 export default function SettingsShell() {
   const { config, state, setState, toast, showToast, saveConfig } = useMurmurConfig()
-  const promptDraft = useSystemPromptDraft(config, saveConfig)
-  const handleMoodChange = useMoodChange(saveConfig, promptDraft.syncDraftFromPrompt)
+  const {
+    draft,
+    isDirty,
+    isApplying,
+    patchDraft,
+    applyMoodToDraft,
+    applyDraft,
+    resetDraft,
+    handlePromptPresetChange
+  } = useSettingsDraft({ committed: config, showToast })
+
+  const displaySize = usePrimaryDisplaySize()
 
   const [uiState, setUiState] = useState(loadUiState)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -130,47 +141,69 @@ export default function SettingsShell() {
     return <SetupWizard toast={toast} onSubmit={handleWizardSubmit} />
   }
 
+  const draftConfig = draft ?? config
+  const showApplyBar = isDirty
+
+  const previewPhrase =
+    state?.lastPhrases &&
+    (Object.values(state.lastPhrases).find((p) => p && p.trim()) as string | undefined)
+
+  const previewLayoutEnvelope =
+    state?.lastContent &&
+    (Object.values(state.lastContent).find((e) => e?.payload) as
+      | import('@core/domain/types').LayoutContentEnvelope
+      | undefined)
+
   return (
-    <AppShell
-      toast={toast}
-      sidebar={
-        <SettingsSidebar
-          activeTab={uiState.activeTab}
-          onTabChange={handleTabChange}
-          onRefresh={handleRefresh}
-          isRefreshing={isRefreshing}
-          state={state}
-        />
-      }
-      mainScrollRef={scrollRef}
-      onMainScroll={handleMainScroll}
-    >
-      {uiState.activeTab === 'general' && <GeneralTab config={config} state={state} saveConfig={saveConfig} />}
-      {uiState.activeTab === 'news' && <NewsSourcesTab config={config} saveConfig={saveConfig} />}
-      {uiState.activeTab === 'voice' && (
-        <VoiceTab
-          config={config}
-          saveConfig={saveConfig}
-          draftPrompt={promptDraft.draftPrompt}
-          isPromptDirty={promptDraft.isPromptDirty}
-          isApplyingPrompt={promptDraft.isApplyingPrompt}
-          showCheckmark={promptDraft.showCheckmark}
-          onPromptChange={promptDraft.handlePromptChange}
-          onApplyPrompt={promptDraft.handleApplyPrompt}
-          onPresetChange={promptDraft.handlePresetChange}
-        />
+    <>
+      <AppShell
+        toast={toast}
+        sidebar={
+          <SettingsSidebar
+            activeTab={uiState.activeTab}
+            onTabChange={handleTabChange}
+            onRefresh={handleRefresh}
+            isRefreshing={isRefreshing}
+            state={state}
+            hasDraftPending={isDirty}
+          />
+        }
+        mainScrollRef={scrollRef}
+        onMainScroll={handleMainScroll}
+      >
+        {uiState.activeTab === 'general' && (
+          <GeneralTab config={config} state={state} saveConfig={saveConfig} />
+        )}
+        {uiState.activeTab === 'news' && <NewsSourcesTab config={config} saveConfig={saveConfig} />}
+        {uiState.activeTab === 'voice' && (
+          <VoiceTab config={draftConfig} patchDraft={patchDraft} onPresetChange={handlePromptPresetChange} />
+        )}
+        {uiState.activeTab === 'style' && (
+          <StyleTab
+            config={draftConfig}
+            patchDraft={patchDraft}
+            onMoodChange={applyMoodToDraft}
+            previewPhrase={previewPhrase ?? ''}
+            previewLayoutEnvelope={previewLayoutEnvelope ?? null}
+            displayWidth={displaySize.width}
+            displayHeight={displaySize.height}
+            scrollContainerRef={scrollRef}
+          />
+        )}
+        {uiState.activeTab === 'displays' && (
+          <DisplaysTab
+            config={config}
+            state={state}
+            saveConfig={saveConfig}
+            onPreviewTheme={handlePreviewTheme}
+            section={uiState.displaysSection}
+            onSectionChange={(s) => persistUi({ displaysSection: s })}
+          />
+        )}
+      </AppShell>
+      {showApplyBar && (
+        <SettingsApplyBar onApply={() => void applyDraft()} onReset={resetDraft} isApplying={isApplying} />
       )}
-      {uiState.activeTab === 'style' && <StyleTab config={config} saveConfig={saveConfig} onMoodChange={handleMoodChange} />}
-      {uiState.activeTab === 'displays' && (
-        <DisplaysTab
-          config={config}
-          state={state}
-          saveConfig={saveConfig}
-          onPreviewTheme={handlePreviewTheme}
-          section={uiState.displaysSection}
-          onSectionChange={(s) => persistUi({ displaysSection: s })}
-        />
-      )}
-    </AppShell>
+    </>
   )
 }

@@ -125,7 +125,7 @@ export default function MoodsTab({ config, onMoodChange }: MoodsTabProps) {
         config.noiseIntensity === 'heavy' &&
         config.enableBold === true &&
         config.enableItalic === true &&
-        config.enableDifferentFonts === true &&
+        config.enableDifferentFonts === false &&
         config.enableNewlines === true
       )
     }
@@ -141,7 +141,7 @@ export default function MoodsTab({ config, onMoodChange }: MoodsTabProps) {
         config.noiseIntensity === 'subtle' &&
         config.enableBold === true &&
         config.enableItalic === true &&
-        config.enableDifferentFonts === true &&
+        config.enableDifferentFonts === false &&
         config.enableNewlines === true
       )
     }
@@ -157,7 +157,7 @@ export default function MoodsTab({ config, onMoodChange }: MoodsTabProps) {
         config.noiseIntensity === 'subtle' &&
         config.enableBold === true &&
         config.enableItalic === true &&
-        config.enableDifferentFonts === true &&
+        config.enableDifferentFonts === false &&
         config.enableNewlines === true
       )
     }
@@ -173,7 +173,7 @@ export default function MoodsTab({ config, onMoodChange }: MoodsTabProps) {
         config.noiseIntensity === 'none' &&
         config.enableBold === true &&
         config.enableItalic === true &&
-        config.enableDifferentFonts === true &&
+        config.enableDifferentFonts === false &&
         config.enableNewlines === true
       )
     }

@@ -1,24 +1,12 @@
 import { MurmurConfig } from '../../domain/types'
+import { classifyConfigDelta } from './configDelta'
 
-/** Appearance choices that should produce a new AI phrase (not just re-render the old one). */
+/** @deprecated Prefer classifyConfigDelta; true when Apply should run Gemini refresh. */
 export function shouldRegeneratePhraseAfterAppearanceChange(
   prev: MurmurConfig,
   next: MurmurConfig
 ): boolean {
-  return (
-    prev.systemPrompt !== next.systemPrompt ||
-    prev.enableBold !== next.enableBold ||
-    prev.enableItalic !== next.enableItalic ||
-    prev.enableNewlines !== next.enableNewlines ||
-    prev.enableDifferentFonts !== next.enableDifferentFonts ||
-    prev.theme !== next.theme ||
-    prev.fontFamily !== next.fontFamily ||
-    prev.animation !== next.animation ||
-    prev.textAlignment !== next.textAlignment ||
-    prev.layoutStyle !== next.layoutStyle ||
-    prev.tonePreset !== next.tonePreset ||
-    prev.customToneText !== next.customToneText
-  )
+  return classifyConfigDelta(prev, next) === 'content'
 }
 
 /**
@@ -32,10 +20,9 @@ export function shouldRegeneratePhraseAfterConfigSave(
     process.env.MURMUR_E2E === 'true' &&
     process.env.MURMUR_E2E_REUSE_CAPTURED_PHRASE === 'true'
   ) {
-    return shouldRegeneratePhraseAfterAppearanceChange(
-      { ...prev, layoutStyle: next.layoutStyle },
-      next
+    return (
+      classifyConfigDelta({ ...prev, layoutStyle: next.layoutStyle }, next) === 'content'
     )
   }
-  return shouldRegeneratePhraseAfterAppearanceChange(prev, next)
+  return classifyConfigDelta(prev, next) === 'content'
 }

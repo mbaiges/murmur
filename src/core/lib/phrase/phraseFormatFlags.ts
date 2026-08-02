@@ -9,7 +9,7 @@ export const DEFAULT_PHRASE_FORMAT_FLAGS: PhraseFormatFlags = {
   enableBold: true,
   enableItalic: true,
   enableNewlines: true,
-  enableDifferentFonts: true
+  enableDifferentFonts: false
 }
 
 export function phraseFormatFlagsFromConfig(config: PhraseFormatFlags): PhraseFormatFlags {

@@ -35,7 +35,7 @@ export function applyAestheticMood(moodId: AestheticMoodId): Partial<MurmurConfi
         noiseIntensity: 'heavy',
         enableBold: true,
         enableItalic: true,
-        enableDifferentFonts: true,
+        enableDifferentFonts: false,
         enableNewlines: true
       }
     case 'Zen Study':
@@ -51,7 +51,7 @@ export function applyAestheticMood(moodId: AestheticMoodId): Partial<MurmurConfi
         noiseIntensity: 'subtle',
         enableBold: true,
         enableItalic: true,
-        enableDifferentFonts: true,
+        enableDifferentFonts: false,
         enableNewlines: true
       }
     case 'Gothic Novelist':
@@ -67,7 +67,7 @@ export function applyAestheticMood(moodId: AestheticMoodId): Partial<MurmurConfi
         noiseIntensity: 'subtle',
         enableBold: true,
         enableItalic: true,
-        enableDifferentFonts: true,
+        enableDifferentFonts: false,
         enableNewlines: true
       }
     case 'Clickbait Press':
@@ -83,7 +83,7 @@ export function applyAestheticMood(moodId: AestheticMoodId): Partial<MurmurConfi
         noiseIntensity: 'none',
         enableBold: true,
         enableItalic: true,
-        enableDifferentFonts: true,
+        enableDifferentFonts: false,
         enableNewlines: true
       }
   }

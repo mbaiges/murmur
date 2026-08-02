@@ -6,6 +6,8 @@ import type { MurmurService } from '@core/domain/MurmurService'
 import { IpcChannel } from '@shared/ipc'
 import { handleConfigSave, type ConfigSaveHandlerDeps } from './handlers/config-save'
 import { handleOpenExternal } from './handlers/open-external'
+import { getE2eGenerationCallCount, resetE2eGenerationCallCount } from '../e2e/e2eGenerationCounter'
+import { isMurmurE2eMode } from '../bootstrap/e2e-overrides'
 
 export type RegisterIpcDeps = ConfigSaveHandlerDeps & {
   historyStore: IHistoryStore
@@ -14,7 +16,7 @@ export type RegisterIpcDeps = ConfigSaveHandlerDeps & {
 }
 
 export function registerIpcHandlers(deps: RegisterIpcDeps): void {
-  const { configStore, historyStore, murmurService, getState } = deps
+  const { configStore, historyStore, murmurService, getState, wallpaperRenderer } = deps
 
   ipcMain.handle(IpcChannel.configGet, () => configStore.get())
   ipcMain.handle(IpcChannel.configSave, (_event, config) => handleConfigSave(deps, config))
@@ -29,5 +31,12 @@ export function registerIpcHandlers(deps: RegisterIpcDeps): void {
     murmurService.previewTheme(monitorId, theme)
   )
   ipcMain.handle(IpcChannel.stateGet, () => getState())
+  ipcMain.handle(IpcChannel.screensGet, () => wallpaperRenderer.getScreens())
+  if (isMurmurE2eMode()) {
+    ipcMain.handle(IpcChannel.e2eGenerationCountGet, () => getE2eGenerationCallCount())
+    ipcMain.handle(IpcChannel.e2eGenerationCountReset, () => {
+      resetE2eGenerationCallCount()
+    })
+  }
   ipcMain.handle(IpcChannel.shellOpenExternal, (_event, url: string) => handleOpenExternal(url))
 }

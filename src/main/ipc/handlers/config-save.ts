@@ -1,6 +1,7 @@
 import { screen } from 'electron'
 import type { MurmurConfig } from '@core/domain/types'
 import type { MurmurState } from '@core/domain/types'
+import { classifyConfigDelta } from '@core/lib/presets/configDelta'
 import { shouldRegeneratePhraseAfterConfigSave } from '@core/lib/presets/appearanceRegenerate'
 import type { IConfigStore } from '@core/ports/IConfigStore'
 import type { IStartupIntegration } from '@core/ports/IStartupIntegration'
@@ -84,14 +85,17 @@ export async function handleConfigSave(
 
   const state = getState()
   if (newConfig.geminiApiKey) {
-    const appearanceChanged = shouldRegeneratePhraseAfterConfigSave(prevConfig, newConfig)
+    const deltaKind = classifyConfigDelta(prevConfig, newConfig)
+    const needsRegeneration = shouldRegeneratePhraseAfterConfigSave(prevConfig, newConfig)
     const hasCachedPhrase = Object.values(state.lastPhrases || {}).some((p) => p && p.trim())
-    if (newConfig.animation === 'Instant' && hasCachedPhrase) {
-      await murmurService.updateClockWallpapers(state)
-    }
-    if (appearanceChanged) {
+
+    if (needsRegeneration) {
       await murmurService.refresh({ lastContent: state.lastContent, lastPhrases: state.lastPhrases })
-    } else if (newConfig.animation !== 'Instant') {
+    } else if (deltaKind === 'visual') {
+      await murmurService.reRenderWallpapers(state)
+    } else if (newConfig.animation === 'Instant' && hasCachedPhrase) {
+      await murmurService.updateClockWallpapers(state)
+    } else if (newConfig.animation !== 'Instant' && deltaKind !== 'none') {
       await murmurService.updateClockWallpapers(state)
     }
   }

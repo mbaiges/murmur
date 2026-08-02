@@ -5,7 +5,7 @@ import SettingsSelect from '../components/SettingsSelect'
 
 type AppearanceTabProps = {
   config: MurmurConfig
-  saveConfig: (partial: Partial<MurmurConfig>) => Promise<void>
+  patchDraft: (partial: Partial<MurmurConfig>) => void
   onMoodChange: (moodName: string) => void
   hideMoodPreset?: boolean
   hideFormatting?: boolean
@@ -14,7 +14,7 @@ type AppearanceTabProps = {
 
 export default function AppearanceTab({
   config,
-  saveConfig,
+  patchDraft,
   onMoodChange,
   hideMoodPreset = false,
   hideFormatting = false,
@@ -55,7 +55,7 @@ export default function AppearanceTab({
                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Default Theme</label>
                     <SettingsSelect
                       value={config.theme}
-                      onChange={(e) => saveConfig({ theme: e.target.value as ThemeName })}
+                      onChange={(e) => patchDraft({ theme: e.target.value as ThemeName })}
                     >
                       <option value="Midnight">Midnight (Dark Indigo Gradient)</option>
                       <option value="Drift">Drift (Ocean Wave Gradient)</option>
@@ -71,7 +71,7 @@ export default function AppearanceTab({
                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Typography Font</label>
                     <SettingsSelect
                       value={config.fontFamily}
-                      onChange={(e) => saveConfig({ fontFamily: e.target.value as any })}
+                      onChange={(e) => patchDraft({ fontFamily: e.target.value as any })}
                     >
                       <option value="EB Garamond">EB Garamond (Elegant Serif)</option>
                       <option value="Garamond Bold">Garamond Bold (Extra Heavy Editorial)</option>
@@ -88,7 +88,7 @@ export default function AppearanceTab({
                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Transition Animation</label>
                     <SettingsSelect
                       value={config.animation}
-                      onChange={(e) => saveConfig({ animation: e.target.value as any })}
+                      onChange={(e) => patchDraft({ animation: e.target.value as any })}
                     >
                       <option value="Fade">Fade In</option>
                       <option value="DriftIn">Drift & Fade</option>
@@ -108,7 +108,7 @@ export default function AppearanceTab({
                       disabled={config.animation !== 'Typewriter'}
                       className="rounded border-slate-800 text-indigo-600 focus:ring-indigo-500 h-4 w-4 bg-slate-950 disabled:opacity-50"
                       checked={config.audioFeedback}
-                      onChange={(e) => saveConfig({ audioFeedback: e.target.checked })}
+                      onChange={(e) => patchDraft({ audioFeedback: e.target.checked })}
                     />
                   </div>
                 </div>
@@ -119,7 +119,7 @@ export default function AppearanceTab({
                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Text Alignment</label>
                     <SettingsSelect
                       value={config.textAlignment}
-                      onChange={(e) => saveConfig({ textAlignment: e.target.value as any })}
+                      onChange={(e) => patchDraft({ textAlignment: e.target.value as any })}
                     >
                       <option value="center">Centered</option>
                       <option value="left">Left Aligned</option>
@@ -130,7 +130,7 @@ export default function AppearanceTab({
                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Layout Style</label>
                     <SettingsSelect
                       value={config.layoutStyle}
-                      onChange={(e) => saveConfig({ layoutStyle: e.target.value as any })}
+                      onChange={(e) => patchDraft({ layoutStyle: e.target.value as any })}
                     >
                       <optgroup label="Classic">
                         <option value="centered">Classic Centered</option>
@@ -179,7 +179,7 @@ export default function AppearanceTab({
                       type="checkbox"
                       className="rounded border-slate-800 text-indigo-600 focus:ring-indigo-500 h-4 w-4 bg-slate-950"
                       checked={config.enableBold}
-                      onChange={(e) => saveConfig({ enableBold: e.target.checked })}
+                      onChange={(e) => patchDraft({ enableBold: e.target.checked })}
                     />
                   </div>
 
@@ -192,7 +192,7 @@ export default function AppearanceTab({
                       type="checkbox"
                       className="rounded border-slate-800 text-indigo-600 focus:ring-indigo-500 h-4 w-4 bg-slate-950"
                       checked={config.enableItalic}
-                      onChange={(e) => saveConfig({ enableItalic: e.target.checked })}
+                      onChange={(e) => patchDraft({ enableItalic: e.target.checked })}
                     />
                   </div>
 
@@ -205,7 +205,7 @@ export default function AppearanceTab({
                       type="checkbox"
                       className="rounded border-slate-800 text-indigo-600 focus:ring-indigo-500 h-4 w-4 bg-slate-950"
                       checked={config.enableNewlines}
-                      onChange={(e) => saveConfig({ enableNewlines: e.target.checked })}
+                      onChange={(e) => patchDraft({ enableNewlines: e.target.checked })}
                     />
                   </div>
 
@@ -218,7 +218,7 @@ export default function AppearanceTab({
                       type="checkbox"
                       className="rounded border-slate-800 text-indigo-600 focus:ring-indigo-500 h-4 w-4 bg-slate-950"
                       checked={config.enableDifferentFonts}
-                      onChange={(e) => saveConfig({ enableDifferentFonts: e.target.checked })}
+                      onChange={(e) => patchDraft({ enableDifferentFonts: e.target.checked })}
                     />
                   </div>
                 </div>
@@ -230,7 +230,7 @@ export default function AppearanceTab({
                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Grain / Noise Intensity</label>
                     <SettingsSelect
                       value={config.noiseIntensity}
-                      onChange={(e) => saveConfig({ noiseIntensity: e.target.value as any })}
+                      onChange={(e) => patchDraft({ noiseIntensity: e.target.value as any })}
                     >
                       <option value="none">None (Clean Background)</option>
                       <option value="subtle">Subtle Grain (Atmospheric)</option>
@@ -241,7 +241,7 @@ export default function AppearanceTab({
                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Vignette Style</label>
                     <SettingsSelect
                       value={config.vignetteStyle}
-                      onChange={(e) => saveConfig({ vignetteStyle: e.target.value as any })}
+                      onChange={(e) => patchDraft({ vignetteStyle: e.target.value as any })}
                     >
                       <option value="none">None</option>
                       <option value="soft">Soft Vignette</option>
@@ -264,7 +264,7 @@ export default function AppearanceTab({
                       type="checkbox"
                       className="rounded border-slate-800 text-indigo-600 focus:ring-indigo-500 h-4 w-4 bg-slate-950"
                       checked={config.overlays.dateTime}
-                      onChange={(e) => saveConfig({
+                      onChange={(e) => patchDraft({
                         overlays: { ...config.overlays, dateTime: e.target.checked }
                       })}
                     />
@@ -279,7 +279,7 @@ export default function AppearanceTab({
                       type="checkbox"
                       className="rounded border-slate-800 text-indigo-600 focus:ring-indigo-500 h-4 w-4 bg-slate-950"
                       checked={config.overlays.sourceCredit}
-                      onChange={(e) => saveConfig({
+                      onChange={(e) => patchDraft({
                         overlays: { ...config.overlays, sourceCredit: e.target.checked }
                       })}
                     />
@@ -294,7 +294,7 @@ export default function AppearanceTab({
                       type="checkbox"
                       className="rounded border-slate-800 text-indigo-600 focus:ring-indigo-500 h-4 w-4 bg-slate-950"
                       checked={config.overlays.inspiringHeadlines}
-                      onChange={(e) => saveConfig({
+                      onChange={(e) => patchDraft({
                         overlays: { ...config.overlays, inspiringHeadlines: e.target.checked }
                       })}
                     />

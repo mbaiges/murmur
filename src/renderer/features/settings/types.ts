@@ -6,6 +6,7 @@ export type SettingsUiState = {
   activeTab: SettingsTab
   displaysSection: DisplaysSection
   scrollByTab: Partial<Record<SettingsTab, number>>
+  stylePreviewVisible?: boolean
 }
 
 export type ToastState = { message: string; type: 'success' | 'error' } | null

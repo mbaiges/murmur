@@ -8,6 +8,7 @@ type SettingsSidebarProps = {
   onRefresh: () => void
   isRefreshing: boolean
   state: MurmurState | null
+  hasDraftPending?: boolean
 }
 
 const TABS: { id: SettingsTab; label: string; icon: React.ReactNode }[] = [
@@ -64,7 +65,8 @@ export default function SettingsSidebar({
   onTabChange,
   onRefresh,
   isRefreshing,
-  state
+  state,
+  hasDraftPending = false
 }: SettingsSidebarProps) {
   const tabClass = (tab: SettingsTab) =>
     `w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
@@ -72,6 +74,9 @@ export default function SettingsSidebar({
         ? 'bg-indigo-950 text-indigo-400 border-l-2 border-indigo-500'
         : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
     }`
+
+  const showDraftDot = (tab: SettingsTab) =>
+    hasDraftPending && (tab === 'style' || tab === 'voice')
 
   return (
     <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between p-6">
@@ -88,7 +93,14 @@ export default function SettingsSidebar({
           {TABS.map(({ id, label, icon }) => (
             <button key={id} type="button" onClick={() => onTabChange(id)} className={tabClass(id)}>
               {icon}
-              <span>{label}</span>
+              <span className="flex-1 text-left">{label}</span>
+              {showDraftDot(id) && (
+                <span
+                  className="h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0"
+                  title="Unapplied Style or Voice draft"
+                  aria-hidden
+                />
+              )}
             </button>
           ))}
         </nav>

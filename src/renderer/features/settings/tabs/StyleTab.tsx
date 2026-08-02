@@ -1,30 +1,57 @@
 import React from 'react'
-import type { MurmurConfig } from '@core/domain/types'
+import type { LayoutContentEnvelope, MurmurConfig } from '@core/domain/types'
 import MoodGallery from '../components/MoodGallery'
-import AppearanceTab from './AppearanceTab'
+import StyleMiniPreview from '../components/StyleMiniPreview'
+import StyleBackgroundCard from '../components/StyleBackgroundCard'
+import StylePhraseCard from '../components/StylePhraseCard'
+import StyleWidgetsCard from '../components/StyleWidgetsCard'
 
 type StyleTabProps = {
   config: MurmurConfig
-  saveConfig: (partial: Partial<MurmurConfig>) => Promise<void>
+  patchDraft: (partial: Partial<MurmurConfig>) => void
   onMoodChange: (moodName: string) => void
+  previewPhrase: string
+  previewLayoutEnvelope?: LayoutContentEnvelope | null
+  displayWidth: number
+  displayHeight: number
+  scrollContainerRef?: React.RefObject<HTMLElement | null>
 }
 
-export default function StyleTab({ config, saveConfig, onMoodChange }: StyleTabProps) {
+export default function StyleTab({
+  config,
+  patchDraft,
+  onMoodChange,
+  previewPhrase,
+  previewLayoutEnvelope,
+  displayWidth,
+  displayHeight,
+  scrollContainerRef
+}: StyleTabProps) {
   return (
-    <div className="max-w-4xl space-y-8 pb-10">
+    <div className="max-w-4xl space-y-6 pb-16">
       <div>
         <h2 className="text-2xl font-bold tracking-tight text-white mb-2">Style</h2>
-        <p className="text-slate-400 text-sm">Pick a mood preset or customize wallpaper look, layout, and overlays.</p>
+        <p className="text-slate-400 text-sm">
+          Moods, then Background → Phrase → Widgets. Click Apply changes when ready (bottom-right).
+        </p>
       </div>
-      <MoodGallery config={config} onMoodChange={onMoodChange} />
-      <AppearanceTab
+
+      <StyleMiniPreview
         config={config}
-        saveConfig={saveConfig}
-        onMoodChange={onMoodChange}
-        hideMoodPreset
-        hideFormatting
-        showPageHeader={false}
+        phrase={previewPhrase}
+        displayWidth={displayWidth}
+        displayHeight={displayHeight}
+        committedLayoutEnvelope={previewLayoutEnvelope}
+        scrollContainerRef={scrollContainerRef}
       />
+
+      <MoodGallery config={config} onMoodChange={onMoodChange} />
+
+      <div className="space-y-6 max-w-2xl">
+        <StyleBackgroundCard config={config} patchDraft={patchDraft} />
+        <StylePhraseCard config={config} patchDraft={patchDraft} />
+        <StyleWidgetsCard config={config} patchDraft={patchDraft} />
+      </div>
     </div>
   )
 }

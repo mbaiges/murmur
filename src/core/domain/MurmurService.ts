@@ -195,6 +195,11 @@ export class MurmurService {
     }
   }
 
+  /** Re-render desktop from cached phrase/content without RSS or Gemini. */
+  public async reRenderWallpapers(state: MurmurState): Promise<void> {
+    return this.updateClockWallpapers(state)
+  }
+
   public async updateClockWallpapers(state: MurmurState): Promise<void> {
     try {
       const config = await this.configStore.get()
