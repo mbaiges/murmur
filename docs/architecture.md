@@ -1,146 +1,241 @@
-# Murmur — architecture & agent guide
+# Murmur — architecture & maintainer guide
 
-This document describes how the Murmur desktop app is structured, how features are extended, and how automated tests (especially E2E screenshots) are organized. Use it when changing wallpaper rendering, settings UI, or test harnesses.
+This document is the **source of truth** for how the Murmur desktop app is structured, how process boundaries work, and how to extend features safely. Product delivery specs live under `docs/features/<feature>/`.
 
 ## Product shape
 
-Murmur is an **Electron** tray app that:
+Murmur is a **single Electron app** (tray + settings window + per-monitor wallpaper surfaces):
 
-1. Fetches RSS headlines on a schedule  
-2. Calls **Gemini** with a configurable system prompt to produce a short phrase  
-3. Renders that phrase as a **desktop wallpaper** (live overlay window and/or painted PNG on the native desktop)
+1. On a schedule, fetch RSS headlines from configured feeds.
+2. Call **Gemini** with a configurable system prompt (and layout-specific structured JSON when using magazine layouts).
+3. Show the result on the desktop via a **live overlay** (`WallpaperView`) and/or **painted PNG** wallpapers on the native desktop.
 
-The **Settings** window is a React dashboard; each monitor can have a full-screen **WallpaperView** (`?view=wallpaper&monitorId=…`).
+**Settings** — React dashboard in the settings `BrowserWindow`. **Wallpaper** — same renderer bundle with `?view=wallpaper&monitorId=…`.
 
-## Layering (ports & adapters)
+There is **no bundled HTTP API** in v1; all IO is local (filesystem, RSS, Gemini, OS wallpaper APIs). A future cloud service would add new **ports** and **infrastructure** adapters, not a second runtime in this repo.
 
-The codebase follows a **hexagonal** style:
+## Repository layout
 
-| Layer | Location | Role |
-|--------|-----------|------|
-| **Domain** | `src/domain/` | `MurmurService`, config types, scheduling — no Electron/IO |
-| **Ports** | `src/ports/` | Interfaces (`IWallpaperRenderer`, `IConfigStore`, …) |
-| **Adapters** | `src/adapters/` | Platform and library implementations |
-| **Main** | `src/main/` | Electron lifecycle, IPC, window management, composition root |
-| **Renderer** | `src/renderer/` | React UI (`App.tsx`, `WallpaperView.tsx`, `MoodsTab.tsx`) |
-| **Preload** | `src/preload/` | `contextBridge` API exposed as `window.api` |
-| **Shared** | `src/shared/` | Pure helpers (prompt presets, phrase markup, layout split, appearance rules) |
+### Production (`src/`)
 
-**Composition root:** `src/main/index.ts` wires adapters into `MurmurService` and registers IPC handlers.
+```text
+src/
+├── core/
+│   ├── domain/          # MurmurService, Scheduler, types, config.schema, prompts
+│   ├── ports/           # IConfigStore, IWallpaperRenderer, IPhraseGenerator, …
+│   └── lib/
+│       ├── layout/      # layoutContentSpecs, parse, preview, Zod validation
+│       ├── phrase/      # plain text, markup flags, layout split
+│       ├── presets/     # promptPresets, appearanceRegenerate, clickbaitPreset
+│       └── generation/  # StructuredPhrasePromptBuilder, geminiFormattingRules
+├── main/
+│   ├── index.ts         # Lifecycle, tray, state; thin entry
+│   ├── configureAppBranding.ts
+│   ├── lib/             # resolveBrandIcon (Electron/fs — not in core)
+│   ├── bootstrap/       # composition-root, e2e-overrides
+│   ├── ipc/             # register-ipc, handlers (e.g. config-save orchestration)
+│   ├── windows/         # settings + background wallpaper windows
+│   ├── infrastructure/  # Adapters (config, RSS, Gemini, canvas, wallpaper, tray, startup)
+│   └── e2e/             # MURMUR_E2E-only stubs (e.g. structured phrase stub)
+├── shared/
+│   └── ipc-contract.ts  # IpcChannel constants only
+├── preload/
+│   └── index.ts         # contextBridge → window.api
+└── renderer/
+    ├── main.tsx, index.html, index.css, public/
+    ├── types/window-api.d.ts
+    ├── app/AppShell.tsx
+    └── features/
+        ├── settings/    # SettingsShell, tabs/, hooks/, components/
+        ├── moods/       # MoodsTab
+        └── wallpaper/   # WallpaperView
+```
 
-### Wallpaper rendering (two paths)
+### Tests (mirror `src/`)
 
-1. **Live overlay** — `BrowserWindow` with `type: 'desktop'` (macOS) or WorkerW injection (Windows). Renders `WallpaperView.tsx` with CSS animations.  
-2. **Static paint** — `NodeCanvasWallpaperPainterAdapter` draws PNGs; `MacDesktopWallpaperAdapter` / `WinDesktopWallpaperAdapter` sets the OS wallpaper.
+```text
+tests/
+├── unit/
+│   ├── core/domain/
+│   ├── core/lib/
+│   └── main/infrastructure/{canvas,config,history,startup,wallpaper}/
+├── integration/core/
+└── e2e/                 # Playwright + helpers; unchanged role
+```
 
-When `animation === 'Instant'` on **Windows**, overlay windows are destroyed and only static paint is used. On **macOS**, the overlay is kept so the phrase stays visible.
+**Rule:** `tests/unit/.../Foo.test.ts` corresponds to `src/.../Foo.ts` (or the adapter under the same folder name).
 
-### Config & state
+### Root assets
 
-- User config: `app.getPath('userData')/murmur.config.json` via `JsonConfigStoreAdapter`  
-- Phrase history: `murmur.history.json`  
-- IPC: `config:get` / `config:save`, `state:updated`, `action:refresh`, etc.
+| Path | Role |
+|------|------|
+| `resources/` | Packaged fonts, app icons, `bin/WallpaperHelper.exe` (Windows) |
+| `scripts/` | Dev launcher (`run-dev.mjs`), tooling |
+| `renderer/public/logo.png` | Settings UI logo in dev/build (not the same as tray icons in `resources/`) |
 
-Shared registries (keep UI and migrations in sync):
+## Process model & import rules
 
-- `src/shared/promptPresets.ts` — mood-linked vs standalone AI prompts  
-- `src/shared/clickbaitPreset.ts` — Clickbait Press detection + config migration  
-- `src/shared/appearanceRegenerate.ts` — when a config change should trigger `refresh()` vs re-render only  
+| Process | May import | Must not import |
+|---------|------------|-----------------|
+| **Main** | `@core/*`, `@main`, `@shared/ipc`, infrastructure | — |
+| **Preload** | `@core/domain`, `@core/lib` (pure), `@shared/ipc` | `@core/ports`, `@main/**`, infrastructure |
+| **Renderer** | `@core/domain`, `@core/lib`, `@shared/ipc`, feature UI | `@core/ports`, `@main/**`, infrastructure |
+
+**Enforcement:** `npm run lint` — ESLint `no-restricted-imports` on `src/renderer/**` and `src/preload/**` (see `eslint.config.mjs`).
+
+### Path aliases
+
+Configured in `electron.vite.config.mts`, `tsconfig.json`, and `vitest.config.ts`:
+
+| Alias | Target | Main | Preload | Renderer |
+|-------|--------|------|---------|----------|
+| `@core/domain` | `src/core/domain` | yes | yes | yes |
+| `@core/lib` | `src/core/lib` | yes | yes | yes |
+| `@core/ports` | `src/core/ports` | yes | no | no |
+| `@main` | `src/main` | yes | no | no |
+| `@shared/ipc` | `src/shared/ipc-contract.ts` | yes | yes | yes |
+
+Renderer and preload bundles must **not** expose aliases that resolve infrastructure into the client bundle.
+
+## Call flows
+
+### Happy path: refresh
+
+```mermaid
+flowchart LR
+  R[renderer features]
+  P[preload window.api]
+  IPC[main/ipc]
+  MS[MurmurService]
+  PT[core/ports]
+  INF[main/infrastructure]
+
+  R --> P
+  P -->|invoke| IPC
+  IPC --> MS
+  MS --> PT
+  INF -.implements.-> PT
+```
+
+### `config:save` (orchestrated in main)
+
+Saving settings is **not** a single service call. `main/ipc/handlers/config-save.ts` persists config, toggles **launch-at-login**, starts/stops the **scheduler**, manages **background wallpaper windows** when animation mode changes, runs **appearance regenerate** vs re-render-only paths, and broadcasts **`config:updated`** / related state to settings and wallpaper windows.
+
+Channel names are defined once in `src/shared/ipc-contract.ts`; preload mirrors them when exposing `window.api`.
+
+## Wallpaper rendering & backup
+
+### Two display paths
+
+1. **Live overlay** — transparent `BrowserWindow` (`type: 'desktop'` on macOS; WorkerW injection on Windows). Renders `WallpaperView` with CSS animations.
+2. **Static paint** — `NodeCanvasWallpaperPainterAdapter` → PNG; `MacDesktopWallpaperAdapter` / `WinDesktopWallpaperAdapter` set OS wallpaper.
+
+When `animation === 'Instant'` on **Windows**, overlay windows are torn down and only static paint is used. On **macOS**, the overlay is kept so phrases remain visible reliably.
+
+### Backup / restore
+
+| Piece | Role |
+|-------|------|
+| **`IWallpaperRenderer`** | Port: `backup()`, `restore()`, `set()`, `getScreens()` |
+| **Mac/Win desktop adapters** | Implement backup under `userData` (JSON + copied files / helper exe on Windows) |
+| **`main/index.ts` lifecycle** | `backup()` after ready; `restore()` on real quit (skips dev hot-reload unless user requested quit) |
+
+Do not use a separate wallpaper-backup port; backup is part of **`IWallpaperRenderer`**.
+
+## Composition
+
+- **`buildAppContext()`** in `main/bootstrap/composition-root.ts` — wires real adapters and `MurmurService`.
+- **`bootstrap/e2e-overrides.ts`** — when `MURMUR_E2E`, substitutes RSS/phrase/wallpaper behavior for Playwright.
+- **IPC** — `registerIpcHandlers()` in `main/ipc/register-ipc.ts`.
+- **Windows** — `main/windows/settings-window.ts`, `background-windows.ts`.
+
+Domain logic stays in **`core/`**; Electron and Node IO stay in **`main/infrastructure/`**.
 
 ## Renderer conventions
 
-- **Settings chrome:** custom title bar on macOS (`titleBarStyle: 'hidden'`, extra left padding for traffic lights).  
-- **Moods:** `MoodsTab.tsx` + `handleMoodChange` in `App.tsx` apply coordinated prompt, theme, font, layout, animation.  
-- **Layouts:** `layoutStyle` on config; implemented in **both** `WallpaperView.tsx` (CSS) and `NodeCanvasWallpaperPainterAdapter.ts` (canvas). New layouts need `data-testid` on root nodes for E2E.  
-- **Phrase markup:** Gemini may return `**bold**`, `*italic*`, `[font:…]`; parsed in renderer and canvas via `phraseFormatFlags` / `phrasePlainText`.
+- **Routing:** `App.tsx` → `?view=wallpaper` → `features/wallpaper/WallpaperView`; else `features/settings/SettingsShell`.
+- **Settings chrome:** `app/AppShell.tsx` (title bar, sidebar slot, main). macOS uses hidden title bar + traffic-light padding.
+- **Moods:** `features/moods/MoodsTab.tsx` + `useMoodChange` hook (coordinated prompt, theme, font, layout, animation).
+- **Layouts:** `layoutStyle` on config; implement in **both** `WallpaperView` (CSS) and `NodeCanvasWallpaperPainterAdapter` (canvas). New layouts need stable **`data-testid`** on layout roots for E2E.
+- **Phrase markup:** `**bold**`, `*italic*`, `[font:…]` — shared parsing in `@core/lib/phrase/*`.
 
-## Testing strategy
+Typed **`window.api`:** `src/renderer/types/window-api.d.ts`.
 
-| Tier | Command | Location |
-|------|---------|----------|
-| Unit | `npm run test:unit` | `tests/unit/` — pure logic, canvas smoke |
-| Integration | `npm run test:integration` | `tests/integration/` — pipeline with mocks |
-| E2E | `npm run test:e2e` | `tests/e2e/` — Playwright + `_electron` |
+## Data on disk
+
+| File | Adapter |
+|------|---------|
+| `userData/murmur.config.json` | `JsonConfigStoreAdapter` |
+| `userData/murmur.history.json` | `JsonHistoryStoreAdapter` |
+
+Config migrations (e.g. Clickbait Press) run in the config adapter on read with optional write-back.
+
+## Testing
+
+| Tier | Command | Notes |
+|------|---------|--------|
+| Lint | `npm run lint` | Process boundaries on renderer/preload |
+| Unit | `npm run test:unit` | Mirrored under `tests/unit/` |
+| Integration | `npm run test:integration` | `tests/integration/core/pipeline.test.ts` |
+| E2E | `env -u ELECTRON_RUN_AS_NODE npm run test:e2e` | Build first; uses `_electron` |
+
+**In-loop smoke (restructure):** `npm run test:e2e:repo-restructure` → `tests/e2e/murmur.spec.ts`.
 
 ### E2E stub mode
 
-When `MURMUR_E2E=true` (set in Playwright launch env), `src/main/index.ts` substitutes:
+With `MURMUR_E2E=true`, main uses **`e2e-overrides`** (stub RSS, phrase generation, wallpaper IO). Structured layout demos use **`main/e2e/e2eStructuredPhraseStub.ts`**.
 
-- Stub RSS, stub phrase (`"stubbed surreal phrase"`), no-op or fake wallpaper IO  
+**Exception:** specs that intentionally run live Gemini (e.g. captured-phrase fixture flows) omit stub env; some are CI/platform gated.
 
-This avoids real API keys and OS wallpaper changes during CI/local E2E.
+### Screenshot artifacts
 
-**Exception:** `clickbait-live.spec.ts` omits `MURMUR_E2E` and uses the real user config; it is skipped on `CI` and non-macOS.
-
-### E2E screenshot artifacts (required pattern)
-
-All ** intentional** E2E screenshots (not Playwright failure dumps) must be written under:
+Intentional captures belong under:
 
 ```text
 tests/e2e/artifacts/screenshots/{test-case-slug}/{filename}.png
 ```
 
-- **`tests/e2e/artifacts/`** is **gitignored** (see root `.gitignore`).  
-- Use the helper **`e2eScreenshotPath(testCaseSlug, filename)`** from `tests/e2e/helpers/screenshotPaths.ts` — it creates the directory.  
-- **`test-case-slug`:** kebab-case, stable name matching the test scenario (e.g. `magazine-layouts-split-spread`, `settings-dashboard`, `presets-aesthetic-moods`).  
-- Log the full path with `console.log('Screenshot:', path)` so CI logs and agents can find files.
-
-**Validation:** For layout/visual tests, use `validateScreenshotImage()` from `tests/e2e/helpers/validateScreenshot.ts` (file size + luminance spread via `sharp`) plus DOM assertions (`data-testid`, computed styles, text content).
-
-**Playwright failure artifacts** (`test-results/`, `playwright-report/`) are also gitignored; do not move those into `artifacts/screenshots`.
-
-### Live captured phrase (layout gallery, one Gemini call)
-
-For realistic layout screenshots without burning quota on every layout change:
-
-1. `magazine-layouts-live-phrase.spec.ts` calls `ensureCapturedPhraseFixture()` — if `tests/e2e/fixtures/captured-phrase.json` is missing (or `MURMUR_RECAPTURE_PHRASE=1`), Playwright launches the **real** app once and runs **Refresh Now** (uses your `userData` config, RSS feeds, and Gemini key).
-2. The phrase is saved to the fixture file (gitignored).
-3. Tests relaunch with `MURMUR_E2E=true`, `MURMUR_E2E_REUSE_CAPTURED_PHRASE=true`, and a stub generator that returns the fixture text.
-4. `shouldRegeneratePhraseAfterConfigSave()` in `appearanceRegenerate.ts` treats **layout-only** changes as re-render, not a new `refresh()`.
-
-Main process loads the fixture in `loadE2eFixturePhrase()` when `MURMUR_E2E_FIXTURE_PHRASE_PATH` is set **and** `MURMUR_E2E_REUSE_CAPTURED_PHRASE=true` (default E2E uses built-in structured stubs only).
-
-### E2E helpers
-
-| File | Purpose |
-|------|---------|
-| `helpers/screenshotPaths.ts` | Canonical artifact paths |
-| `helpers/validateScreenshot.ts` | PNG non-empty / contrast checks |
-| `helpers/electronSettingsPage.ts` | Find settings vs wallpaper windows |
-
-### Typical E2E flow
-
-1. Launch Electron with `MURMUR_E2E: 'true'`.  
-2. Complete wizard if needed (`test-api-key`).  
-3. Drive UI via sidebar tabs; Appearance `select` indices are order-sensitive (document in test comments).  
-4. Assert on wallpaper window URL containing `view=wallpaper`.  
-5. Screenshot via `e2eScreenshotPath` + optional `validateScreenshotImage`.
+Use `e2eScreenshotPath()` from `tests/e2e/helpers/screenshotPaths.ts`. The `artifacts/` tree is gitignored.
 
 ## Build & dev
 
-- **Dev:** `npm run dev` → `scripts/run-dev.mjs` (macOS Dock name, unset `ELECTRON_RUN_AS_NODE` in Cursor).  
-- **Build:** `npm run build` → `out/main`, `out/preload`, `out/renderer`.  
-- **E2E:** `env -u ELECTRON_RUN_AS_NODE npm run test:e2e` after build.
+- **Dev:** `npm run dev` → `scripts/run-dev.mjs` (unset `ELECTRON_RUN_AS_NODE` in embedded terminals when needed).
+- **Build:** `npm run build` → `out/main`, `out/preload`, `out/renderer`.
+- **Dist:** `npm run dist` / electron-builder (installers under `dist/`).
 
-## Extending the app (checklist)
+## Adding a feature (checklist)
 
-1. **New AI prompt preset** — constant in `src/domain/types.ts`, entry in `src/shared/promptPresets.ts`, optgroup in `App.tsx` if mood-linked.  
-2. **New mood** — `MoodsTab.tsx`, `handleMoodChange`, `isMoodActive` checks, optional e2e in `presets.spec.ts`.  
-3. **New layout** — extend `LayoutStyleName` + Zod schema, `WallpaperView` + canvas painter, Appearance `<select>`, E2E with `data-testid` + screenshot under `magazine-layouts-*` or similar.  
-4. **Config migration** — `JsonConfigStoreAdapter.get()` with dirty write-back (see Clickbait Instant → Fade).
+1. **Domain / ports** — types and interface in `core/` if new behavior crosses IO.
+2. **Infrastructure** — adapter under `main/infrastructure/<area>/`.
+3. **Bootstrap** — register adapter in `composition-root.ts` (and E2E overrides if test-visible).
+4. **IPC** — add channel to `shared/ipc-contract.ts`; handler in `main/ipc/`; expose on preload `window.api`.
+5. **Renderer** — new or extended feature under `renderer/features/`.
+6. **Wallpaper parity** — if user-visible on desktop, update **both** `WallpaperView` and canvas painter.
+7. **Tests** — unit beside mirrored path; E2E if UI/layout; screenshots per convention above.
+
+### Common edits
+
+| Change | Touch |
+|--------|--------|
+| New prompt preset | `core/domain/prompts.ts`, `core/lib/presets/promptPresets.ts`, Feeds tab preset select |
+| New mood | `MoodsTab`, `useMoodChange`, `moodPresetLabel.ts`, Appearance mood select |
+| New layout | `LayoutStyleName`, layout spec + Zod, `WallpaperView`, canvas painter, Appearance select, E2E `data-testid` |
 
 ## Structured phrase content
 
-Layout-aware generation lives in `src/shared/layoutContentSpecs.ts` (registry), `layoutSpecToZod.ts`, `StructuredPhrasePromptBuilder.ts`, and `MurmurService` calls `IPhraseGenerator.generateStructured`. State carries `lastContent` per monitor; history stores JSON strings (legacy plain strings still parse on read). E2E stubs use `buildE2eStructuredResult` in `src/shared/e2eStructuredPhraseStub.ts`.
+Layout-aware generation: registry in `core/lib/layout/layoutContentSpecs.ts`, validation in `layoutSpecToZod.ts`, prompts in `StructuredPhrasePromptBuilder.ts`. `MurmurService` uses `IPhraseGenerator.generateStructured`. State holds `lastContent` per monitor; history stores JSON envelopes (legacy plain strings still parse).
 
-Product/engineering specs: [docs/features/structured-phrase-generation/](features/structured-phrase-generation/).
+Product specs: [features/structured-phrase-generation/](features/structured-phrase-generation/).
+
+Restructure delivery specs: [features/repo-restructure/](features/repo-restructure/).
 
 ## Related docs
 
 | Doc | Purpose |
 |-----|---------|
-| [agent-skills-setup.md](agent-skills-setup.md) | Local [open-agent-skills](https://github.com/mbaiges/open-agent-skills) clone under `.agentic/` |
-| [rfc-structured-phrase-generation.md](rfc-structured-phrase-generation.md) | Layout-scoped JSON generation (superseded by feature specs for delivery) |
-| [features/structured-phrase-generation/functional-spec.md](features/structured-phrase-generation/functional-spec.md) | Locked product AC |
+| [agent-skills-setup.md](agent-skills-setup.md) | Local open-agent-skills under `.agentic/` |
+| [features/repo-restructure/](features/repo-restructure/) | Locked layout / AC for this restructure |
+| [features/structured-phrase-generation/](features/structured-phrase-generation/) | Structured JSON phrase AC |
+| [docs/scaffolding/](scaffolding/) | **Superseded** early drafts — see notices in those files |
 
-When in doubt, prefer **small diffs**, **match existing adapter/UI patterns**, and **pair renderer + canvas** for anything visible on the wallpaper.
+Prefer **small diffs**, existing adapter patterns, and **renderer + canvas parity** for anything visible on the wallpaper.

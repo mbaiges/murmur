@@ -1,5 +1,7 @@
 # Murmur — Functional Specification
 
+> **Superseded:** This draft is retained for history only. For current product behavior and locked acceptance criteria, use feature specs under [`docs/features/`](../features/) (e.g. [structured-phrase-generation](../features/structured-phrase-generation/functional-spec.md), [repo-restructure](../features/repo-restructure/functional-spec.md)). Maintainer layout: [architecture.md](../architecture.md).
+
 > **Version:** 0.3 (Draft)
 > **Status:** Awaiting User Approval
 > **Date:** 2026-07-17

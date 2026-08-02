@@ -1,5 +1,7 @@
 # Murmur — Technical Specification
 
+> **Superseded:** This draft is retained for history only. For engineering design and implementation phases, use [`docs/features/`](../features/) technical specs and [architecture.md](../architecture.md).
+
 > **Version:** 0.2 (Draft)
 > **Status:** Awaiting User Approval
 > **Date:** 2026-07-17
