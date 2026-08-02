@@ -1,0 +1,15 @@
+/** IPC channel names shared by main and preload (process-safe; no Node/Electron). */
+
+export const IpcChannel = {
+  configGet: 'config:get',
+  configSave: 'config:save',
+  configUpdated: 'config:updated',
+  historyGet: 'history:get',
+  historyClear: 'history:clear',
+  actionRefresh: 'action:refresh',
+  actionPreviewTheme: 'action:previewTheme',
+  stateGet: 'state:get',
+  stateUpdated: 'state:updated'
+} as const
+
+export type IpcChannelName = (typeof IpcChannel)[keyof typeof IpcChannel]

@@ -19,6 +19,7 @@ import { Scheduler } from '../domain/Scheduler'
 import { MurmurState } from '../domain/types'
 import { IRssFetcher } from '../ports/IRssFetcher'
 import { IStartupIntegration } from '../ports/IStartupIntegration'
+import { IpcChannel } from '../shared/ipc-contract'
 
 configureAppBranding()
 
@@ -287,8 +288,8 @@ function createBackgroundWindow(screenInfo: { id: string; width: number; height:
 }
 
 function setupIpc() {
-  ipcMain.handle('config:get', () => configStore.get())
-  ipcMain.handle('config:save', async (_event, config) => {
+  ipcMain.handle(IpcChannel.configGet, () => configStore.get())
+  ipcMain.handle(IpcChannel.configSave, async (_event, config) => {
     const prevConfig = await configStore.get()
     await configStore.set(config)
     const newConfig = await configStore.get()
@@ -338,10 +339,10 @@ function setupIpc() {
     // Broadcast live config updates to all background windows
     bgWindows.forEach((win) => {
       if (!win.isDestroyed()) {
-        win.webContents.send('config:updated', newConfig)
+        win.webContents.send(IpcChannel.configUpdated, newConfig)
       }
     })
-    settingsWindow?.webContents.send('config:updated', newConfig)
+    settingsWindow?.webContents.send(IpcChannel.configUpdated, newConfig)
 
     if (newConfig.geminiApiKey) {
       const appearanceChanged = shouldRegeneratePhraseAfterConfigSave(prevConfig, newConfig)
@@ -357,15 +358,15 @@ function setupIpc() {
     }
   })
 
-  ipcMain.handle('history:get', (_event, monitorId) => historyStore.get(monitorId))
-  ipcMain.handle('history:clear', (_event, monitorId) => historyStore.clear(monitorId))
-  ipcMain.handle('action:refresh', () =>
+  ipcMain.handle(IpcChannel.historyGet, (_event, monitorId) => historyStore.get(monitorId))
+  ipcMain.handle(IpcChannel.historyClear, (_event, monitorId) => historyStore.clear(monitorId))
+  ipcMain.handle(IpcChannel.actionRefresh, () =>
     murmurService.refresh({ lastContent: state.lastContent, lastPhrases: state.lastPhrases })
   )
-  ipcMain.handle('action:previewTheme', (_event, monitorId, theme) =>
+  ipcMain.handle(IpcChannel.actionPreviewTheme, (_event, monitorId, theme) =>
     murmurService.previewTheme(monitorId, theme)
   )
-  ipcMain.handle('state:get', () => state)
+  ipcMain.handle(IpcChannel.stateGet, () => state)
 }
 
 function startClockScheduler() {
@@ -417,10 +418,10 @@ app.whenReady().then(async () => {
   trayAdapter.updateState = (newState: MurmurState) => {
     state = { ...state, ...newState }
     customTrayAdapterUpdate(state)
-    settingsWindow?.webContents.send('state:updated', state)
+    settingsWindow?.webContents.send(IpcChannel.stateUpdated, state)
     bgWindows.forEach((win) => {
       if (!win.isDestroyed()) {
-        win.webContents.send('state:updated', state)
+        win.webContents.send(IpcChannel.stateUpdated, state)
       }
     })
   }
