@@ -68,7 +68,7 @@ test.describe.serial('Clickbait Press diagnostics', () => {
     await page.screenshot({ path: settingsShot })
     console.log('Screenshot:', settingsShot)
 
-    await page.locator('button:has-text("Displays")').click()
+    await page.locator('button:has-text("History")').click()
     await page.waitForTimeout(500)
     const monitorsText = await page.locator('main').innerText()
     expect(monitorsText.toLowerCase()).toContain('stubbed')

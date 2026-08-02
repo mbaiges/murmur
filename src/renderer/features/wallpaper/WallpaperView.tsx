@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { MurmurConfig, MurmurState } from '@core/domain/types'
+import { MurmurConfig, MurmurState, MonitorProfile } from '@core/domain/types'
+import { getMonitorProfile } from '@core/lib/config/monitorProfiles'
 import { splitPhraseLines } from '@core/lib/phrase/phraseFormatFlags'
 import { splitFlatCharsAtWordMidpoint, splitPlainPhraseHeadlineDeck } from '@core/lib/phrase/phraseLayoutSplit'
 import { phraseToPlainText } from '@core/lib/phrase/phrasePlainText'
@@ -43,7 +44,7 @@ interface StyledRun {
 function compileToStyledChars(
   text: string,
   defaultFontClass: string,
-  config: MurmurConfig,
+  config: MonitorProfile,
   isBold = false,
   isItalic = false,
   isCode = false,
@@ -360,29 +361,29 @@ export default function WallpaperView() {
 
   // 5. Compile phrase and drive Typewriter reveals
   useEffect(() => {
-    if (!config || !activePhrase) return
+    if (!config || !activePhrase || !monitorId) return
+    const profile = getMonitorProfile(config, monitorId)
 
-    // Font class mapping
     let defaultFontClass = 'font-serif'
-    if (config.fontFamily === 'EB Garamond') defaultFontClass = 'font-eb-garamond'
-    else if (config.fontFamily === 'Playfair Display') defaultFontClass = 'font-playfair'
-    else if (config.fontFamily === 'Outfit') defaultFontClass = 'font-outfit'
-    else if (config.fontFamily === 'Garamond Bold') defaultFontClass = 'font-garamond-bold'
-    else if (config.fontFamily === 'Monospace') defaultFontClass = 'font-monospace'
+    if (profile.fontFamily === 'EB Garamond') defaultFontClass = 'font-eb-garamond'
+    else if (profile.fontFamily === 'Playfair Display') defaultFontClass = 'font-playfair'
+    else if (profile.fontFamily === 'Outfit') defaultFontClass = 'font-outfit'
+    else if (profile.fontFamily === 'Garamond Bold') defaultFontClass = 'font-garamond-bold'
+    else if (profile.fontFamily === 'Monospace') defaultFontClass = 'font-monospace'
 
-    const lines = splitPhraseLines(activePhrase, config.enableNewlines)
-    const compiled = lines.map(line => compileToStyledChars(line, defaultFontClass, config))
+    const lines = splitPhraseLines(activePhrase, profile.enableNewlines)
+    const compiled = lines.map((line) => compileToStyledChars(line, defaultFontClass, profile))
     
     setPhraseLines(compiled)
 
     const total = compiled.reduce((acc, l) => acc + l.length, 0)
 
-    if (config.animation === 'Typewriter') {
+    if (profile.animation === 'Typewriter') {
       setVisibleCount(0)
       let count = 0
-      
+
       const playBlipSound = () => {
-        if (!config.audioFeedback) return
+        if (!profile.audioFeedback) return
         playTypewriterBlip(0.04)
       }
 
@@ -405,16 +406,7 @@ export default function WallpaperView() {
     } else {
       setVisibleCount(total)
     }
-  }, [
-    activePhrase,
-    config?.fontFamily,
-    config?.animation,
-    config?.audioFeedback,
-    config?.enableBold,
-    config?.enableItalic,
-    config?.enableNewlines,
-    config?.enableDifferentFonts
-  ])
+  }, [activePhrase, config, monitorId])
 
   if (!config || !state) {
     return <div className="w-full h-full bg-slate-950" />
@@ -427,13 +419,14 @@ export default function WallpaperView() {
     return <div className="w-full h-full bg-slate-950" />
   }
 
-  const theme = monitorConf?.themeOverride || config.theme
+  const profile = getMonitorProfile(config, monitorId)
+  const theme = profile.theme
   const layoutEnvelope = state.lastContent?.[monitorId]
   const structuredMagazine =
     layoutEnvelope &&
-    layoutEnvelope.layoutStyle === config.layoutStyle &&
+    layoutEnvelope.layoutStyle === profile.layoutStyle &&
     ['tabloid-stack', 'split-spread', 'pull-quote', 'feature-opener', 'sidebar-rail', 'byline-lede'].includes(
-      config.layoutStyle
+      profile.layoutStyle
     )
 
   const isDark = ['Midnight', 'Drift', 'Static', 'Forest', 'Crimson', 'Cyberpunk', 'WarmGlow'].includes(theme)

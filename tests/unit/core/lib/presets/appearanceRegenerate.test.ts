@@ -1,50 +1,49 @@
 import { describe, expect, it } from 'vitest'
 import { shouldRegeneratePhraseAfterAppearanceChange } from '../../../../../src/core/lib/presets/appearanceRegenerate'
-import type { MurmurConfig } from '../../../../../src/core/domain/types'
+import { createMonitorConfig } from '../../../../../src/core/lib/config/monitorProfiles'
+import { getDefaultMonitorProfile } from '../../../../../src/core/lib/config/defaultMonitorProfile'
+import type { MonitorProfile, MurmurConfig } from '../../../../../src/core/domain/types'
 
-const base = (): MurmurConfig =>
-  ({
+function configWithProfile(profile: MonitorProfile): MurmurConfig {
+  return {
+    configVersion: 2,
     geminiApiKey: 'k',
-    feeds: ['https://example.com/rss'],
     refreshIntervalMinutes: 60,
-    language: 'auto',
-    theme: 'Midnight',
-    animation: 'Fade',
-    overlays: { dateTime: true, sourceCredit: false, inspiringHeadlines: false },
-    headlineSampleSize: 15,
     launchAtLogin: false,
-    fontFamily: 'EB Garamond',
-    monitors: [],
-    textAlignment: 'center',
-    layoutStyle: 'centered',
-    vignetteStyle: 'none',
-    audioFeedback: true,
-    systemPrompt: 'prompt',
-    enableBold: true,
-    enableItalic: true,
-    enableNewlines: true,
-    enableDifferentFonts: true,
-    noiseIntensity: 'none',
-    tonePreset: 'none',
-    customToneText: ''
-  }) as MurmurConfig
+    monitors: [createMonitorConfig('m1', profile)]
+  }
+}
+
+function withProfilePatch(base: MurmurConfig, patch: Partial<MonitorProfile>): MurmurConfig {
+  return {
+    ...base,
+    monitors: base.monitors.map((m) => ({
+      ...m,
+      profile: { ...m.profile, ...patch }
+    }))
+  }
+}
+
+const base = () => configWithProfile(getDefaultMonitorProfile())
 
 describe('shouldRegeneratePhraseAfterAppearanceChange tone', () => {
   it('does not regenerate for theme-only change', () => {
     const prev = base()
-    const next = { ...prev, theme: 'Drift' as const }
+    const next = withProfilePatch(prev, { theme: 'Drift' })
     expect(shouldRegeneratePhraseAfterAppearanceChange(prev, next)).toBe(false)
   })
 
   it('regenerates when tonePreset changes', () => {
     const prev = base()
-    const next = { ...prev, tonePreset: 'neutral' as const }
+    const next = withProfilePatch(prev, { tonePreset: 'neutral' })
     expect(shouldRegeneratePhraseAfterAppearanceChange(prev, next)).toBe(true)
   })
 
   it('regenerates when customToneText changes', () => {
-    const prev = { ...base(), tonePreset: 'custom' as const, customToneText: 'a' }
-    const next = { ...prev, customToneText: 'b' }
+    const prev = configWithProfile(
+      getDefaultMonitorProfile({ tonePreset: 'custom', customToneText: 'a' })
+    )
+    const next = withProfilePatch(prev, { customToneText: 'b' })
     expect(shouldRegeneratePhraseAfterAppearanceChange(prev, next)).toBe(true)
   })
 })

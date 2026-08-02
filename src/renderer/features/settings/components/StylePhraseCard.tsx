@@ -1,11 +1,11 @@
 import React from 'react'
-import type { MurmurConfig } from '@core/domain/types'
+import type { MonitorProfile } from '@core/domain/types'
 import SettingsSelect from './SettingsSelect'
 import SettingsChipGroup from './SettingsChipGroup'
 
 type StylePhraseCardProps = {
-  config: MurmurConfig
-  patchDraft: (partial: Partial<MurmurConfig>) => void
+  config: MonitorProfile
+  patchDraft: (partial: Partial<MonitorProfile>) => void
 }
 
 export default function StylePhraseCard({ config, patchDraft }: StylePhraseCardProps) {
@@ -24,7 +24,7 @@ export default function StylePhraseCard({ config, patchDraft }: StylePhraseCardP
           <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Font</label>
           <SettingsSelect
             value={config.fontFamily}
-            onChange={(e) => patchDraft({ fontFamily: e.target.value as MurmurConfig['fontFamily'] })}
+            onChange={(e) => patchDraft({ fontFamily: e.target.value as MonitorProfile['fontFamily'] })}
           >
             <option value="EB Garamond">EB Garamond (Elegant Serif)</option>
             <option value="Garamond Bold">Garamond Bold (Extra Heavy Editorial)</option>
@@ -52,7 +52,7 @@ export default function StylePhraseCard({ config, patchDraft }: StylePhraseCardP
         <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Layout style</label>
         <SettingsSelect
           value={config.layoutStyle}
-          onChange={(e) => patchDraft({ layoutStyle: e.target.value as MurmurConfig['layoutStyle'] })}
+          onChange={(e) => patchDraft({ layoutStyle: e.target.value as MonitorProfile['layoutStyle'] })}
         >
           <optgroup label="Classic">
             <option value="centered">Classic Centered</option>

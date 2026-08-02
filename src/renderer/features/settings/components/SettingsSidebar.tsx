@@ -1,6 +1,10 @@
 import React from 'react'
 import type { MurmurState } from '@core/domain/types'
 import type { SettingsTab } from '../types'
+import SettingsSelect from './SettingsSelect'
+import SyncIconChip from './SyncIconChip'
+import { isSyncAllTabs } from '@core/lib/config/monitorProfiles'
+import type { MonitorConfig } from '@core/domain/types'
 
 type SettingsSidebarProps = {
   activeTab: SettingsTab
@@ -9,6 +13,11 @@ type SettingsSidebarProps = {
   isRefreshing: boolean
   state: MurmurState | null
   hasDraftPending?: boolean
+  displayOptions: { id: string; label: string }[]
+  selectedMonitorId: string
+  onMonitorChange: (id: string) => void
+  selectedMonitor?: MonitorConfig
+  onSyncAllTabsToggle: () => void
 }
 
 const TABS: { id: SettingsTab; label: string; icon: React.ReactNode }[] = [
@@ -50,11 +59,11 @@ const TABS: { id: SettingsTab; label: string; icon: React.ReactNode }[] = [
     )
   },
   {
-    id: 'displays',
-    label: 'Displays',
+    id: 'history',
+    label: 'History',
     icon: (
       <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
     )
   }
@@ -66,7 +75,12 @@ export default function SettingsSidebar({
   onRefresh,
   isRefreshing,
   state,
-  hasDraftPending = false
+  hasDraftPending = false,
+  displayOptions,
+  selectedMonitorId,
+  onMonitorChange,
+  selectedMonitor,
+  onSyncAllTabsToggle
 }: SettingsSidebarProps) {
   const tabClass = (tab: SettingsTab) =>
     `w-full flex items-center space-x-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
@@ -86,8 +100,60 @@ export default function SettingsSidebar({
             <h1 className="text-xl font-bold tracking-tight text-white">Murmur</h1>
             <p className="text-[10px] text-slate-400 font-medium tracking-wide uppercase">Desktop wallpaper app</p>
           </div>
-          <img src="./logo.png" className="h-10 w-10 object-contain rounded-lg border border-slate-800 p-1 bg-slate-955" alt="" />
+          <img src="./logo.png" className="h-11 w-11 object-contain shrink-0" alt="" />
         </div>
+
+        {displayOptions.length > 0 ? (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              {displayOptions.length > 1 ? (
+                <SettingsSelect
+                  data-testid="settings-display-select"
+                  className="flex-1 min-w-0 text-sm text-slate-200"
+                  value={selectedMonitorId || displayOptions[0]?.id || ''}
+                  onChange={(e) => onMonitorChange(e.target.value)}
+                  disabled={activeTab === 'general'}
+                >
+                  {displayOptions.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.label}
+                    </option>
+                  ))}
+                </SettingsSelect>
+              ) : (
+                <div
+                  data-testid="settings-display-select"
+                  className={`flex-1 min-w-0 rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200 ${
+                    activeTab === 'general' ? 'opacity-60' : ''
+                  }`}
+                >
+                  {displayOptions[0]?.label ?? 'Display 1'}
+                </div>
+              )}
+              {displayOptions.length > 1 && activeTab !== 'general' && selectedMonitor && (
+                <SyncIconChip
+                  data-testid="settings-sync-all-tabs"
+                  active={isSyncAllTabs(selectedMonitor)}
+                  onToggle={onSyncAllTabsToggle}
+                  aria-label="Sync all tabs with other synced displays"
+                  title="Sync all tabs with other synced displays"
+                />
+              )}
+            </div>
+            {activeTab === 'general' && (
+              <p className="text-[10px] text-slate-500 uppercase tracking-wide">Applies to all displays</p>
+            )}
+          </div>
+        ) : (
+          <SettingsSelect
+            data-testid="settings-display-select"
+            className="w-full text-sm text-slate-200"
+            value=""
+            disabled
+          >
+            <option value="">No displays yet</option>
+          </SettingsSelect>
+        )}
 
         <nav className="space-y-1">
           {TABS.map(({ id, label, icon }) => (

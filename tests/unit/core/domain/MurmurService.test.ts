@@ -8,6 +8,7 @@ import { IConfigStore } from '../../../../src/core/ports/IConfigStore'
 import { IHistoryStore } from '../../../../src/core/ports/IHistoryStore'
 import { ISystemTray } from '../../../../src/core/ports/ISystemTray'
 import { MurmurConfig, RssItem } from '../../../../src/core/domain/types'
+import { testMonitorConfigV2 } from '../../helpers/testMonitorConfigV2'
 
 describe('MurmurService', () => {
   let rssMock: IRssFetcher
@@ -19,38 +20,11 @@ describe('MurmurService', () => {
   let trayMock: ISystemTray
   let service: MurmurService
 
-  const mockConfig: MurmurConfig = {
-    geminiApiKey: 'test-api-key',
-    feeds: ['https://feeds.com/rss'],
-    refreshIntervalMinutes: 60,
-    language: 'en',
-    theme: 'Midnight',
-    animation: 'Fade',
-    overlays: { dateTime: true, sourceCredit: true, inspiringHeadlines: true },
-    headlineSampleSize: 5,
-    launchAtLogin: false,
-    fontFamily: 'EB Garamond',
-    layoutStyle: 'centered',
-    textAlignment: 'center',
-    vignetteStyle: 'none',
-    audioFeedback: false,
-    systemPrompt: 'test prompt',
-    enableBold: true,
-    enableItalic: true,
-    enableNewlines: true,
-    enableDifferentFonts: false,
-    tonePreset: 'none',
-    customToneText: '',
-    noiseIntensity: 'none',
-    monitors: [
-      { id: 'screen-1', enabled: true },
-      { id: 'screen-2', enabled: false }
-    ]
-  }
+  const mockConfig: MurmurConfig = testMonitorConfigV2()
 
   const mockRssItems: RssItem[] = [
-    { title: 'Headline 1', source: 'Source 1', feedUrl: 'U1' },
-    { title: 'Headline 2', source: 'Source 2', feedUrl: 'U2' }
+    { title: 'Headline 1', source: 'Source 1', feedUrl: 'https://feeds.com/rss' },
+    { title: 'Headline 2', source: 'Source 2', feedUrl: 'https://feeds.com/rss' }
   ]
 
   const structuredResult: PhraseGenerationResult = {
@@ -105,7 +79,7 @@ describe('MurmurService', () => {
   it('runs refresh cycle for enabled monitors only', async () => {
     await service.refresh()
 
-    expect(rssMock.fetchAll).toHaveBeenCalledWith(mockConfig.feeds)
+    expect(rssMock.fetchAll).toHaveBeenCalledWith(['https://feeds.com/rss'])
     expect(rendererMock.getScreens).toHaveBeenCalled()
 
     expect(aiMock.generateStructured).toHaveBeenCalledTimes(1)
@@ -174,7 +148,7 @@ describe('MurmurService', () => {
 
     await service.refresh()
 
-    expect(rendererMock.getScreens).not.toHaveBeenCalled()
+    expect(rssMock.fetchAll).toHaveBeenCalled()
     expect(aiMock.generateStructured).not.toHaveBeenCalled()
   })
 })

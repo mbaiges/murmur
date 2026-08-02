@@ -2,10 +2,10 @@ import { app } from 'electron'
 import { join } from 'path'
 import { readFileSync, writeFileSync, existsSync } from 'fs'
 import { IConfigStore } from '../../../core/ports/IConfigStore'
-import { MurmurConfig, DEFAULT_SYSTEM_PROMPT } from '../../../core/domain/types'
+import { MurmurConfig } from '../../../core/domain/types'
 import { MurmurConfigSchema } from '../../../core/domain/config.schema'
-import { EXAMPLE_RSS_FEEDS } from '../../../core/lib/presets/exampleFeeds'
-import { isClickbaitPressConfig, preferredClickbaitAnimation } from '../../../core/lib/presets/clickbaitPreset'
+import { migrateRawConfigToV2 } from '../../../core/lib/config/configMigrate'
+import { isClickbaitPressProfile, preferredClickbaitAnimation } from '../../../core/lib/presets/clickbaitPreset'
 
 export class JsonConfigStoreAdapter implements IConfigStore {
   private filePath: string
@@ -17,28 +17,11 @@ export class JsonConfigStoreAdapter implements IConfigStore {
 
   private getDefaultConfig(): MurmurConfig {
     return {
+      configVersion: 2,
       geminiApiKey: '',
-      feeds: [...EXAMPLE_RSS_FEEDS],
       refreshIntervalMinutes: 60,
-      language: 'auto',
-      theme: 'Midnight',
-      animation: 'Fade',
-      overlays: { dateTime: true, sourceCredit: false, inspiringHeadlines: false },
-      headlineSampleSize: 15,
       launchAtLogin: false,
-      fontFamily: 'EB Garamond',
-      monitors: [],
-      textAlignment: 'center',
-      layoutStyle: 'centered',
-      vignetteStyle: 'none',
-      audioFeedback: true,
-      systemPrompt: DEFAULT_SYSTEM_PROMPT,
-      enableBold: true,
-      enableItalic: true,
-      enableNewlines: true,
-      enableDifferentFonts: false,
-      tonePreset: 'none',
-      customToneText: ''
+      monitors: []
     }
   }
 
@@ -56,31 +39,27 @@ export class JsonConfigStoreAdapter implements IConfigStore {
 
     try {
       const content = readFileSync(this.filePath, 'utf8')
-      const parsed = JSON.parse(content)
+      const parsed = JSON.parse(content) as Record<string, unknown>
 
-      // Backward compatible migration for vignette style
       if (parsed.vignette !== undefined && parsed.vignetteStyle === undefined) {
         parsed.vignetteStyle = parsed.vignette ? 'medium' : 'none'
         delete parsed.vignette
       }
 
-      // Populate prompt if missing
-      if (parsed.systemPrompt === undefined) {
-        parsed.systemPrompt = DEFAULT_SYSTEM_PROMPT
+      const migrated = migrateRawConfigToV2(parsed)
+      let dirty = parsed.configVersion !== 2
+
+      for (const m of migrated.monitors) {
+        if (isClickbaitPressProfile(m.profile) && m.profile.animation === 'Instant') {
+          m.profile.animation = preferredClickbaitAnimation()
+          dirty = true
+        }
       }
 
-      let dirty = false
-      if (isClickbaitPressConfig(parsed) && parsed.animation === 'Instant') {
-        parsed.animation = preferredClickbaitAnimation()
-        dirty = true
-        console.log(
-          'JsonConfigStoreAdapter: Migrated Clickbait Press from Instant Cut to Fade (live desktop overlay).'
-        )
-      }
+      const validated = MurmurConfigSchema.parse(migrated) as MurmurConfig
+      this.cachedConfig = validated
 
-      const validated = MurmurConfigSchema.parse(parsed)
-      this.cachedConfig = validated as MurmurConfig
-      if (dirty) {
+      if (dirty || parsed.configVersion !== 2) {
         writeFileSync(this.filePath, JSON.stringify(this.cachedConfig, null, 2), 'utf8')
       }
       return this.cachedConfig
@@ -96,6 +75,9 @@ export class JsonConfigStoreAdapter implements IConfigStore {
   public async set(config: Partial<MurmurConfig>): Promise<void> {
     const current = await this.get()
     const updated = { ...current, ...config }
+    if (config.monitors) {
+      updated.monitors = config.monitors
+    }
     writeFileSync(this.filePath, JSON.stringify(updated, null, 2), 'utf8')
     this.cachedConfig = updated
   }

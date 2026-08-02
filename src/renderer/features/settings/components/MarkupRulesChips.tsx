@@ -1,5 +1,5 @@
 import React from 'react'
-import type { MurmurConfig } from '@core/domain/types'
+import type { MonitorProfile } from '@core/domain/types'
 
 type MarkupToggleKey = 'enableBold' | 'enableItalic' | 'enableNewlines' | 'enableDifferentFonts'
 
@@ -14,8 +14,8 @@ const MARKUP_TOGGLES: {
 ]
 
 type MarkupRulesChipsProps = {
-  config: MurmurConfig
-  patchDraft: (partial: Partial<MurmurConfig>) => void
+  config: MonitorProfile
+  patchDraft: (partial: Partial<MonitorProfile>) => void
 }
 
 export default function MarkupRulesChips({ config, patchDraft }: MarkupRulesChipsProps) {

@@ -72,11 +72,7 @@ test('Settings Dashboard loads and saves configuration with screenshots', async 
   await page.waitForTimeout(500)
   await page.screenshot({ path: logShot('04-style-tab.png') })
 
-  await page.locator('button:has-text("Displays")').click()
-  await page.waitForTimeout(500)
-  await page.screenshot({ path: logShot('05-displays-tab.png') })
-
   await page.locator('button:has-text("History")').click()
   await page.waitForTimeout(500)
-  await page.screenshot({ path: logShot('06-history-tab.png') })
+  await page.screenshot({ path: logShot('05-displays-history.png') })
 })

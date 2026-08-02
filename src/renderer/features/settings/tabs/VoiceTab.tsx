@@ -1,5 +1,6 @@
 import React from 'react'
-import type { MurmurConfig } from '@core/domain/types'
+import type { MonitorProfile } from '@core/domain/types'
+import SyncIconChip from '../components/SyncIconChip'
 import {
   MOOD_LINKED_PROMPT_PRESETS,
   STANDALONE_PROMPT_PRESETS,
@@ -11,19 +12,40 @@ import SettingsChipGroup from '../components/SettingsChipGroup'
 import MarkupRulesChips from '../components/MarkupRulesChips'
 
 type VoiceTabProps = {
-  config: MurmurConfig
-  patchDraft: (partial: Partial<MurmurConfig>) => void
+  config: MonitorProfile
+  syncVoice: boolean
+  onSyncToggle: () => void
+  patchDraft: (partial: Partial<MonitorProfile>) => void
   onPresetChange: (presetId: string) => void
+  showSyncChip?: boolean
 }
 
-export default function VoiceTab({ config, patchDraft, onPresetChange }: VoiceTabProps) {
+export default function VoiceTab({
+  config,
+  syncVoice,
+  onSyncToggle,
+  patchDraft,
+  onPresetChange,
+  showSyncChip = false
+}: VoiceTabProps) {
   return (
     <div className="max-w-2xl space-y-8 pb-24">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight text-white mb-2">Voice &amp; prompts</h2>
-        <p className="text-slate-400 text-sm">
-          System prompt, tone, language, and markup rules. Changes apply when you click Apply changes.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-2xl font-bold tracking-tight text-white mb-2">Voice &amp; prompts</h2>
+          <p className="text-slate-400 text-sm">
+            System prompt, tone, language, and markup rules. Changes apply when you click Apply changes.
+          </p>
+        </div>
+        {showSyncChip && (
+          <SyncIconChip
+            data-testid="settings-sync-tab-voice"
+            active={syncVoice}
+            onToggle={onSyncToggle}
+            aria-label="Sync voice and prompts with other synced displays"
+            title="Sync voice and prompts with other synced displays"
+          />
+        )}
       </div>
 
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4">

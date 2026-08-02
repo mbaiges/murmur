@@ -1,114 +1,91 @@
-import React from 'react'
-import type { MurmurConfig, MurmurState } from '@core/domain/types'
+import React, { useEffect, useState } from 'react'
+import type { MurmurConfig } from '@core/domain/types'
 import { parseHistoryEntry } from '@core/lib/layout/layoutContentParse'
 import { layoutContentPreview } from '@core/lib/layout/layoutContentPreview'
-import SettingsSelect from '../components/SettingsSelect'
+import { getMonitorProfile } from '@core/lib/config/monitorProfiles'
 
-type HistoryTabProps = {
+export type HistoryTabProps = {
   config: MurmurConfig
-  state: MurmurState | null
-  historyMonitorId: string
-  setHistoryMonitorId: (id: string) => void
-  historyPhrases: string[]
-  historyViewMode: 'preview' | 'raw'
-  setHistoryViewMode: (mode: 'preview' | 'raw') => void
-  onClearHistory: (monitorId: string) => void
+  selectedMonitorId: string
 }
 
-export default function HistoryTab({
-  config,
-  state,
-  historyMonitorId,
-  setHistoryMonitorId,
-  historyPhrases,
-  historyViewMode,
-  setHistoryViewMode,
-  onClearHistory
-}: HistoryTabProps) {
+export default function HistoryTab({ config, selectedMonitorId }: HistoryTabProps) {
+  const [historyPhrases, setHistoryPhrases] = useState<string[]>([])
+  const [historyViewMode, setHistoryViewMode] = useState<'preview' | 'raw'>('preview')
+
+  const profile = getMonitorProfile(config, selectedMonitorId)
+
+  useEffect(() => {
+    const api = window.api
+    if (api && selectedMonitorId) {
+      api.getHistory(selectedMonitorId).then(setHistoryPhrases).catch(console.error)
+    }
+  }, [selectedMonitorId])
+
   return (
-<div className="max-w-2xl space-y-8">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h2 className="text-2xl font-bold tracking-tight text-white mb-2">Phrase History</h2>
-                  <p className="text-slate-400 text-sm">Review local history log of last 10 generated phrases.</p>
-                </div>
-                {historyMonitorId && historyPhrases.length > 0 && (
-                  <button
-                    onClick={() => onClearHistory(historyMonitorId)}
-                    className="py-1.5 px-3 bg-rose-950 border border-rose-800 hover:bg-rose-900 rounded-lg text-rose-300 font-semibold text-xs transition-colors"
-                  >
-                    Clear History
-                  </button>
-                )}
-              </div>
+    <div className="max-w-4xl space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight text-white mb-2">History</h2>
+        <p className="text-slate-400 text-sm">Phrase history for the display selected in the sidebar.</p>
+      </div>
 
-              {state && Object.keys(state.lastPhrases).length > 0 ? (
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-6">
-                  {/* Select Monitor */}
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Target Monitor</label>
-                    <SettingsSelect
-                      value={historyMonitorId}
-                      onChange={(e) => setHistoryMonitorId(e.target.value)}
-                    >
-                      {Object.keys(state.lastPhrases).map((id, index) => (
-                        <option key={id} value={id}>Display {index + 1} (ID: {id})</option>
-                      ))}
-                    </SettingsSelect>
-                  </div>
-
-                  {/* History List */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between gap-4">
-                      <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Historical Phrases</h4>
-                      <div className="flex rounded-lg border border-slate-700 overflow-hidden text-xs">
-                        <button
-                          type="button"
-                          onClick={() => setHistoryViewMode('preview')}
-                          className={`px-3 py-1.5 font-semibold transition-colors ${historyViewMode === 'preview' ? 'bg-indigo-950 text-indigo-300' : 'bg-slate-950 text-slate-400 hover:text-slate-200'}`}
-                        >
-                          Preview
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setHistoryViewMode('raw')}
-                          className={`px-3 py-1.5 font-semibold transition-colors ${historyViewMode === 'raw' ? 'bg-indigo-950 text-indigo-300' : 'bg-slate-950 text-slate-400 hover:text-slate-200'}`}
-                        >
-                          Raw JSON
-                        </button>
-                      </div>
-                    </div>
-                    
-                    {historyPhrases.length > 0 ? (
-                      <div className="space-y-2">
-                        {historyPhrases.map((entry, i) => {
-                          const envelope = parseHistoryEntry(entry, config?.layoutStyle ?? 'centered')
-                          const preview = layoutContentPreview(envelope)
-                          const raw = JSON.stringify(envelope.payload, null, 2)
-                          return (
-                          <div key={i} className="flex space-x-3 p-3 bg-slate-950 border border-slate-800 rounded-lg text-sm">
-                            <span className="text-indigo-400 font-mono text-xs mt-0.5 shrink-0">#{i+1}</span>
-                            {historyViewMode === 'preview' ? (
-                              <span className="text-slate-200 italic">"{preview}"</span>
-                            ) : (
-                              <pre className="text-slate-300 font-mono text-xs whitespace-pre-wrap overflow-x-auto flex-1">{raw}</pre>
-                            )}
-                          </div>
-                          )
-                        })}
-                      </div>
-                    ) : (
-                      <div className="py-6 text-center text-slate-500 text-sm italic">
-                        No logged phrases for this monitor.
-                      </div>
-                    )}
-                  </div>
+      {!selectedMonitorId ? (
+        <div className="py-8 text-center text-slate-500 text-sm italic bg-slate-900 border border-slate-800 rounded-xl">
+          No display selected. Press Refresh Now in the sidebar after setup.
+        </div>
+      ) : (
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4">
+          <div className="flex justify-between items-center gap-4">
+            <h3 className="text-sm font-bold text-white shrink-0">Historical phrases</h3>
+            {historyPhrases.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  void window.api?.clearHistory(selectedMonitorId).then(() => setHistoryPhrases([]))
+                }}
+                className="py-1.5 px-3 bg-rose-950 border border-rose-800 rounded-lg text-rose-300 text-xs font-semibold shrink-0"
+              >
+                Clear History
+              </button>
+            )}
+          </div>
+          <div className="flex rounded-lg border border-slate-700 overflow-hidden text-xs w-fit">
+            <button
+              type="button"
+              onClick={() => setHistoryViewMode('preview')}
+              className={`px-3 py-1.5 font-semibold ${historyViewMode === 'preview' ? 'bg-indigo-950 text-indigo-300' : 'bg-slate-950 text-slate-400'}`}
+            >
+              Preview
+            </button>
+            <button
+              type="button"
+              onClick={() => setHistoryViewMode('raw')}
+              className={`px-3 py-1.5 font-semibold ${historyViewMode === 'raw' ? 'bg-indigo-950 text-indigo-300' : 'bg-slate-950 text-slate-400'}`}
+            >
+              Raw JSON
+            </button>
+          </div>
+          {historyPhrases.length === 0 ? (
+            <p className="text-sm text-slate-500 italic text-center py-4">No logged phrases for this display.</p>
+          ) : (
+            historyPhrases.map((entry, i) => {
+              const envelope = parseHistoryEntry(entry, profile.layoutStyle)
+              const preview = layoutContentPreview(envelope)
+              const raw = JSON.stringify(envelope.payload, null, 2)
+              return (
+                <div key={i} className="flex gap-3 p-3 bg-slate-950 border border-slate-800 rounded-lg text-sm">
+                  <span className="text-indigo-400 font-mono text-xs shrink-0">#{i + 1}</span>
+                  {historyViewMode === 'preview' ? (
+                    <span className="text-slate-200 italic">&ldquo;{preview}&rdquo;</span>
+                  ) : (
+                    <pre className="text-slate-300 font-mono text-xs whitespace-pre-wrap flex-1">{raw}</pre>
+                  )}
                 </div>
-              ) : (
-                <div className="py-8 text-center text-slate-500 text-sm italic bg-slate-900 border border-slate-800 rounded-xl">
-                  No monitor history logs discoverable.
-                </div>
-              )}
-            </div>
+              )
+            })
+          )}
+        </div>
+      )}
+    </div>
   )
 }

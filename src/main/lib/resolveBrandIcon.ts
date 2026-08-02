@@ -7,6 +7,8 @@ export function resolveBrandIconPath(): string {
   const candidates = [
     join(app.getAppPath(), 'src/renderer/public/logo.png'),
     join(__dirname, '../../../src/renderer/public/logo.png'),
+    join(__dirname, '../../resources/icon.png'),
+    join(app.getAppPath(), 'resources/icon.png'),
     join(__dirname, '../../resources/logo.png'),
     join(app.getAppPath(), 'resources/logo.png')
   ]
@@ -20,4 +22,22 @@ export function resolveBrandIconPath(): string {
   throw new Error(
     'Brand logo not found. Add src/renderer/public/logo.png (same file used in the Murmur UI).'
   )
+}
+
+/** Packaged app / dock — prefer 1024px builder icon when present. */
+export function resolveDockIconPath(): string {
+  const candidates = [
+    join(__dirname, '../../resources/icon.png'),
+    join(app.getAppPath(), 'resources/icon.png'),
+    join(app.getAppPath(), 'src/renderer/public/logo.png'),
+    join(__dirname, '../../../src/renderer/public/logo.png')
+  ]
+
+  for (const iconPath of candidates) {
+    if (existsSync(iconPath)) {
+      return iconPath
+    }
+  }
+
+  return resolveBrandIconPath()
 }

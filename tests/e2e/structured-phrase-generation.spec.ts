@@ -30,10 +30,8 @@ test.describe('Structured phrase generation — history UI', () => {
     await page.locator('button:has-text("Refresh Now")').click()
     await page.waitForTimeout(2500)
 
-    await page.locator('button:has-text("Displays")').click()
-    await page.waitForTimeout(400)
     await page.locator('button:has-text("History")').click()
-    await page.waitForTimeout(500)
+    await page.waitForTimeout(400)
 
     await expect(page.getByRole('button', { name: 'Preview' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Raw JSON' })).toBeVisible()

@@ -62,11 +62,8 @@ test('Settings IA — five tabs with screenshots', async () => {
   await page.waitForTimeout(400)
   await page.screenshot({ path: shot('04-style.png'), fullPage: true })
 
-  await page.locator('button:has-text("Displays")').click()
-  await page.waitForTimeout(400)
-  await page.screenshot({ path: shot('05-displays-monitors.png'), fullPage: true })
-
   await page.locator('button:has-text("History")').click()
   await page.waitForTimeout(400)
-  await page.screenshot({ path: shot('06-displays-history.png'), fullPage: true })
+  await expect(page.getByText('Historical phrases')).toBeVisible()
+  await page.screenshot({ path: shot('05-displays-history.png'), fullPage: true })
 })

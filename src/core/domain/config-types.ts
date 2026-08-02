@@ -23,24 +23,14 @@ export interface OverlayConfig {
   inspiringHeadlines: boolean
 }
 
-export interface MonitorConfig {
-  id: string
-  enabled: boolean
-  themeOverride?: ThemeName
-}
-
-export interface MurmurConfig {
-  geminiApiKey: string
+export interface MonitorProfile {
   feeds: string[]
-  refreshIntervalMinutes: number
   language: string
   theme: ThemeName
   animation: AnimationName
   overlays: OverlayConfig
   headlineSampleSize: number
-  launchAtLogin: boolean
   fontFamily: 'EB Garamond' | 'Playfair Display' | 'Outfit' | 'Garamond Bold' | 'Monospace'
-  monitors: MonitorConfig[]
   textAlignment: 'center' | 'left' | 'right'
   layoutStyle: LayoutStyleName
   vignetteStyle: 'none' | 'soft' | 'medium' | 'dramatic'
@@ -53,6 +43,23 @@ export interface MurmurConfig {
   noiseIntensity: 'none' | 'subtle' | 'heavy'
   tonePreset: TonePreset
   customToneText: string
+}
+
+export interface MonitorConfig {
+  id: string
+  enabled: boolean
+  syncNews: boolean
+  syncVoice: boolean
+  syncStyle: boolean
+  profile: MonitorProfile
+}
+
+export interface MurmurConfig {
+  configVersion: 2
+  geminiApiKey: string
+  refreshIntervalMinutes: number
+  launchAtLogin: boolean
+  monitors: MonitorConfig[]
 }
 
 export interface RssItem {
