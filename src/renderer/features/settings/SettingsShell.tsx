@@ -157,42 +157,55 @@ export default function SettingsShell() {
   const showApplyBar =
     isDirty && (uiState.activeTab === 'style' || uiState.activeTab === 'voice')
 
+  const previewPhrase =
+    state?.lastPhrases &&
+    (Object.values(state.lastPhrases).find((p) => p && p.trim()) as string | undefined)
+
   return (
-    <AppShell
-      toast={toast}
-      sidebar={
-        <SettingsSidebar
-          activeTab={uiState.activeTab}
-          onTabChange={handleTabChange}
-          onRefresh={handleRefresh}
-          isRefreshing={isRefreshing}
-          state={state}
-        />
-      }
-      mainScrollRef={scrollRef}
-      onMainScroll={handleMainScroll}
-    >
-      {uiState.activeTab === 'general' && <GeneralTab config={config} state={state} saveConfig={saveConfig} />}
-      {uiState.activeTab === 'news' && <NewsSourcesTab config={config} saveConfig={saveConfig} />}
-      {uiState.activeTab === 'voice' && (
-        <VoiceTab config={draftConfig} patchDraft={patchDraft} onPresetChange={handlePromptPresetChange} />
-      )}
-      {uiState.activeTab === 'style' && (
-        <StyleTab config={draftConfig} patchDraft={patchDraft} onMoodChange={applyMoodToDraft} />
-      )}
-      {uiState.activeTab === 'displays' && (
-        <DisplaysTab
-          config={config}
-          state={state}
-          saveConfig={saveConfig}
-          onPreviewTheme={handlePreviewTheme}
-          section={uiState.displaysSection}
-          onSectionChange={(s) => persistUi({ displaysSection: s })}
-        />
-      )}
+    <>
+      <AppShell
+        toast={toast}
+        sidebar={
+          <SettingsSidebar
+            activeTab={uiState.activeTab}
+            onTabChange={handleTabChange}
+            onRefresh={handleRefresh}
+            isRefreshing={isRefreshing}
+            state={state}
+          />
+        }
+        mainScrollRef={scrollRef}
+        onMainScroll={handleMainScroll}
+      >
+        {uiState.activeTab === 'general' && (
+          <GeneralTab config={config} state={state} saveConfig={saveConfig} />
+        )}
+        {uiState.activeTab === 'news' && <NewsSourcesTab config={config} saveConfig={saveConfig} />}
+        {uiState.activeTab === 'voice' && (
+          <VoiceTab config={draftConfig} patchDraft={patchDraft} onPresetChange={handlePromptPresetChange} />
+        )}
+        {uiState.activeTab === 'style' && (
+          <StyleTab
+            config={draftConfig}
+            patchDraft={patchDraft}
+            onMoodChange={applyMoodToDraft}
+            previewPhrase={previewPhrase ?? ''}
+          />
+        )}
+        {uiState.activeTab === 'displays' && (
+          <DisplaysTab
+            config={config}
+            state={state}
+            saveConfig={saveConfig}
+            onPreviewTheme={handlePreviewTheme}
+            section={uiState.displaysSection}
+            onSectionChange={(s) => persistUi({ displaysSection: s })}
+          />
+        )}
+      </AppShell>
       {showApplyBar && (
         <SettingsApplyBar onApply={() => void applyDraft()} onReset={resetDraft} isApplying={isApplying} />
       )}
-    </AppShell>
+    </>
   )
 }

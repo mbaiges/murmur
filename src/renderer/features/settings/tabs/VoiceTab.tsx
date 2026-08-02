@@ -7,6 +7,7 @@ import {
 } from '@core/lib/presets/promptPresets'
 import type { TonePreset } from '@core/domain/types'
 import SettingsSelect from '../components/SettingsSelect'
+import SettingsChipGroup from '../components/SettingsChipGroup'
 
 type VoiceTabProps = {
   config: MurmurConfig
@@ -63,19 +64,18 @@ export default function VoiceTab({ config, patchDraft, onPresetChange }: VoiceTa
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Tone</label>
-            <SettingsSelect
+            <SettingsChipGroup
+              aria-label="Tone preset"
               value={config.tonePreset}
-              onChange={(e) => {
-                const tonePreset = e.target.value as MurmurConfig['tonePreset']
-                patchDraft({ tonePreset })
-              }}
-            >
-              <option value="none">No tone</option>
-              <option value="neutral">Neutral</option>
-              <option value="professional">Professional</option>
-              <option value="villero">Villero</option>
-              <option value="custom">Custom</option>
-            </SettingsSelect>
+              onChange={(tonePreset) => patchDraft({ tonePreset })}
+              options={[
+                { value: 'none', label: 'None' },
+                { value: 'neutral', label: 'Neutral' },
+                { value: 'professional', label: 'Pro' },
+                { value: 'villero', label: 'Villero' },
+                { value: 'custom', label: 'Custom' }
+              ]}
+            />
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Output language</label>

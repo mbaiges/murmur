@@ -9,24 +9,27 @@ type SettingsApplyBarProps = {
 export default function SettingsApplyBar({ onApply, onReset, isApplying = false }: SettingsApplyBarProps) {
   return (
     <div
-      className="sticky bottom-0 z-40 -mx-10 -mb-10 mt-8 border-t border-slate-800 bg-slate-950/95 backdrop-blur px-10 py-4 flex flex-wrap items-center justify-between gap-3"
+      className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-1.5 pointer-events-none"
       data-testid="settings-apply-bar"
+      aria-live="polite"
     >
-      <p className="text-xs text-slate-400">You have unapplied Style and Voice changes.</p>
-      <div className="flex items-center gap-2">
+      <p className="pointer-events-none text-[10px] text-slate-500 text-right max-w-[14rem] leading-snug">
+        Unapplied Style &amp; Voice changes
+      </p>
+      <div className="pointer-events-auto flex items-center gap-2 rounded-xl border border-slate-700/90 bg-slate-900/95 backdrop-blur-md px-2 py-2 shadow-xl shadow-black/50">
         <button
           type="button"
           onClick={onReset}
-          className="px-4 py-2 text-xs font-semibold rounded-lg border border-slate-700 text-slate-300 hover:bg-slate-900"
+          className="px-3 py-1.5 text-[11px] font-semibold rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-800"
         >
-          Reset draft
+          Reset
         </button>
         <button
           type="button"
           data-testid="settings-apply-changes"
           disabled={isApplying}
           onClick={onApply}
-          className="px-4 py-2 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50"
+          className="px-3 py-1.5 text-[11px] font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50"
         >
           {isApplying ? 'Applying…' : 'Apply changes'}
         </button>

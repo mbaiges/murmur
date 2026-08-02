@@ -53,8 +53,8 @@ test('Style & Voice polish — draft Apply bar', async () => {
   await page.locator('button:has-text("Style")').click()
   await page.waitForTimeout(300)
 
-  const themeSelect = page.locator('label:has-text("Default Theme")').locator('..').locator('select')
-  await themeSelect.selectOption({ index: 1 })
+  const background = page.getByTestId('style-section-background')
+  await background.locator('button').nth(1).click()
   await page.waitForTimeout(300)
 
   await expect(page.getByTestId('settings-apply-bar')).toBeVisible()
