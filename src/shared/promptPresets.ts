@@ -5,6 +5,8 @@ import {
   EXISTENTIAL_DREAD_PROMPT,
   GOTHIC_PURPLE_PROSE_PROMPT,
   PARANOID_CONSPIRACY_PROMPT,
+  REAL_BEST_NEWS_PROMPT,
+  REAL_WORST_NEWS_PROMPT,
   WORST_NEWS_TITLE_PROMPT,
   ZEN_KOAN_PROMPT
 } from '../domain/types'
@@ -13,6 +15,8 @@ export type PromptPresetId =
   | 'Absurd Proverb'
   | 'Worst News Title'
   | 'Best News Title'
+  | 'Real Best News'
+  | 'Real Worst News'
   | 'Cyberpunk Terminal'
   | 'Zen Koan'
   | 'Paranoid Conspiracy'
@@ -74,6 +78,18 @@ export const STANDALONE_PROMPT_PRESETS: PromptPresetDefinition[] = [
     label: 'Best News Title',
     description: 'Uplifting headline voice',
     prompt: BEST_NEWS_TITLE_PROMPT
+  },
+  {
+    id: 'Real Best News',
+    label: 'Real Best News',
+    description: 'Pick the best headline from the feed (verbatim, no remix)',
+    prompt: REAL_BEST_NEWS_PROMPT
+  },
+  {
+    id: 'Real Worst News',
+    label: 'Real Worst News',
+    description: 'Pick the worst headline from the feed (verbatim, no remix)',
+    prompt: REAL_WORST_NEWS_PROMPT
   },
   {
     id: 'Paranoid Conspiracy',

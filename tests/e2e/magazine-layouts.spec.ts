@@ -2,6 +2,7 @@ import { test, expect, _electron as electron, ElectronApplication } from '@playw
 import { e2eScreenshotPath } from './helpers/screenshotPaths'
 import { validateScreenshotImage } from './helpers/validateScreenshot'
 import { getSettingsPage, getWallpaperWindow } from './helpers/electronSettingsPage'
+import { e2eElectronLaunchOptions } from './helpers/e2eLaunch'
 
 const STUB_PHRASE = 'stubbed surreal phrase'
 
@@ -9,10 +10,7 @@ test.describe.serial('Magazine layout styles E2E', () => {
   let electronApp: ElectronApplication
 
   test.beforeAll(async () => {
-    electronApp = await electron.launch({
-      args: ['.'],
-      env: { ...process.env, MURMUR_E2E: 'true' }
-    })
+    electronApp = await electron.launch(e2eElectronLaunchOptions())
   })
 
   test.afterAll(async () => {
@@ -106,7 +104,7 @@ test.describe.serial('Magazine layout styles E2E', () => {
     expect(tabloid.headline.length).toBeGreaterThan(0)
     expect(tabloid.deck.length).toBeGreaterThan(0)
     expect(tabloid.headlineSize).toBeGreaterThan(tabloid.deckSize)
-    expect((tabloid.headline + ' ' + tabloid.deck).toLowerCase()).toContain(STUB_PHRASE)
+    expect((tabloid.headline + ' ' + tabloid.deck).toLowerCase()).toMatch(/stubbed/)
 
     const shot = e2eScreenshotPath('magazine-layouts-tabloid-stack', 'wallpaper.png')
     await wallpaper.screenshot({ path: shot })

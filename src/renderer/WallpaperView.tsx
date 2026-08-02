@@ -326,15 +326,27 @@ export default function WallpaperView() {
   // Transition helper to fade out the phrase before swapping and typing the new one
   useEffect(() => {
     if (!state || !monitorId) return
-    const incomingPhrase = state.lastPhrases[monitorId] || 'Surrealism is the quiet hum of the world'
+    const env = state.lastContent?.[monitorId]
+    const incomingPhrase =
+      env?.payload?.phrase ?? state.lastPhrases[monitorId] ?? 'Surrealism is the quiet hum of the world'
+    const incomingKey = env ? JSON.stringify(env.payload) : incomingPhrase
 
-    if (!activePhrase) {
-      // First load: set active phrase immediately without fading out
+    if (!activePhrase && !env) {
       setActivePhrase(incomingPhrase)
       return
     }
 
-    if (incomingPhrase !== activePhrase) {
+    const currentKey = env ? JSON.stringify(env.payload) : activePhrase
+    if (incomingKey === currentKey && activePhrase === incomingPhrase) {
+      return
+    }
+
+    if (!activePhrase) {
+      setActivePhrase(incomingPhrase)
+      return
+    }
+
+    if (incomingKey !== currentKey || incomingPhrase !== activePhrase) {
       // Incoming phrase is different: fade out first
       setIsFadingOut(true)
       const timeout = setTimeout(() => {
@@ -343,7 +355,7 @@ export default function WallpaperView() {
       }, 500) // 500ms fade-out duration
       return () => clearTimeout(timeout)
     }
-  }, [state?.lastPhrases?.[monitorId], monitorId])
+  }, [state?.lastContent?.[monitorId], state?.lastPhrases?.[monitorId], monitorId])
 
   // 5. Compile phrase and drive Typewriter reveals
   useEffect(() => {
@@ -433,6 +445,14 @@ export default function WallpaperView() {
   }
 
   const theme = monitorConf?.themeOverride || config.theme
+  const layoutEnvelope = state.lastContent?.[monitorId]
+  const structuredMagazine =
+    layoutEnvelope &&
+    layoutEnvelope.layoutStyle === config.layoutStyle &&
+    ['tabloid-stack', 'split-spread', 'pull-quote', 'feature-opener', 'sidebar-rail', 'byline-lede'].includes(
+      config.layoutStyle
+    )
+
   const isDark = ['Midnight', 'Drift', 'Static', 'Forest', 'Crimson', 'Cyberpunk', 'WarmGlow'].includes(theme)
   const textColor = isDark ? 'text-white' : 'text-slate-900'
   const mutedColor = isDark ? 'text-white/40' : 'text-slate-700/60'
@@ -479,6 +499,12 @@ export default function WallpaperView() {
     layoutClass = 'w-full max-w-4xl px-12 justify-center items-center text-center'
   } else if (config.layoutStyle === 'pull-quote') {
     layoutClass = 'w-full max-w-3xl px-16 justify-center items-start'
+  } else if (config.layoutStyle === 'feature-opener') {
+    layoutClass = 'w-full max-w-4xl px-14 md:px-20 justify-center items-start text-left self-start ml-[4vw]'
+  } else if (config.layoutStyle === 'sidebar-rail') {
+    layoutClass = 'w-full max-w-5xl px-10 md:px-16 justify-center items-center'
+  } else if (config.layoutStyle === 'byline-lede') {
+    layoutClass = 'w-full max-w-xl px-14 md:px-16 justify-center items-start text-left'
   }
 
   // Animation Transition Classes
@@ -645,6 +671,32 @@ export default function WallpaperView() {
   }
 
   const renderSplitSpreadLayout = () => {
+    if (structuredMagazine && layoutEnvelope?.payload.left && layoutEnvelope?.payload.right) {
+      const leftChars = compileToStyledChars(layoutEnvelope.payload.left, fontClass, config)
+      const rightChars = compileToStyledChars(layoutEnvelope.payload.right, fontClass, config)
+      return (
+        <div
+          data-testid="layout-split-spread"
+          className={`grid grid-cols-2 gap-10 w-full items-center min-h-[40vh] ${animClass}`}
+        >
+          <h1
+            data-testid="layout-split-spread-left"
+            className={`${textColor} ${fontClass} text-left leading-snug select-none tracking-tight antialiased`}
+            style={{ fontSize: getScaledFontClamp(1.4, 3.2, 2.8) }}
+          >
+            {renderStyledChars(leftChars)}
+          </h1>
+          <h1
+            data-testid="layout-split-spread-right"
+            className={`${textColor} ${fontClass} text-right leading-snug select-none tracking-tight antialiased`}
+            style={{ fontSize: getScaledFontClamp(1.4, 3.2, 2.8) }}
+          >
+            {renderStyledChars(rightChars)}
+          </h1>
+        </div>
+      )
+    }
+
     const flat = phraseLines.flat()
     const { left, right } = splitFlatCharsAtWordMidpoint(flat)
     let remaining = visibleCount
@@ -678,6 +730,36 @@ export default function WallpaperView() {
   }
 
   const renderTabloidStackLayout = () => {
+    if (structuredMagazine && layoutEnvelope?.payload.headline) {
+      const headlineChars = compileToStyledChars(layoutEnvelope.payload.headline, fontClass, config)
+      const deckChars = layoutEnvelope.payload.deck
+        ? compileToStyledChars(layoutEnvelope.payload.deck, fontClass, config)
+        : []
+      return (
+        <div data-testid="layout-tabloid-stack" className={`flex flex-col items-center text-center space-y-6 ${animClass}`}>
+          {layoutEnvelope.payload.kicker && (
+            <p className={`${mutedColor} text-xs uppercase tracking-[0.3em] font-sans`}>{layoutEnvelope.payload.kicker}</p>
+          )}
+          <h1
+            data-testid="layout-tabloid-headline"
+            className={`${textColor} ${fontClass} leading-tight select-none tracking-tight antialiased uppercase`}
+            style={{ fontSize: getScaledFontClamp(2, 4.5, 4), textShadow: '0 2px 12px rgba(0,0,0,0.08)' }}
+          >
+            {renderStyledChars(headlineChars)}
+          </h1>
+          {deckChars.length > 0 && (
+            <p
+              data-testid="layout-tabloid-deck"
+              className={`${mutedColor} font-serif italic max-w-2xl leading-relaxed select-none`}
+              style={{ fontSize: getScaledFontClamp(1, 2.2, 1.75) }}
+            >
+              {renderStyledChars(deckChars)}
+            </p>
+          )}
+        </div>
+      )
+    }
+
     const plain = phraseToPlainText(activePhrase)
     const { headline, deck } = splitPlainPhraseHeadlineDeck(plain)
     const headlineChars = compileToStyledChars(headline, fontClass, config)
@@ -714,6 +796,28 @@ export default function WallpaperView() {
   }
 
   const renderPullQuoteLayout = () => {
+    if (structuredMagazine && layoutEnvelope?.payload.quote) {
+      const quoteChars = compileToStyledChars(layoutEnvelope.payload.quote, fontClass, config)
+      return (
+        <blockquote
+          data-testid="layout-pull-quote"
+          className={`border-l-4 border-current pl-8 py-2 ${textColor} ${fontClass} ${animClass} leading-snug select-none antialiased`}
+          style={{
+            fontSize: getScaledFontClamp(1.8, 4.2, 3.6),
+            borderColor: 'currentColor',
+            opacity: 0.95
+          }}
+        >
+          {renderStyledChars(quoteChars)}
+          {layoutEnvelope.payload.attribution && (
+            <footer className={`mt-4 text-sm ${mutedColor} not-italic font-sans`}>
+              — {layoutEnvelope.payload.attribution}
+            </footer>
+          )}
+        </blockquote>
+      )
+    }
+
     const flat = phraseLines.flat()
     const visible = flat.slice(0, visibleCount)
     return (
@@ -729,6 +833,121 @@ export default function WallpaperView() {
         {renderStyledChars(visible)}
       </blockquote>
     )
+  }
+
+  const renderFeatureOpenerLayout = () => {
+    if (structuredMagazine && layoutEnvelope?.payload.headline) {
+      const headlineChars = compileToStyledChars(layoutEnvelope.payload.headline, fontClass, config)
+      const deckChars = layoutEnvelope.payload.deck
+        ? compileToStyledChars(layoutEnvelope.payload.deck, fontClass, config)
+        : []
+      return (
+        <div
+          data-testid="layout-feature-opener"
+          className={`flex flex-col items-start gap-6 max-w-[22rem] sm:max-w-lg md:max-w-2xl pt-[6vh] ${animClass}`}
+        >
+          {layoutEnvelope.payload.section && (
+            <>
+              <p
+                data-testid="layout-feature-opener-section"
+                className={`${mutedColor} text-[11px] uppercase tracking-[0.4em] font-sans font-semibold`}
+              >
+                {layoutEnvelope.payload.section}
+              </p>
+              <div className={`h-px w-14 ${textColor} opacity-25`} aria-hidden />
+            </>
+          )}
+          <h1
+            data-testid="layout-feature-opener-headline"
+            className={`${textColor} ${fontClass} leading-[0.92] select-none tracking-tight antialiased`}
+            style={{ fontSize: getScaledFontClamp(2.2, 5, 4.5), textWrap: 'balance' as any }}
+          >
+            {renderStyledChars(headlineChars)}
+          </h1>
+          {deckChars.length > 0 && (
+            <p
+              data-testid="layout-feature-opener-deck"
+              className={`${mutedColor} font-serif italic leading-relaxed max-w-md select-none pt-1`}
+              style={{ fontSize: getScaledFontClamp(1.05, 2.2, 1.85) }}
+            >
+              {renderStyledChars(deckChars)}
+            </p>
+          )}
+        </div>
+      )
+    }
+    return renderClassicLayout()
+  }
+
+  const renderSidebarRailLayout = () => {
+    if (structuredMagazine && layoutEnvelope?.payload.main && layoutEnvelope?.payload.sidebar) {
+      const mainChars = compileToStyledChars(layoutEnvelope.payload.main, fontClass, config)
+      const sidebarChars = compileToStyledChars(layoutEnvelope.payload.sidebar, fontClass, config)
+      return (
+        <div
+          data-testid="layout-sidebar-rail"
+          className={`grid grid-cols-1 md:grid-cols-[1.55fr_minmax(11rem,0.95fr)] gap-10 md:gap-14 w-full items-center ${animClass}`}
+        >
+          <div
+            data-testid="layout-sidebar-rail-main"
+            className={`${textColor} ${fontClass} leading-[1.15] select-none text-left max-w-prose`}
+            style={{ fontSize: getScaledFontClamp(1.65, 3.6, 3.15) }}
+          >
+            {renderStyledChars(mainChars)}
+          </div>
+          <aside
+            data-testid="layout-sidebar-rail-sidebar"
+            className={`border-l-[3px] border-current pl-6 py-4 pr-2 ${mutedColor} font-serif italic leading-relaxed select-none text-left rounded-r-sm ${
+              isDark ? 'bg-white/[0.04]' : 'bg-black/[0.04]'
+            }`}
+            style={{ fontSize: getScaledFontClamp(0.9, 1.65, 1.35) }}
+          >
+            {renderStyledChars(sidebarChars)}
+          </aside>
+        </div>
+      )
+    }
+    return renderClassicLayout()
+  }
+
+  const renderBylineLedeLayout = () => {
+    if (structuredMagazine && layoutEnvelope?.payload.headline && layoutEnvelope?.payload.lede) {
+      const headlineChars = compileToStyledChars(layoutEnvelope.payload.headline, fontClass, config)
+      const ledeChars = compileToStyledChars(layoutEnvelope.payload.lede, fontClass, config)
+      return (
+        <article
+          data-testid="layout-byline-lede"
+          className={`flex flex-col items-start gap-3 max-w-prose w-full ${animClass}`}
+        >
+          <h1
+            data-testid="layout-byline-lede-headline"
+            className={`${textColor} ${fontClass} leading-[1.08] select-none tracking-tight`}
+            style={{ fontSize: getScaledFontClamp(1.75, 3.8, 3.2), textWrap: 'balance' as any }}
+          >
+            {renderStyledChars(headlineChars)}
+          </h1>
+          {layoutEnvelope.payload.byline && (
+            <>
+              <p
+                data-testid="layout-byline-lede-byline"
+                className={`${mutedColor} text-xs font-sans uppercase tracking-[0.2em] select-none`}
+              >
+                {layoutEnvelope.payload.byline}
+              </p>
+              <div className={`h-px w-full max-w-[12rem] ${textColor} opacity-20`} aria-hidden />
+            </>
+          )}
+          <p
+            data-testid="layout-byline-lede-lede"
+            className={`${textColor} font-serif leading-[1.55] select-none opacity-[0.82] pt-1`}
+            style={{ fontSize: getScaledFontClamp(1.08, 2.15, 1.7) }}
+          >
+            {renderStyledChars(ledeChars)}
+          </p>
+        </article>
+      )
+    }
+    return renderClassicLayout()
   }
 
   // Theme styles classes
@@ -817,6 +1036,12 @@ export default function WallpaperView() {
           renderTabloidStackLayout()
         ) : config.layoutStyle === 'pull-quote' ? (
           renderPullQuoteLayout()
+        ) : config.layoutStyle === 'feature-opener' ? (
+          renderFeatureOpenerLayout()
+        ) : config.layoutStyle === 'sidebar-rail' ? (
+          renderSidebarRailLayout()
+        ) : config.layoutStyle === 'byline-lede' ? (
+          renderBylineLedeLayout()
         ) : (
           renderClassicLayout()
         )}

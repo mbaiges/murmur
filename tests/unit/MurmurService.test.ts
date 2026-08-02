@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { MurmurService } from '../../src/domain/MurmurService'
 import { IRssFetcher } from '../../src/ports/IRssFetcher'
-import { IPhraseGenerator } from '../../src/ports/IPhraseGenerator'
+import { IPhraseGenerator, PhraseGenerationResult } from '../../src/ports/IPhraseGenerator'
 import { IWallpaperPainter } from '../../src/ports/IWallpaperPainter'
 import { IWallpaperRenderer } from '../../src/ports/IWallpaperRenderer'
 import { IConfigStore } from '../../src/ports/IConfigStore'
@@ -30,6 +30,16 @@ describe('MurmurService', () => {
     headlineSampleSize: 5,
     launchAtLogin: false,
     fontFamily: 'EB Garamond',
+    layoutStyle: 'centered',
+    textAlignment: 'center',
+    vignetteStyle: 'none',
+    audioFeedback: false,
+    systemPrompt: 'test prompt',
+    enableBold: true,
+    enableItalic: true,
+    enableNewlines: true,
+    enableDifferentFonts: false,
+    noiseIntensity: 'none',
     monitors: [
       { id: 'screen-1', enabled: true },
       { id: 'screen-2', enabled: false }
@@ -41,9 +51,19 @@ describe('MurmurService', () => {
     { title: 'Headline 2', source: 'Source 2', feedUrl: 'U2' }
   ]
 
+  const structuredResult: PhraseGenerationResult = {
+    schemaId: 'murmur.layout.simple.v1',
+    layoutStyle: 'centered',
+    rawJson: '{"schemaId":"murmur.layout.simple.v1","layoutStyle":"centered","payload":{"phrase":"surreal phrase"}}',
+    payload: { phrase: 'surreal phrase' }
+  }
+
   beforeEach(() => {
     rssMock = { fetchAll: vi.fn().mockResolvedValue(mockRssItems) }
-    aiMock = { generate: vi.fn().mockResolvedValue('surreal phrase') }
+    aiMock = {
+      generate: vi.fn().mockResolvedValue('surreal phrase'),
+      generateStructured: vi.fn().mockResolvedValue(structuredResult)
+    }
     painterMock = { paint: vi.fn().mockResolvedValue(Buffer.from('png-data')) }
     rendererMock = {
       getScreens: vi.fn().mockResolvedValue([
@@ -86,19 +106,47 @@ describe('MurmurService', () => {
     expect(rssMock.fetchAll).toHaveBeenCalledWith(mockConfig.feeds)
     expect(rendererMock.getScreens).toHaveBeenCalled()
 
-    expect(aiMock.generate).toHaveBeenCalledTimes(1)
+    expect(aiMock.generateStructured).toHaveBeenCalledTimes(1)
     expect(painterMock.paint).toHaveBeenCalledTimes(1)
     expect(rendererMock.set).toHaveBeenCalledWith('screen-1', expect.any(Buffer))
     expect(rendererMock.set).not.toHaveBeenCalledWith('screen-2', expect.any(Buffer))
 
-    expect(historyStoreMock.save).toHaveBeenCalledWith('screen-1', 'surreal phrase')
-    expect(trayMock.updateState).toHaveBeenCalledWith({
-      isPaused: false,
-      lastRefreshTime: expect.any(String),
-      lastPhrases: { 'screen-1': 'surreal phrase' },
-      lastHeadlines: { 'screen-1': ['Headline 1', 'Headline 2'] },
-      lastSources: { 'screen-1': ['Source 1', 'Source 2'] }
-    })
+    expect(historyStoreMock.save).toHaveBeenCalledWith('screen-1', structuredResult.rawJson)
+    expect(trayMock.updateState).toHaveBeenCalledWith(
+      expect.objectContaining({
+        isPaused: false,
+        lastPhrases: { 'screen-1': 'surreal phrase' },
+        lastContent: {
+          'screen-1': expect.objectContaining({
+            payload: { phrase: 'surreal phrase' }
+          })
+        }
+      })
+    )
+  })
+
+  it('preserves prior content when structured generation fails', async () => {
+    aiMock.generateStructured = vi.fn().mockRejectedValue(new Error('invalid'))
+    const previous = {
+      lastPhrases: { 'screen-1': 'kept phrase' },
+      lastContent: {
+        'screen-1': {
+          schemaId: 'murmur.layout.simple.v1',
+          layoutStyle: 'centered' as const,
+          payload: { phrase: 'kept phrase' }
+        }
+      }
+    }
+
+    await service.refresh(previous)
+
+    expect(historyStoreMock.save).not.toHaveBeenCalled()
+    expect(trayMock.updateState).toHaveBeenCalledWith(
+      expect.objectContaining({
+        lastPhrases: { 'screen-1': 'kept phrase' },
+        lastGenerationError: expect.stringContaining('failed')
+      })
+    )
   })
 
   it('bypasses refresh if API key is missing', async () => {
@@ -110,11 +158,12 @@ describe('MurmurService', () => {
     await service.refresh()
 
     expect(rssMock.fetchAll).not.toHaveBeenCalled()
-    expect(aiMock.generate).not.toHaveBeenCalled()
+    expect(aiMock.generateStructured).not.toHaveBeenCalled()
     expect(trayMock.updateState).toHaveBeenCalledWith({
       isPaused: false,
       lastRefreshTime: expect.any(String),
-      lastPhrases: {}
+      lastPhrases: {},
+      lastContent: {}
     })
   })
 
@@ -124,6 +173,6 @@ describe('MurmurService', () => {
     await service.refresh()
 
     expect(rendererMock.getScreens).not.toHaveBeenCalled()
-    expect(aiMock.generate).not.toHaveBeenCalled()
+    expect(aiMock.generateStructured).not.toHaveBeenCalled()
   })
 })

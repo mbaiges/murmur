@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { MurmurConfig, MurmurState, ThemeName, DEFAULT_SYSTEM_PROMPT, ABSURD_PROVERB_PROMPT, WORST_NEWS_TITLE_PROMPT, BEST_NEWS_TITLE_PROMPT, CYBERPUNK_TERMINAL_PROMPT, ZEN_KOAN_PROMPT, PARANOID_CONSPIRACY_PROMPT, EXISTENTIAL_DREAD_PROMPT, GOTHIC_PURPLE_PROSE_PROMPT } from '../domain/types'
 import { phraseToPlainText } from '../shared/phrasePlainText'
+import { parseHistoryEntry } from '../shared/layoutContentParse'
+import { layoutContentPreview } from '../shared/layoutContentPreview'
 import {
   MOOD_LINKED_PROMPT_PRESETS,
   STANDALONE_PROMPT_PRESETS,
@@ -20,6 +22,7 @@ export default function App() {
   const [newFeed, setNewFeed] = useState('')
   const [historyMonitorId, setHistoryMonitorId] = useState<string>('')
   const [historyPhrases, setHistoryPhrases] = useState<string[]>([])
+  const [historyViewMode, setHistoryViewMode] = useState<'preview' | 'raw'>('preview')
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   const [isRefreshing, setIsRefreshing] = useState(false)
 
@@ -62,10 +65,18 @@ export default function App() {
 
   // Auto-fetch history when active monitor changes
   useEffect(() => {
-    if (api && historyMonitorId) {
+    if (api && historyMonitorId && activeTab === 'history') {
       api.getHistory(historyMonitorId).then(setHistoryPhrases).catch(console.error)
     }
-  }, [historyMonitorId])
+  }, [historyMonitorId, activeTab])
+
+  useEffect(() => {
+    if (state?.lastGenerationError) {
+      setToast({ message: state.lastGenerationError, type: 'error' })
+      const timer = setTimeout(() => setToast(null), 6000)
+      return () => clearTimeout(timer)
+    }
+  }, [state?.lastGenerationError])
 
   // Setup default monitor selection for history tab
   useEffect(() => {
@@ -796,11 +807,14 @@ export default function App() {
                         <option value="split-spread">Split Spread (left / right halves)</option>
                         <option value="tabloid-stack">Tabloid Stack (headline + deck)</option>
                         <option value="pull-quote">Pull Quote (oversized margin quote)</option>
+                        <option value="feature-opener">Feature Opener (section + hero headline)</option>
+                        <option value="sidebar-rail">Sidebar Rail (main column + margin note)</option>
+                        <option value="byline-lede">Byline &amp; Lede (headline + credit + opening)</option>
                       </optgroup>
                     </select>
                     <p className="text-[10px] text-slate-500 mt-1.5 leading-relaxed">
-                      Magazine layouts use editorial grids: split spread mirrors a two-page headline, tabloid stack separates
-                      display line from standfirst, pull quote emphasizes one line like a feature break.
+                      Magazine layouts use editorial grids: split spread, tabloid stack, pull quote, feature opener,
+                      sidebar rail, and byline/lede — each with structured AI fields.
                     </p>
                   </div>
                   </div>
@@ -1091,16 +1105,43 @@ export default function App() {
 
                   {/* History List */}
                   <div className="space-y-3">
-                    <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Historical Phrases</h4>
+                    <div className="flex items-center justify-between gap-4">
+                      <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Historical Phrases</h4>
+                      <div className="flex rounded-lg border border-slate-700 overflow-hidden text-xs">
+                        <button
+                          type="button"
+                          onClick={() => setHistoryViewMode('preview')}
+                          className={`px-3 py-1.5 font-semibold transition-colors ${historyViewMode === 'preview' ? 'bg-indigo-950 text-indigo-300' : 'bg-slate-950 text-slate-400 hover:text-slate-200'}`}
+                        >
+                          Preview
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setHistoryViewMode('raw')}
+                          className={`px-3 py-1.5 font-semibold transition-colors ${historyViewMode === 'raw' ? 'bg-indigo-950 text-indigo-300' : 'bg-slate-950 text-slate-400 hover:text-slate-200'}`}
+                        >
+                          Raw JSON
+                        </button>
+                      </div>
+                    </div>
                     
                     {historyPhrases.length > 0 ? (
                       <div className="space-y-2">
-                        {historyPhrases.map((phrase, i) => (
+                        {historyPhrases.map((entry, i) => {
+                          const envelope = parseHistoryEntry(entry, config?.layoutStyle ?? 'centered')
+                          const preview = layoutContentPreview(envelope)
+                          const raw = JSON.stringify(envelope.payload, null, 2)
+                          return (
                           <div key={i} className="flex space-x-3 p-3 bg-slate-950 border border-slate-800 rounded-lg text-sm">
-                            <span className="text-indigo-400 font-mono text-xs mt-0.5">#{i+1}</span>
-                            <span className="text-slate-200 italic">"{phraseToPlainText(phrase)}"</span>
+                            <span className="text-indigo-400 font-mono text-xs mt-0.5 shrink-0">#{i+1}</span>
+                            {historyViewMode === 'preview' ? (
+                              <span className="text-slate-200 italic">"{preview}"</span>
+                            ) : (
+                              <pre className="text-slate-300 font-mono text-xs whitespace-pre-wrap overflow-x-auto flex-1">{raw}</pre>
+                            )}
                           </div>
-                        ))}
+                          )
+                        })}
                       </div>
                     ) : (
                       <div className="py-6 text-center text-slate-500 text-sm italic">

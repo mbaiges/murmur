@@ -24,8 +24,16 @@ configureAppBranding()
 
 // Disable GPU acceleration globally to allow Electron windows to render reliably inside WorkerW
 app.disableHardwareAcceleration()
+import { buildE2eStructuredResult, E2eStructuredDemoFixtures } from '../shared/e2eStructuredPhraseStub'
+import { parseHistoryEntry } from '../shared/layoutContentParse'
+import { payloadToPlainSummary } from '../shared/payloadToPlainSummary'
+import { getLayoutContentSpec } from '../shared/layoutContentSpecs'
 import { IPhraseGenerator } from '../ports/IPhraseGenerator'
 import { IWallpaperRenderer } from '../ports/IWallpaperRenderer'
+
+function isMurmurE2eMode(): boolean {
+  return process.env.MURMUR_E2E === 'true' || process.argv.includes('--murmur-e2e')
+}
 
 let settingsWindow: BrowserWindow | null = null
 const bgWindows = new Map<string, BrowserWindow>()
@@ -37,6 +45,7 @@ let state: MurmurState = {
   isPaused: false,
   lastRefreshTime: undefined,
   lastPhrases: {},
+  lastContent: {},
   lastHeadlines: {},
   lastSources: {}
 }
@@ -64,6 +73,9 @@ let phraseGenerator: IPhraseGenerator
 let wallpaperRenderer: IWallpaperRenderer
 
 function loadE2eFixturePhrase(): string | null {
+  if (process.env.MURMUR_E2E_REUSE_CAPTURED_PHRASE !== 'true') {
+    return null
+  }
   const fixturePath =
     process.env.MURMUR_E2E_FIXTURE_PHRASE_PATH ||
     join(process.cwd(), 'tests/e2e/fixtures/captured-phrase.json')
@@ -78,12 +90,35 @@ function loadE2eFixturePhrase(): string | null {
   }
 }
 
-if (process.env.MURMUR_E2E === 'true') {
+function loadE2eSemanticsDemo(): E2eStructuredDemoFixtures | null {
+  if (process.env.MURMUR_E2E_SEMANTICS_DEMO !== 'true') {
+    return null
+  }
+  const fixturePath =
+    process.env.MURMUR_E2E_SEMANTICS_DEMO_PATH ||
+    join(process.cwd(), 'tests/e2e/fixtures/structured-semantics-demo.json')
+  if (!existsSync(fixturePath)) {
+    return null
+  }
+  try {
+    const parsed = JSON.parse(readFileSync(fixturePath, 'utf8')) as {
+      layouts?: E2eStructuredDemoFixtures
+    }
+    return parsed.layouts ?? null
+  } catch {
+    return null
+  }
+}
+
+if (isMurmurE2eMode()) {
   const fixturePhrase = loadE2eFixturePhrase()
+  const semanticsDemo = loadE2eSemanticsDemo()
   console.log(
-    fixturePhrase
-      ? 'MURMUR: E2E mode with captured fixture phrase (no live Gemini on layout changes)'
-      : 'MURMUR: Running in Playwright E2E Mode with stubs'
+    semanticsDemo
+      ? 'MURMUR: E2E semantics demo fixtures (structured fields vs legacy heuristics)'
+      : fixturePhrase
+        ? 'MURMUR: E2E mode with captured fixture phrase (no live Gemini on layout changes)'
+        : 'MURMUR: Running in Playwright E2E Mode with stubs'
   )
   rssFetcher = {
     fetchAll: async () => [
@@ -92,7 +127,9 @@ if (process.env.MURMUR_E2E === 'true') {
     ]
   }
   phraseGenerator = {
-    generate: async () => fixturePhrase || 'stubbed surreal phrase'
+    generate: async () => fixturePhrase || 'stubbed surreal phrase',
+    generateStructured: async (request) =>
+      buildE2eStructuredResult(request, fixturePhrase, semanticsDemo ?? undefined)
   }
   wallpaperRenderer = {
     getScreens: async () => [{ id: 'stub-monitor', width: 800, height: 600 }],
@@ -129,7 +166,7 @@ const murmurService = new MurmurService(
 
 const scheduler = new Scheduler(async () => {
   if (state.isPaused) return
-  await murmurService.refresh()
+  await murmurService.refresh({ lastContent: state.lastContent, lastPhrases: state.lastPhrases })
 })
 
 function showSettingsWindow() {
@@ -313,7 +350,7 @@ function setupIpc() {
         await murmurService.updateClockWallpapers(state)
       }
       if (appearanceChanged) {
-        await murmurService.refresh()
+        await murmurService.refresh({ lastContent: state.lastContent, lastPhrases: state.lastPhrases })
       } else if (newConfig.animation !== 'Instant') {
         await murmurService.updateClockWallpapers(state)
       }
@@ -322,7 +359,9 @@ function setupIpc() {
 
   ipcMain.handle('history:get', (_event, monitorId) => historyStore.get(monitorId))
   ipcMain.handle('history:clear', (_event, monitorId) => historyStore.clear(monitorId))
-  ipcMain.handle('action:refresh', () => murmurService.refresh())
+  ipcMain.handle('action:refresh', () =>
+    murmurService.refresh({ lastContent: state.lastContent, lastPhrases: state.lastPhrases })
+  )
   ipcMain.handle('action:previewTheme', (_event, monitorId, theme) =>
     murmurService.previewTheme(monitorId, theme)
   )
@@ -345,10 +384,18 @@ app.whenReady().then(async () => {
 
     const configTemp = await configStore.get()
     const shouldSpawnBg = configTemp.animation !== 'Instant' || process.platform === 'darwin'
+    const layoutForHistory = configTemp.layoutStyle
 
     for (const s of screens) {
       const history = await historyStore.get(s.id)
-      initialPhrases[s.id] = history[0] || ''
+      const raw = history[0] || ''
+      if (raw) {
+        const envelope = parseHistoryEntry(raw, layoutForHistory)
+        initialPhrases[s.id] = payloadToPlainSummary(getLayoutContentSpec(envelope.layoutStyle), envelope.payload)
+        state.lastContent[s.id] = envelope
+      } else {
+        initialPhrases[s.id] = ''
+      }
       if (shouldSpawnBg) {
         const display = displays.find((d) => String(d.id) === s.id) || displays[0]
         const bounds = display ? display.bounds : { x: 0, y: 0, width: 1920, height: 1080 }
@@ -357,7 +404,8 @@ app.whenReady().then(async () => {
     }
     state = {
       ...state,
-      lastPhrases: initialPhrases
+      lastPhrases: initialPhrases,
+      lastContent: { ...state.lastContent }
     }
   } catch (err) {
     console.error('Failed to pre-initialize active screens and background windows', err)
@@ -379,7 +427,7 @@ app.whenReady().then(async () => {
 
   trayAdapter.init(
     async () => {
-      await murmurService.refresh()
+      await murmurService.refresh({ lastContent: state.lastContent, lastPhrases: state.lastPhrases })
     },
     () => {
       showSettingsWindow()
@@ -397,13 +445,13 @@ app.whenReady().then(async () => {
     })
   }
 
-  if (config.geminiApiKey || process.env.MURMUR_E2E === 'true') {
+  if (config.geminiApiKey || isMurmurE2eMode()) {
     scheduler.start(config.refreshIntervalMinutes)
   }
   
   startClockScheduler()
 
-  if (!app.isPackaged || !config.geminiApiKey || process.env.MURMUR_E2E === 'true') {
+  if (!app.isPackaged || !config.geminiApiKey || isMurmurE2eMode()) {
     showSettingsWindow()
   }
 })
@@ -422,7 +470,7 @@ app.on('before-quit', async (event) => {
     isQuitting = true
     try {
       const shouldRestore =
-        process.env.MURMUR_E2E !== 'true' &&
+        !isMurmurE2eMode() &&
         (app.isPackaged || userRequestedWallpaperRestore)
       if (shouldRestore) {
         console.log('Restoring original wallpapers before quit...')

@@ -11,6 +11,9 @@ export type LayoutStyleName =
   | 'split-spread'
   | 'tabloid-stack'
   | 'pull-quote'
+  | 'feature-opener'
+  | 'sidebar-rail'
+  | 'byline-lede'
 
 export const DEFAULT_SYSTEM_PROMPT = `You are a surrealist poet and conceptual artist.
 Given a list of recent headlines from different news sources, create a single short, surreal, nonsense phrase in the style of a traditional folk saying or proverb.
@@ -56,6 +59,26 @@ Guidelines:
 1. Find connections between different news stories and blend them to sound like a major positive breakthrough or triumph.
 2. Avoid sarcasm; make it sound genuinely inspiring, clean, and professional.
 3. Keep it concise, engaging, and hopeful.`
+
+export const REAL_BEST_NEWS_PROMPT = `You are a careful news editor, not a creative writer.
+You receive a list of recent headlines (each tagged with its source). Your job is to choose exactly ONE headline from that list that is the most genuinely good, hopeful, or positive story among them.
+
+Guidelines:
+1. Select a single headline that already appears in the input list. Do NOT merge, remix, or invent a new story.
+2. Stay truthful to the chosen headline: preserve its core facts and wording. You may trim length slightly for display, but do not add claims, quotes, or details that are not in that headline.
+3. Do NOT combine multiple headlines. Do NOT write surreal poetry, proverbs, or clickbait.
+4. If none of the headlines are clearly positive, pick the least bad or most neutrally constructive one and present it faithfully.
+5. Output only the chosen headline text (no preamble, no explanation, no source prefix unless it was part of the headline text you selected).`
+
+export const REAL_WORST_NEWS_PROMPT = `You are a careful news editor, not a creative writer.
+You receive a list of recent headlines (each tagged with its source). Your job is to choose exactly ONE headline from that list that is the most genuinely bad, alarming, tragic, or negative story among them.
+
+Guidelines:
+1. Select a single headline that already appears in the input list. Do NOT merge, remix, or invent a new story.
+2. Stay truthful to the chosen headline: preserve its core facts and wording. You may trim length slightly for display, but do not add claims, quotes, or sensational embellishments that are not in that headline.
+3. Do NOT combine multiple headlines. Do NOT write surreal poetry, proverbs, or satirical clickbait.
+4. If none are strongly negative, pick the most concerning or serious one by plain news judgment and present it faithfully.
+5. Output only the chosen headline text (no preamble, no explanation, no source prefix unless it was part of the headline text you selected).`
 
 export const CYBERPUNK_TERMINAL_PROMPT = `You are a rogue cyberpunk terminal AI interface.
 Given a list of recent headlines, format a single short, cryptic system log message, diagnostic output, or megacorporation security alert. It should sound highly technical, futuristic, and slightly alarming.
@@ -141,8 +164,15 @@ export interface RssItem {
   feedUrl: string
 }
 
+export interface LayoutContentEnvelope {
+  schemaId: string
+  layoutStyle: LayoutStyleName
+  payload: Record<string, string>
+}
+
 export interface PaintOptions {
   phrase: string
+  layoutContent?: LayoutContentEnvelope
   theme: ThemeName
   fontFamily: string
   animation: AnimationName
@@ -166,6 +196,8 @@ export interface MurmurState {
   isPaused: boolean
   lastRefreshTime?: string
   lastPhrases: Record<string, string>
+  lastContent: Record<string, LayoutContentEnvelope>
   lastHeadlines?: Record<string, string[]>
   lastSources?: Record<string, string[]>
+  lastGenerationError?: string
 }

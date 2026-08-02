@@ -1,6 +1,6 @@
 # RFC: Structured phrase generation per layout
 
-**Status:** Approved (implementation pending explicit “let’s do it”)  
+**Status:** Implemented (see `docs/features/structured-phrase-generation/`)  
 **Branch context:** `feature/macos-integration`
 
 ## Problem

@@ -673,6 +673,31 @@ export class NodeCanvasWallpaperPainterAdapter implements IWallpaperPainter {
 
     // Magazine split spread: headline halves on left and right pages
     if (options.layoutStyle === 'split-spread') {
+      const content = options.layoutContent
+      if (
+        content?.layoutStyle === 'split-spread' &&
+        content.payload.left &&
+        content.payload.right
+      ) {
+        const left = this.compileToStyledChars(content.payload.left, font, formatFlags)
+        const right = this.compileToStyledChars(content.payload.right, font, formatFlags)
+        const leftLines = this.wrapStyledChars(ctx, left, width * 0.38, baseFontSize * 1.05)
+        const rightLines = this.wrapStyledChars(ctx, right, width * 0.38, baseFontSize * 1.05)
+        const leftX = width * 0.12
+        const rightX = width * 0.88
+        let yLeft = height / 2 - ((leftLines.length * lineHeight) / 2) + lineHeight / 2
+        let yRight = height / 2 - ((rightLines.length * lineHeight) / 2) + lineHeight / 2
+        leftLines.forEach((line) => {
+          this.drawStyledLine(ctx, line, leftX, yLeft + driftY, 'left', baseFontSize * 1.05, textColor, textAlpha)
+          yLeft += lineHeight
+        })
+        rightLines.forEach((line) => {
+          this.drawStyledLine(ctx, line, rightX, yRight + driftY, 'right', baseFontSize * 1.05, textColor, textAlpha)
+          yRight += lineHeight
+        })
+        return
+      }
+
       const flatChars = phraseLines.flat()
       const { left, right } = splitFlatCharsAtWordMidpoint(flatChars)
       const leftLines = this.wrapStyledChars(ctx, left, width * 0.38, baseFontSize * 1.05)
@@ -696,6 +721,38 @@ export class NodeCanvasWallpaperPainterAdapter implements IWallpaperPainter {
 
     // Tabloid: display headline + smaller deck (standfirst)
     if (options.layoutStyle === 'tabloid-stack') {
+      const content = options.layoutContent
+      if (content?.layoutStyle === 'tabloid-stack' && content.payload.headline) {
+        const headlineChars = this.compileToStyledChars(content.payload.headline, font, formatFlags)
+        const deckChars = content.payload.deck
+          ? this.compileToStyledChars(content.payload.deck, font, formatFlags)
+          : []
+        const headlineSize = Math.round(baseFontSize * 1.35)
+        const deckSize = Math.round(baseFontSize * 0.72)
+        const headlineLines = this.wrapStyledChars(ctx, headlineChars, width * 0.75, headlineSize)
+        const deckLines = deckChars.length
+          ? this.wrapStyledChars(ctx, deckChars, width * 0.55, deckSize)
+          : []
+        const blockHeight =
+          headlineLines.length * lineHeight * 1.1 + (deckLines.length ? deckLines.length * lineHeight * 0.95 + 28 : 0)
+        let y = height / 2 - blockHeight / 2 + lineHeight / 2
+        headlineLines.forEach((line) => {
+          this.drawStyledLine(ctx, line, width / 2, y + driftY, 'center', headlineSize, textColor, textAlpha)
+          y += lineHeight * 1.1
+        })
+        if (deckLines.length) {
+          y += 12
+          deckLines.forEach((line) => {
+            ctx.save()
+            ctx.globalAlpha = textAlpha * 0.55
+            this.drawStyledLine(ctx, line, width / 2, y + driftY, 'center', deckSize, textColor, textAlpha)
+            ctx.restore()
+            y += lineHeight * 0.95
+          })
+        }
+        return
+      }
+
       const plain = phraseToPlainText(options.phrase)
       const { headline, deck } = splitPlainPhraseHeadlineDeck(plain)
       const headlineChars = this.compileToStyledChars(headline, font, formatFlags)
@@ -726,8 +783,183 @@ export class NodeCanvasWallpaperPainterAdapter implements IWallpaperPainter {
       return
     }
 
+    // Feature opener: section label + hero headline + deck
+    if (options.layoutStyle === 'feature-opener') {
+      const content = options.layoutContent
+      if (content?.layoutStyle === 'feature-opener' && content.payload.headline) {
+        const headlineChars = this.compileToStyledChars(content.payload.headline, font, formatFlags)
+        const deckChars = content.payload.deck
+          ? this.compileToStyledChars(content.payload.deck, font, formatFlags)
+          : []
+        const headlineSize = Math.round(baseFontSize * 1.55)
+        const deckSize = Math.round(baseFontSize * 0.78)
+        const headlineLines = this.wrapStyledChars(ctx, headlineChars, width * 0.72, headlineSize)
+        const deckLines = deckChars.length
+          ? this.wrapStyledChars(ctx, deckChars, width * 0.55, deckSize)
+          : []
+        let blockH =
+          headlineLines.length * lineHeight * 1.05 +
+          (content.payload.section ? 28 : 0) +
+          (deckLines.length ? deckLines.length * lineHeight * 0.95 + 20 : 0)
+        let y = height / 2 - blockH / 2 + lineHeight / 2
+        const leftX = width * 0.14
+        if (content.payload.section) {
+          ctx.save()
+          ctx.globalAlpha = textAlpha * 0.5
+          ctx.font = `${Math.round(baseFontSize * 0.45)}px sans-serif`
+          ctx.fillStyle = textColor
+          ctx.textAlign = 'left'
+          ctx.textBaseline = 'middle'
+          ctx.fillText(content.payload.section.toUpperCase(), leftX, y)
+          ctx.restore()
+          y += 14
+          ctx.save()
+          ctx.strokeStyle = textColor
+          ctx.globalAlpha = 0.25 * textAlpha
+          ctx.lineWidth = 1
+          ctx.beginPath()
+          ctx.moveTo(leftX, y)
+          ctx.lineTo(leftX + 56, y)
+          ctx.stroke()
+          ctx.restore()
+          y += 18
+        }
+        headlineLines.forEach((line) => {
+          this.drawStyledLine(ctx, line, leftX, y + driftY, 'left', headlineSize, textColor, textAlpha)
+          y += lineHeight * 1.05
+        })
+        if (deckLines.length) {
+          y += 10
+          deckLines.forEach((line) => {
+            ctx.save()
+            ctx.globalAlpha = textAlpha * 0.55
+            this.drawStyledLine(ctx, line, leftX, y + driftY, 'left', deckSize, textColor, textAlpha)
+            ctx.restore()
+            y += lineHeight * 0.95
+          })
+        }
+        return
+      }
+    }
+
+    // Sidebar rail: wide main + narrow margin column
+    if (options.layoutStyle === 'sidebar-rail') {
+      const content = options.layoutContent
+      if (content?.layoutStyle === 'sidebar-rail' && content.payload.main && content.payload.sidebar) {
+        const mainChars = this.compileToStyledChars(content.payload.main, font, formatFlags)
+        const sidebarChars = this.compileToStyledChars(content.payload.sidebar, font, formatFlags)
+        const mainSize = Math.round(baseFontSize * 1.12)
+        const sidebarSize = Math.round(baseFontSize * 0.68)
+        const mainLines = this.wrapStyledChars(ctx, mainChars, width * 0.42, mainSize)
+        const sidebarLines = this.wrapStyledChars(ctx, sidebarChars, width * 0.22, sidebarSize)
+        const mainX = width * 0.12
+        const sidebarX = width * 0.68
+        const maxLines = Math.max(mainLines.length, sidebarLines.length)
+        const blockH = maxLines * lineHeight
+        let y = height / 2 - blockH / 2 + lineHeight / 2
+        ctx.save()
+        ctx.strokeStyle = textColor
+        ctx.globalAlpha = 0.25 * textAlpha
+        ctx.lineWidth = 3
+        ctx.beginPath()
+        ctx.moveTo(sidebarX - 16, y - lineHeight * 0.3)
+        ctx.lineTo(sidebarX - 16, y + blockH)
+        ctx.stroke()
+        ctx.restore()
+        for (let i = 0; i < maxLines; i++) {
+          if (mainLines[i]) {
+            this.drawStyledLine(ctx, mainLines[i], mainX, y + driftY, 'left', mainSize, textColor, textAlpha)
+          }
+          if (sidebarLines[i]) {
+            ctx.save()
+            ctx.globalAlpha = textAlpha * 0.6
+            this.drawStyledLine(ctx, sidebarLines[i], sidebarX, y + driftY, 'left', sidebarSize, textColor, textAlpha)
+            ctx.restore()
+          }
+          y += lineHeight
+        }
+        return
+      }
+    }
+
+    // Byline + lede: headline, credit, opening paragraph
+    if (options.layoutStyle === 'byline-lede') {
+      const content = options.layoutContent
+      if (content?.layoutStyle === 'byline-lede' && content.payload.headline && content.payload.lede) {
+        const headlineChars = this.compileToStyledChars(content.payload.headline, font, formatFlags)
+        const ledeChars = this.compileToStyledChars(content.payload.lede, font, formatFlags)
+        const headlineSize = Math.round(baseFontSize * 1.22)
+        const ledeSize = Math.round(baseFontSize * 0.82)
+        const headlineLines = this.wrapStyledChars(ctx, headlineChars, width * 0.55, headlineSize)
+        const ledeLines = this.wrapStyledChars(ctx, ledeChars, width * 0.52, ledeSize)
+        let blockH =
+          headlineLines.length * lineHeight * 1.05 +
+          (content.payload.byline ? 22 : 0) +
+          ledeLines.length * lineHeight * 1.02 +
+          12
+        let y = height / 2 - blockH / 2 + lineHeight / 2
+        const leftX = width * 0.16
+        headlineLines.forEach((line) => {
+          this.drawStyledLine(ctx, line, leftX, y + driftY, 'left', headlineSize, textColor, textAlpha)
+          y += lineHeight * 1.05
+        })
+        if (content.payload.byline) {
+          y += 8
+          ctx.save()
+          ctx.globalAlpha = textAlpha * 0.45
+          ctx.font = `${Math.round(baseFontSize * 0.5)}px sans-serif`
+          ctx.fillStyle = textColor
+          ctx.textAlign = 'left'
+          ctx.textBaseline = 'middle'
+          ctx.fillText(content.payload.byline, leftX, y)
+          ctx.restore()
+          y += 14
+          ctx.save()
+          ctx.strokeStyle = textColor
+          ctx.globalAlpha = 0.2 * textAlpha
+          ctx.lineWidth = 1
+          ctx.beginPath()
+          ctx.moveTo(leftX, y)
+          ctx.lineTo(leftX + Math.min(192, width * 0.2), y)
+          ctx.stroke()
+          ctx.restore()
+          y += 16
+        }
+        y += 6
+        ledeLines.forEach((line) => {
+          this.drawStyledLine(ctx, line, leftX, y + driftY, 'left', ledeSize, textColor, textAlpha * 0.92)
+          y += lineHeight * 1.02
+        })
+        return
+      }
+    }
+
     // Pull quote: oversized line with vertical rule
     if (options.layoutStyle === 'pull-quote') {
+      const content = options.layoutContent
+      if (content?.layoutStyle === 'pull-quote' && content.payload.quote) {
+        const quoteChars = this.compileToStyledChars(content.payload.quote, font, formatFlags)
+        const quoteLines = this.wrapStyledChars(ctx, quoteChars, width * 0.62, baseFontSize * 1.25)
+        const totalH = quoteLines.length * lineHeight * 1.15
+        let y = height / 2 - totalH / 2 + lineHeight / 2
+        const ruleX = width * 0.22
+        const textX = width * 0.26
+        ctx.save()
+        ctx.strokeStyle = textColor
+        ctx.globalAlpha = 0.35 * textAlpha
+        ctx.lineWidth = 4
+        ctx.beginPath()
+        ctx.moveTo(ruleX, y - lineHeight / 2)
+        ctx.lineTo(ruleX, y + totalH - lineHeight)
+        ctx.stroke()
+        ctx.restore()
+        quoteLines.forEach((line) => {
+          this.drawStyledLine(ctx, line, textX, y + driftY, 'left', baseFontSize * 1.25, textColor, textAlpha)
+          y += lineHeight * 1.15
+        })
+        return
+      }
+
       const flatChars = phraseLines.flat()
       const quoteLines = this.wrapStyledChars(ctx, flatChars, width * 0.62, baseFontSize * 1.25)
       const totalH = quoteLines.length * lineHeight * 1.15

@@ -98,7 +98,7 @@ For realistic layout screenshots without burning quota on every layout change:
 3. Tests relaunch with `MURMUR_E2E=true`, `MURMUR_E2E_REUSE_CAPTURED_PHRASE=true`, and a stub generator that returns the fixture text.
 4. `shouldRegeneratePhraseAfterConfigSave()` in `appearanceRegenerate.ts` treats **layout-only** changes as re-render, not a new `refresh()`.
 
-Main process loads the fixture in `loadE2eFixturePhrase()` when `MURMUR_E2E_FIXTURE_PHRASE_PATH` is set.
+Main process loads the fixture in `loadE2eFixturePhrase()` when `MURMUR_E2E_FIXTURE_PHRASE_PATH` is set **and** `MURMUR_E2E_REUSE_CAPTURED_PHRASE=true` (default E2E uses built-in structured stubs only).
 
 ### E2E helpers
 
@@ -129,11 +129,18 @@ Main process loads the fixture in `loadE2eFixturePhrase()` when `MURMUR_E2E_FIXT
 3. **New layout** — extend `LayoutStyleName` + Zod schema, `WallpaperView` + canvas painter, Appearance `<select>`, E2E with `data-testid` + screenshot under `magazine-layouts-*` or similar.  
 4. **Config migration** — `JsonConfigStoreAdapter.get()` with dirty write-back (see Clickbait Instant → Fade).
 
+## Structured phrase content
+
+Layout-aware generation lives in `src/shared/layoutContentSpecs.ts` (registry), `layoutSpecToZod.ts`, `StructuredPhrasePromptBuilder.ts`, and `MurmurService` calls `IPhraseGenerator.generateStructured`. State carries `lastContent` per monitor; history stores JSON strings (legacy plain strings still parse on read). E2E stubs use `buildE2eStructuredResult` in `src/shared/e2eStructuredPhraseStub.ts`.
+
+Product/engineering specs: [docs/features/structured-phrase-generation/](features/structured-phrase-generation/).
+
 ## Related docs
 
 | Doc | Purpose |
 |-----|---------|
 | [agent-skills-setup.md](agent-skills-setup.md) | Local [open-agent-skills](https://github.com/mbaiges/open-agent-skills) clone under `.agentic/` |
-| [rfc-structured-phrase-generation.md](rfc-structured-phrase-generation.md) | Layout-scoped JSON generation (approved, pending implementation) |
+| [rfc-structured-phrase-generation.md](rfc-structured-phrase-generation.md) | Layout-scoped JSON generation (superseded by feature specs for delivery) |
+| [features/structured-phrase-generation/functional-spec.md](features/structured-phrase-generation/functional-spec.md) | Locked product AC |
 
 When in doubt, prefer **small diffs**, **match existing adapter/UI patterns**, and **pair renderer + canvas** for anything visible on the wallpaper.

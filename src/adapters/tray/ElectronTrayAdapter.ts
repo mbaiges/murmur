@@ -21,7 +21,7 @@ export class ElectronTrayAdapter implements ISystemTray {
   private onRefresh: (() => Promise<void>) | null = null
   private onSettings: (() => void) | null = null
   private onQuit: (() => void) | null = null
-  private state: MurmurState = { isPaused: false, lastPhrases: {} }
+  private state: MurmurState = { isPaused: false, lastPhrases: {}, lastContent: {} }
 
   public init(
     onRefresh: () => Promise<void>,

@@ -1,41 +1,14 @@
 import { GoogleGenAI } from '@google/genai'
-import { IPhraseGenerator } from '../../ports/IPhraseGenerator'
+import { IPhraseGenerator, PhraseGenerationRequest, PhraseGenerationResult } from '../../ports/IPhraseGenerator'
 import { IConfigStore } from '../../ports/IConfigStore'
 import { phraseToPlainText } from '../../shared/phrasePlainText'
 import { buildPhraseFormattingRules } from '../../shared/geminiFormattingRules'
-
-function isValidPoemSyntax(phrase: string): boolean {
-  if (!phrase) return false
-
-  const boldCount = phrase.split('**').length - 1
-  if (boldCount % 2 !== 0) return false
-
-  const withoutBold = phrase.replace(/\*\*/g, '')
-  const italicCount = withoutBold.split('*').length - 1
-  if (italicCount % 2 !== 0) return false
-
-  const codeCount = phrase.split('`').length - 1
-  if (codeCount % 2 !== 0) return false
-
-  const openMatches = phrase.match(/\[font:/g) || []
-  const closeMatches = phrase.match(/\[\/font\]/g) || []
-  if (openMatches.length !== closeMatches.length) return false
-
-  const fontRegex = /\[font:([^\]]+)\]/g
-  let match
-  const allowedFonts = ['EB Garamond', 'Playfair Display', 'Outfit', 'Garamond Bold', 'Monospace']
-  while ((match = fontRegex.exec(phrase)) !== null) {
-    if (!allowedFonts.includes(match[1])) {
-      return false
-    }
-  }
-
-  if (phrase.includes('`[font:') || phrase.includes('`[/font]')) {
-    return false
-  }
-
-  return true
-}
+import { buildStructuredPhrasePrompt } from '../../shared/StructuredPhrasePromptBuilder'
+import { validateLayoutPayload } from '../../shared/layoutSpecToZod'
+import { isValidPoemSyntax, validateMarkdownFields } from '../../shared/phraseSyntaxValidation'
+import { getLayoutContentSpec } from '../../shared/layoutContentSpecs'
+import { envelopeToRawJson } from '../../shared/layoutContentParse'
+import { LayoutContentEnvelope } from '../../domain/types'
 
 export class GeminiPhraseGeneratorAdapter implements IPhraseGenerator {
   constructor(private readonly configStore: IConfigStore) {}
@@ -52,12 +25,32 @@ export class GeminiPhraseGeneratorAdapter implements IPhraseGenerator {
   }
 
   public async generate(headlines: string[], language: string): Promise<string> {
-    const ai = await this.getClient()
     const config = await this.configStore.get()
+    const spec = getLayoutContentSpec(config.layoutStyle)
+    const result = await this.generateStructured({
+      headlines,
+      language,
+      systemPrompt: config.systemPrompt,
+      contentSpec: spec,
+      formatFlags: {
+        enableBold: config.enableBold,
+        enableItalic: config.enableItalic,
+        enableNewlines: config.enableNewlines,
+        enableDifferentFonts: config.enableDifferentFonts
+      }
+    })
+    return result.payload.phrase ?? Object.values(result.payload)[0] ?? ''
+  }
 
-    const basePrompt = config.systemPrompt.trim()
-    const formattingRules = buildPhraseFormattingRules(config)
-    const prompt = `${basePrompt}${formattingRules}\nRespond in the language requested: "${language}". If "${language}" is "auto", detect and match the dominant language of the input headlines.\nReturn ONLY the generated phrase. Do NOT wrap in outer quotation marks, and do not include explanation or prefixes.\nDo NOT end with a period.\n\nHeadlines:\n${headlines.map((h) => `- ${h}`).join('\n')}`
+  public async generateStructured(request: PhraseGenerationRequest): Promise<PhraseGenerationResult> {
+    const ai = await this.getClient()
+    const prompt = buildStructuredPhrasePrompt(
+      request.contentSpec,
+      request.headlines,
+      request.language,
+      request.systemPrompt,
+      request.formatFlags
+    )
 
     const maxAttempts = 5
     let lastResponseText = ''
@@ -72,11 +65,43 @@ export class GeminiPhraseGeneratorAdapter implements IPhraseGenerator {
         const text = (response.text || '').trim()
         lastResponseText = text
 
-        if (isValidPoemSyntax(text)) {
-          return text
+        const jsonText = extractJsonObject(text)
+        if (!jsonText) {
+          console.warn(`GeminiPhraseGeneratorAdapter: Attempt ${attempt} missing JSON object`)
+          continue
         }
 
-        console.warn(`GeminiPhraseGeneratorAdapter: Attempt ${attempt} returned invalid syntax: "${text}". Retrying...`)
+        let parsed: unknown
+        try {
+          parsed = JSON.parse(jsonText)
+        } catch {
+          console.warn(`GeminiPhraseGeneratorAdapter: Attempt ${attempt} invalid JSON`)
+          continue
+        }
+
+        const validated = validateLayoutPayload(request.contentSpec, parsed)
+        if (!validated.success) {
+          console.warn(`GeminiPhraseGeneratorAdapter: Attempt ${attempt} schema fail: ${validated.error}`)
+          continue
+        }
+
+        if (!validateMarkdownFields(request.contentSpec, validated.payload)) {
+          console.warn(`GeminiPhraseGeneratorAdapter: Attempt ${attempt} invalid markdown in payload`)
+          continue
+        }
+
+        const envelope: LayoutContentEnvelope = {
+          schemaId: request.contentSpec.schemaId,
+          layoutStyle: request.contentSpec.layoutStyle,
+          payload: validated.payload
+        }
+
+        return {
+          schemaId: request.contentSpec.schemaId,
+          layoutStyle: request.contentSpec.layoutStyle,
+          rawJson: envelopeToRawJson(envelope),
+          payload: validated.payload
+        }
       } catch (error) {
         console.error(`GeminiPhraseGeneratorAdapter: Attempt ${attempt} generation failed:`, error)
         if (attempt === maxAttempts) {
@@ -85,7 +110,24 @@ export class GeminiPhraseGeneratorAdapter implements IPhraseGenerator {
       }
     }
 
-    console.warn(`GeminiPhraseGeneratorAdapter: All ${maxAttempts} attempts generated invalid syntax. Falling back to plain text.`)
-    return phraseToPlainText(lastResponseText)
+    throw new Error(
+      `GeminiPhraseGeneratorAdapter: Could not produce valid structured content after ${maxAttempts} attempts. Last: ${phraseToPlainText(lastResponseText).slice(0, 80)}`
+    )
   }
 }
+
+function extractJsonObject(text: string): string | null {
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i)
+  if (fenced?.[1]) {
+    return fenced[1].trim()
+  }
+  const start = text.indexOf('{')
+  const end = text.lastIndexOf('}')
+  if (start >= 0 && end > start) {
+    return text.slice(start, end + 1)
+  }
+  return null
+}
+
+/** @deprecated exported for legacy tests referencing poem syntax */
+export { isValidPoemSyntax }

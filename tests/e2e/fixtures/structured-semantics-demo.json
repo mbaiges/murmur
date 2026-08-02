@@ -1,0 +1,22 @@
+{
+  "description": "Deterministic structured payloads for E2E semantics demo (not live Gemini). Old pipeline would split one string heuristically; these fields are clause-complete.",
+  "fullPhraseIfLegacy": "The early bird catches the worm but the worm catches the early bird",
+  "layouts": {
+    "split-spread": {
+      "left": "The early bird catches the worm",
+      "right": "but the worm catches the early bird"
+    },
+    "tabloid-stack": {
+      "headline": "THE WORM CATCHES BACK",
+      "deck": "The early bird catches the worm — then roles reverse",
+      "kicker": "Surreal Dispatch"
+    },
+    "pull-quote": {
+      "quote": "The **early bird** catches the worm but the *worm* catches the bird",
+      "attribution": "Murmur Semantics Demo"
+    },
+    "centered": {
+      "phrase": "The early bird catches the worm but the worm catches the early bird"
+    }
+  }
+}

@@ -32,7 +32,10 @@ export const MurmurConfigSchema = z.object({
     'book-cover',
     'split-spread',
     'tabloid-stack',
-    'pull-quote'
+    'pull-quote',
+    'feature-opener',
+    'sidebar-rail',
+    'byline-lede'
   ]).default('centered'),
   vignetteStyle: z.enum(['none', 'soft', 'medium', 'dramatic']).default('none'),
   audioFeedback: z.boolean().default(true),
