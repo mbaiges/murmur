@@ -30,6 +30,12 @@ const base = (): MurmurConfig =>
   }) as MurmurConfig
 
 describe('shouldRegeneratePhraseAfterAppearanceChange tone', () => {
+  it('does not regenerate for theme-only change', () => {
+    const prev = base()
+    const next = { ...prev, theme: 'Drift' as const }
+    expect(shouldRegeneratePhraseAfterAppearanceChange(prev, next)).toBe(false)
+  })
+
   it('regenerates when tonePreset changes', () => {
     const prev = base()
     const next = { ...prev, tonePreset: 'neutral' as const }

@@ -1,7 +1,7 @@
 # Loop state: style-voice-settings-polish
 
 Updated: 2026-08-02
-Iteration: 1
+Iteration: 1 (complete)
 Spec:
 
 - docs/features/style-voice-settings-polish/functional-spec.md
@@ -33,38 +33,37 @@ E2E screenshot dir (gitignored): `e2e/artifacts/screenshots/style-voice-settings
 
 ## Unit test plan
 
-- `configDelta.test.ts` → visual vs content vs none; field lists
-- `appearanceRegenerate.test.ts` → delegates to configDelta; E2E reuse path
-- `config-save` handler tests (later iteration) → refresh vs reRender call counts
+- [x] `configDelta.test.ts` → visual vs content vs none
+- [x] `appearanceRegenerate.test.ts` → theme visual-only; tone content
+- [ ] `config-save` handler tests → refresh vs reRender call counts
 
 ## E2E scenarios + screenshot manifest
 
-Paths under `e2e/artifacts/screenshots/style-voice-settings-polish/`.
-
 | # | Step | File | Status |
 |---|------|------|--------|
-| 1 | Style tab with mini preview + section cards | `01-style-preview.png` | pending |
-| 2 | Dirty Apply bar visible after draft edit | `02-apply-bar.png` | pending |
-| 3 | Voice tone chips + language row | `03-voice-tone-row.png` | pending |
+| 1 | Style tab baseline | `01-style-preview.png` | captured (pre-IA; no mini preview yet) |
+| 2 | Dirty Apply bar | `02-apply-bar.png` | pending |
+| 3 | Voice tab baseline | `03-voice-tone-row.png` | captured (dropdown tone; chips pending) |
 
 ## Last verification
 
-- Unit (in-loop): pending
-- E2E (in-loop): pending
-- Final full-suite gate: pending
+- Unit (in-loop): **pass** — `npm run test:unit` (54 tests)
+- E2E (in-loop): **pass** — `npm run test:e2e:style-voice-settings-polish`
+- Final full-suite gate: **pending**
 
 ## Screenshot review notes
 
-- (none yet)
+- `01-style-preview.png`: **pass (baseline)** — Style tab with mood 2×2 grid + appearance dropdowns; no Background/Phrase/Widgets split or mini preview yet (expected iteration 1).
+- `03-voice-tone-row.png`: **pass (baseline)** — Voice tab; tone/language stacked dropdowns; Apply on prompt visible — to be replaced in later iterations.
 
 ## Open issues
 
 - Critical: none
-- Improvement: WallpaperView extraction is large — slice in phase 5
+- Improvement: Animated wallpaper visual-only path relies on `config:updated` broadcast; verify overlay re-render in iteration 2+
 
 ## Next iteration focus
 
-1. Implement `configDelta.ts` + refactor `appearanceRegenerate.ts` + `config-save.ts` + `reRenderWallpapers`
-2. Unit tests green for delta classification
-3. Add stub E2E spec + npm script (smoke)
-4. Then `useSettingsDraft` + Apply bar (iteration 2)
+1. Implement `useSettingsDraft` + sessionStorage + `SettingsApplyBar` in `SettingsShell`
+2. Wire Style/Voice to `patchDraft` / `applyDraft`; remove immediate save from mood + prompt paths
+3. Navigation dirty confirm
+4. Re-run feature E2E; capture `02-apply-bar.png` after Apply bar exists
