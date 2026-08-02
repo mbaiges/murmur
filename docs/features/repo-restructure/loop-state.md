@@ -1,7 +1,7 @@
 # Loop state: repo-restructure
 
-Updated: 2026-08-02 (iteration 3 — Phase 2 complete)
-Iteration: 3
+Updated: 2026-08-02 (iteration 4 — Phase 3 complete)
+Iteration: 4
 Spec:
 
 - docs/features/repo-restructure/functional-spec.md
@@ -25,7 +25,7 @@ E2E screenshot dir (gitignored): `tests/e2e/artifacts/screenshots/repo-restructu
 - [x] AC-6 unit (Phase 1 gate)
 - [x] AC-7 integration (Phase 1 gate)
 - [x] AC-9 build (Phase 1 gate)
-- [ ] AC-2 composition
+- [x] AC-2 composition (partial — bootstrap wired; IPC/windows still in index.ts Phase 4)
 - [x] AC-3 IPC parity (IpcChannel wired in main + preload)
 - [ ] AC-4 lint boundaries (rules active; full alias tighten later)
 - [ ] AC-5 aliases
@@ -75,6 +75,5 @@ In-loop uses `murmur.spec.ts` smoke until restructure-specific spec added. Copy 
 
 ## Next iteration focus
 
-1. **Phase 3:** Extract `main/bootstrap/composition-root.ts` + `e2e-overrides.ts` from `main/index.ts`.
-2. **Phase 4:** Extract `ipc/` and `windows/` modules.
-3. Re-run unit, integration, feature E2E after each extraction.
+1. **Phase 4:** Extract `main/ipc/register-ipc.ts` + `main/windows/*`; slim `index.ts` further.
+2. Re-run unit, integration, feature E2E.

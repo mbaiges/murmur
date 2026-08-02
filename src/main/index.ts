@@ -3,38 +3,29 @@ import { join } from 'path'
 import { configureAppBranding } from './configureAppBranding'
 import { resolveBrandIconPath } from './lib/resolveBrandIcon'
 import { shouldRegeneratePhraseAfterConfigSave } from '../core/lib/appearanceRegenerate'
-import { existsSync, readFileSync } from 'fs'
-import { FastXmlRssFetcherAdapter } from './infrastructure/rss/FastXmlRssFetcherAdapter'
-import { GeminiPhraseGeneratorAdapter } from './infrastructure/gemini/GeminiPhraseGeneratorAdapter'
-import { NodeCanvasWallpaperPainterAdapter } from './infrastructure/canvas/NodeCanvasWallpaperPainterAdapter'
-import { WinDesktopWallpaperAdapter } from './infrastructure/wallpaper/WinDesktopWallpaperAdapter'
-import { MacDesktopWallpaperAdapter } from './infrastructure/wallpaper/MacDesktopWallpaperAdapter'
-import { JsonConfigStoreAdapter } from './infrastructure/config/JsonConfigStoreAdapter'
-import { JsonHistoryStoreAdapter } from './infrastructure/history/JsonHistoryStoreAdapter'
-import { ElectronTrayAdapter } from './infrastructure/tray/ElectronTrayAdapter'
-import { WinStartupAdapter } from './infrastructure/startup/WinStartupAdapter'
-import { MacStartupAdapter } from './infrastructure/startup/MacStartupAdapter'
-import { MurmurService } from '../core/domain/MurmurService'
-import { Scheduler } from '../core/domain/Scheduler'
 import { MurmurState } from '../core/domain/types'
-import { IRssFetcher } from '../core/ports/IRssFetcher'
-import { IStartupIntegration } from '../core/ports/IStartupIntegration'
 import { IpcChannel } from '../shared/ipc-contract'
+import { parseHistoryEntry } from '../core/lib/layoutContentParse'
+import { payloadToPlainSummary } from '../core/lib/payloadToPlainSummary'
+import { getLayoutContentSpec } from '../core/lib/layoutContentSpecs'
+import { buildAppContext, createRefreshScheduler } from './bootstrap/composition-root'
+import { isMurmurE2eMode } from './bootstrap/e2e-overrides'
+import { ElectronTrayAdapter } from './infrastructure/tray/ElectronTrayAdapter'
 
 configureAppBranding()
 
 // Disable GPU acceleration globally to allow Electron windows to render reliably inside WorkerW
 app.disableHardwareAcceleration()
-import { buildE2eStructuredResult, E2eStructuredDemoFixtures } from '../core/lib/e2eStructuredPhraseStub'
-import { parseHistoryEntry } from '../core/lib/layoutContentParse'
-import { payloadToPlainSummary } from '../core/lib/payloadToPlainSummary'
-import { getLayoutContentSpec } from '../core/lib/layoutContentSpecs'
-import { IPhraseGenerator } from '../core/ports/IPhraseGenerator'
-import { IWallpaperRenderer } from '../core/ports/IWallpaperRenderer'
 
-function isMurmurE2eMode(): boolean {
-  return process.env.MURMUR_E2E === 'true' || process.argv.includes('--murmur-e2e')
-}
+const ctx = buildAppContext()
+const {
+  configStore,
+  historyStore,
+  trayAdapter,
+  startupAdapter,
+  wallpaperRenderer,
+  murmurService
+} = ctx
 
 let settingsWindow: BrowserWindow | null = null
 const bgWindows = new Map<string, BrowserWindow>()
@@ -51,123 +42,10 @@ let state: MurmurState = {
   lastSources: {}
 }
 
-const configStore = new JsonConfigStoreAdapter()
-const historyStore = new JsonHistoryStoreAdapter()
-const wallpaperPainter = new NodeCanvasWallpaperPainterAdapter()
-const trayAdapter = new ElectronTrayAdapter()
-
-let startupAdapter: IStartupIntegration
-if (process.platform === 'win32') {
-  startupAdapter = new WinStartupAdapter()
-} else if (process.platform === 'darwin') {
-  startupAdapter = new MacStartupAdapter()
-} else {
-  startupAdapter = {
-    enable: async () => {},
-    disable: async () => {},
-    isEnabled: async () => false
-  }
-}
-
-let rssFetcher: IRssFetcher
-let phraseGenerator: IPhraseGenerator
-let wallpaperRenderer: IWallpaperRenderer
-
-function loadE2eFixturePhrase(): string | null {
-  if (process.env.MURMUR_E2E_REUSE_CAPTURED_PHRASE !== 'true') {
-    return null
-  }
-  const fixturePath =
-    process.env.MURMUR_E2E_FIXTURE_PHRASE_PATH ||
-    join(process.cwd(), 'tests/e2e/fixtures/captured-phrase.json')
-  if (!existsSync(fixturePath)) {
-    return null
-  }
-  try {
-    const parsed = JSON.parse(readFileSync(fixturePath, 'utf8')) as { phrase?: string }
-    return parsed.phrase?.trim() || null
-  } catch {
-    return null
-  }
-}
-
-function loadE2eSemanticsDemo(): E2eStructuredDemoFixtures | null {
-  if (process.env.MURMUR_E2E_SEMANTICS_DEMO !== 'true') {
-    return null
-  }
-  const fixturePath =
-    process.env.MURMUR_E2E_SEMANTICS_DEMO_PATH ||
-    join(process.cwd(), 'tests/e2e/fixtures/structured-semantics-demo.json')
-  if (!existsSync(fixturePath)) {
-    return null
-  }
-  try {
-    const parsed = JSON.parse(readFileSync(fixturePath, 'utf8')) as {
-      layouts?: E2eStructuredDemoFixtures
-    }
-    return parsed.layouts ?? null
-  } catch {
-    return null
-  }
-}
-
-if (isMurmurE2eMode()) {
-  const fixturePhrase = loadE2eFixturePhrase()
-  const semanticsDemo = loadE2eSemanticsDemo()
-  console.log(
-    semanticsDemo
-      ? 'MURMUR: E2E semantics demo fixtures (structured fields vs legacy heuristics)'
-      : fixturePhrase
-        ? 'MURMUR: E2E mode with captured fixture phrase (no live Gemini on layout changes)'
-        : 'MURMUR: Running in Playwright E2E Mode with stubs'
-  )
-  rssFetcher = {
-    fetchAll: async () => [
-      { title: 'Stub Headline 1', source: 'Stub Source', feedUrl: 'http://stub.com' },
-      { title: 'Stub Headline 2', source: 'Stub Source', feedUrl: 'http://stub.com' }
-    ]
-  }
-  phraseGenerator = {
-    generate: async () => fixturePhrase || 'stubbed surreal phrase',
-    generateStructured: async (request) =>
-      buildE2eStructuredResult(request, fixturePhrase, semanticsDemo ?? undefined)
-  }
-  wallpaperRenderer = {
-    getScreens: async () => [{ id: 'stub-monitor', width: 800, height: 600 }],
-    set: async () => {},
-    backup: async () => {},
-    restore: async () => {}
-  }
-} else {
-  rssFetcher = new FastXmlRssFetcherAdapter()
-  phraseGenerator = new GeminiPhraseGeneratorAdapter(configStore)
-  if (process.platform === 'win32') {
-    wallpaperRenderer = new WinDesktopWallpaperAdapter()
-  } else if (process.platform === 'darwin') {
-    wallpaperRenderer = new MacDesktopWallpaperAdapter()
-  } else {
-    wallpaperRenderer = {
-      getScreens: async () => [{ id: 'mock', width: 1920, height: 1080 }],
-      set: async () => {},
-      backup: async () => {},
-      restore: async () => {}
-    }
-  }
-}
-
-const murmurService = new MurmurService(
-  rssFetcher,
-  phraseGenerator,
-  wallpaperPainter,
-  wallpaperRenderer,
-  configStore,
-  historyStore,
-  trayAdapter
-)
-
-const scheduler = new Scheduler(async () => {
-  if (state.isPaused) return
-  await murmurService.refresh({ lastContent: state.lastContent, lastPhrases: state.lastPhrases })
+const scheduler = createRefreshScheduler(murmurService, {
+  isPaused: () => state.isPaused,
+  getLastContent: () => state.lastContent,
+  getLastPhrases: () => state.lastPhrases
 })
 
 function showSettingsWindow() {
@@ -268,16 +146,17 @@ function createBackgroundWindow(screenInfo: { id: string; width: number; height:
     bgWindow.show()
     // Force Electron mouse events ignore for click-through support
     bgWindow.setIgnoreMouseEvents(true)
-    
+
     try {
-      if (process.platform === 'win32' && typeof (wallpaperRenderer as any).inject === 'function') {
+      if (process.platform === 'win32' && typeof (wallpaperRenderer as { inject?: (h: string) => Promise<void> }).inject === 'function') {
         const hwndBuffer = bgWindow.getNativeWindowHandle()
-        const hwndVal = process.arch === 'x64'
-          ? hwndBuffer.readBigInt64LE(0).toString()
-          : hwndBuffer.readInt32LE(0).toString()
+        const hwndVal =
+          process.arch === 'x64'
+            ? hwndBuffer.readBigInt64LE(0).toString()
+            : hwndBuffer.readInt32LE(0).toString()
 
         console.log(`Injecting live window for display ${screenInfo.id} (HWND: ${hwndVal}) into WorkerW container...`)
-        await (wallpaperRenderer as any).inject(hwndVal)
+        await (wallpaperRenderer as { inject: (h: string) => Promise<void> }).inject(hwndVal)
       }
     } catch (err) {
       console.error(`Failed to inject window for display ${screenInfo.id} into desktop`, err)
@@ -413,9 +292,10 @@ app.whenReady().then(async () => {
   }
 
   const config = await configStore.get()
-  
-  const customTrayAdapterUpdate = trayAdapter.updateState.bind(trayAdapter)
-  trayAdapter.updateState = (newState: MurmurState) => {
+
+  const tray = trayAdapter as ElectronTrayAdapter
+  const customTrayAdapterUpdate = tray.updateState.bind(tray)
+  tray.updateState = (newState: MurmurState) => {
     state = { ...state, ...newState }
     customTrayAdapterUpdate(state)
     settingsWindow?.webContents.send(IpcChannel.stateUpdated, state)
@@ -426,7 +306,7 @@ app.whenReady().then(async () => {
     })
   }
 
-  trayAdapter.init(
+  tray.init(
     async () => {
       await murmurService.refresh({ lastContent: state.lastContent, lastPhrases: state.lastPhrases })
     },
@@ -449,7 +329,7 @@ app.whenReady().then(async () => {
   if (config.geminiApiKey || isMurmurE2eMode()) {
     scheduler.start(config.refreshIntervalMinutes)
   }
-  
+
   startClockScheduler()
 
   if (!app.isPackaged || !config.geminiApiKey || isMurmurE2eMode()) {
