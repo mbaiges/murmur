@@ -32,7 +32,7 @@ export default function SettingsSidebar({
             <h1 className="text-xl font-bold tracking-tight text-white">Murmur</h1>
             <p className="text-[10px] text-slate-400 font-medium tracking-wide uppercase">Windows Desktop App</p>
           </div>
-          <img src="/logo.png" className="h-10 w-10 object-contain rounded-lg border border-slate-800 p-1 bg-slate-955" alt="" />
+          <img src="./logo.png" className="h-10 w-10 object-contain rounded-lg border border-slate-800 p-1 bg-slate-955" alt="" />
         </div>
 
         <nav className="space-y-1">

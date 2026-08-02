@@ -2,7 +2,7 @@ import { app } from 'electron'
 import { join } from 'path'
 import { existsSync } from 'fs'
 
-/** Same asset as `<img src="/logo.png">` in the renderer (src/renderer/public/logo.png). */
+/** Same asset as `<img src="./logo.png">` in the renderer (src/renderer/public/logo.png). */
 export function resolveBrandIconPath(): string {
   const candidates = [
     join(app.getAppPath(), 'src/renderer/public/logo.png'),

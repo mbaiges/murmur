@@ -17,7 +17,7 @@ export default function AppShell({ toast, sidebar, children }: AppShellProps) {
         }`}
       >
         <div className="flex items-center space-x-2">
-          <img src="/logo.png" className="h-4 w-4 object-contain rounded p-[1px] bg-slate-800" alt="" />
+          <img src="./logo.png" className="h-4 w-4 object-contain rounded p-[1px] bg-slate-800" alt="" />
           <span className="text-[11px] font-semibold text-slate-400 tracking-wider uppercase">Murmur Settings</span>
         </div>
       </header>

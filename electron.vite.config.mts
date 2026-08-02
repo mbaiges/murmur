@@ -33,6 +33,7 @@ export default defineConfig({
     }
   },
   renderer: {
+    base: './',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
