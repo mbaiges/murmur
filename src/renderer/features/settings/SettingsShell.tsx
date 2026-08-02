@@ -10,6 +10,7 @@ import StyleTab from './tabs/StyleTab'
 import DisplaysTab from './tabs/DisplaysTab'
 import { useMurmurConfig, readSettingsUiState, writeSettingsUiState } from './hooks/useMurmurConfig'
 import { useSettingsDraft } from './hooks/useSettingsDraft'
+import { usePrimaryDisplaySize } from './hooks/usePrimaryDisplaySize'
 import { getWindowApi } from './hooks/getWindowApi'
 import type { DisplaysSection, SettingsTab, SettingsUiState } from './types'
 
@@ -20,7 +21,8 @@ function loadUiState(): SettingsUiState {
   return {
     activeTab: sessionStorage.getItem(WIZARD_FLAG) ? 'general' : (stored?.activeTab ?? 'general'),
     displaysSection: stored?.displaysSection ?? 'monitors',
-    scrollByTab: stored?.scrollByTab ?? {}
+    scrollByTab: stored?.scrollByTab ?? {},
+    stylePreviewVisible: stored?.stylePreviewVisible ?? true
   }
 }
 
@@ -36,6 +38,8 @@ export default function SettingsShell() {
     resetDraft,
     handlePromptPresetChange
   } = useSettingsDraft({ committed: config, showToast })
+
+  const displaySize = usePrimaryDisplaySize()
 
   const [uiState, setUiState] = useState(loadUiState)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -190,6 +194,10 @@ export default function SettingsShell() {
             patchDraft={patchDraft}
             onMoodChange={applyMoodToDraft}
             previewPhrase={previewPhrase ?? ''}
+            displayWidth={displaySize.width}
+            displayHeight={displaySize.height}
+            previewVisible={uiState.stylePreviewVisible !== false}
+            onPreviewVisibleChange={(visible) => persistUi({ stylePreviewVisible: visible })}
           />
         )}
         {uiState.activeTab === 'displays' && (

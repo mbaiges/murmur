@@ -7,6 +7,7 @@ import {
   buildE2eStructuredResult,
   E2eStructuredDemoFixtures
 } from '../e2e/e2eStructuredPhraseStub'
+import { incrementE2eGenerationCallCount } from '../e2e/e2eGenerationCounter'
 
 export function isMurmurE2eMode(): boolean {
   return process.env.MURMUR_E2E === 'true' || process.argv.includes('--murmur-e2e')
@@ -72,9 +73,14 @@ export function createE2eRuntimeAdapters(): {
       ]
     },
     phraseGenerator: {
-      generate: async () => fixturePhrase || 'stubbed surreal phrase',
-      generateStructured: async (request) =>
-        buildE2eStructuredResult(request, fixturePhrase, semanticsDemo ?? undefined)
+      generate: async () => {
+        incrementE2eGenerationCallCount()
+        return fixturePhrase || 'stubbed surreal phrase'
+      },
+      generateStructured: async (request) => {
+        incrementE2eGenerationCallCount()
+        return buildE2eStructuredResult(request, fixturePhrase, semanticsDemo ?? undefined)
+      }
     },
     wallpaperRenderer: {
       getScreens: async () => [{ id: 'stub-monitor', width: 800, height: 600 }],

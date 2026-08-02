@@ -29,7 +29,7 @@ export default function WallpaperPreviewContent({
 
   return (
     <div
-      className={`relative overflow-hidden rounded-lg border border-slate-700/50 ${themePreviewBackgroundClass(config.theme)} ${className}`}
+      className={`relative h-full overflow-hidden rounded-lg border border-slate-700/50 ${themePreviewBackgroundClass(config.theme)} ${className}`}
     >
       {config.vignetteStyle !== 'none' && (
         <div
@@ -42,7 +42,7 @@ export default function WallpaperPreviewContent({
           }`}
         />
       )}
-      <div className={`relative flex min-h-[120px] flex-col justify-center px-4 py-6 ${align}`}>
+      <div className={`relative flex h-full min-h-0 flex-col justify-center px-4 py-4 ${align}`}>
         <p
           className={`text-sm leading-snug line-clamp-4 max-w-full ${fontFamilyPreviewClass(config.fontFamily)} ${
             dark ? 'text-white/90' : 'text-slate-900/90'

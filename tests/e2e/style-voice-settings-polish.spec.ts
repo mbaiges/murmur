@@ -73,5 +73,45 @@ test('Style & Voice polish — baseline Style tab', async () => {
 
   await page.locator('button:has-text("Style")').click()
   await page.waitForTimeout(400)
+  await expect(page.getByText('Primary display · 4:3')).toBeVisible()
+  const frame = page.getByTestId('style-mini-preview-frame')
+  const box = await frame.boundingBox()
+  expect(box).not.toBeNull()
+  if (box) {
+    expect(box.width / box.height).toBeCloseTo(4 / 3, 1)
+  }
   await page.screenshot({ path: shot('01-style-preview.png'), fullPage: true })
+})
+
+test('Style preview can be hidden', async () => {
+  test.setTimeout(60000)
+  const page = await openSettingsDashboard(electronApp)
+  await page.locator('button:has-text("Style")').click()
+  await page.getByTestId('style-mini-preview-hide').click()
+  await expect(page.getByTestId('style-mini-preview-collapsed')).toBeVisible()
+  await page.getByTestId('style-mini-preview-show').click()
+  await expect(page.getByTestId('style-mini-preview')).toBeVisible()
+})
+
+test('Visual-only Apply does not increment E2E generation counter', async () => {
+  test.setTimeout(90000)
+  const page = await openSettingsDashboard(electronApp)
+
+  await page.evaluate(async () => {
+    await window.api?.resetE2eGenerationCount?.()
+  })
+
+  await page.locator('button:has-text("Style")').click()
+  const background = page.getByTestId('style-section-background')
+  await background.locator('button').nth(2).click()
+  await background.locator('button').nth(3).click()
+
+  const countBeforeApply = await page.evaluate(async () => window.api?.getE2eGenerationCount?.())
+
+  await page.getByTestId('settings-apply-changes').click()
+  await page.waitForTimeout(800)
+
+  const countAfterApply = await page.evaluate(async () => window.api?.getE2eGenerationCount?.())
+  expect(countBeforeApply).toBe(0)
+  expect(countAfterApply).toBe(0)
 })

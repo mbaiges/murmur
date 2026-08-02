@@ -12,6 +12,10 @@ contextBridge.exposeInMainWorld('api', {
   previewTheme: (monitorId: string, theme: ThemeName): Promise<void> =>
     ipcRenderer.invoke(IpcChannel.actionPreviewTheme, monitorId, theme),
   getState: (): Promise<MurmurState> => ipcRenderer.invoke(IpcChannel.stateGet),
+  getScreens: (): Promise<{ id: string; width: number; height: number }[]> =>
+    ipcRenderer.invoke(IpcChannel.screensGet),
+  getE2eGenerationCount: (): Promise<number> => ipcRenderer.invoke(IpcChannel.e2eGenerationCountGet),
+  resetE2eGenerationCount: (): Promise<void> => ipcRenderer.invoke(IpcChannel.e2eGenerationCountReset),
   onStateUpdated: (callback: (state: MurmurState) => void) => {
     const listener = (_event: any, state: MurmurState) => callback(state)
     ipcRenderer.on(IpcChannel.stateUpdated, listener)

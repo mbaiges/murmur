@@ -11,9 +11,22 @@ type StyleTabProps = {
   patchDraft: (partial: Partial<MurmurConfig>) => void
   onMoodChange: (moodName: string) => void
   previewPhrase: string
+  displayWidth: number
+  displayHeight: number
+  previewVisible: boolean
+  onPreviewVisibleChange: (visible: boolean) => void
 }
 
-export default function StyleTab({ config, patchDraft, onMoodChange, previewPhrase }: StyleTabProps) {
+export default function StyleTab({
+  config,
+  patchDraft,
+  onMoodChange,
+  previewPhrase,
+  displayWidth,
+  displayHeight,
+  previewVisible,
+  onPreviewVisibleChange
+}: StyleTabProps) {
   return (
     <div className="max-w-4xl space-y-6 pb-16">
       <div>
@@ -23,7 +36,14 @@ export default function StyleTab({ config, patchDraft, onMoodChange, previewPhra
         </p>
       </div>
 
-      <StyleMiniPreview config={config} phrase={previewPhrase} />
+      <StyleMiniPreview
+        config={config}
+        phrase={previewPhrase}
+        displayWidth={displayWidth}
+        displayHeight={displayHeight}
+        visible={previewVisible}
+        onToggleVisible={onPreviewVisibleChange}
+      />
 
       <MoodGallery config={config} onMoodChange={onMoodChange} />
 

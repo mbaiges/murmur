@@ -9,6 +9,9 @@ export interface MurmurWindowApi {
   refreshWallpaper: () => Promise<void>
   previewTheme: (monitorId: string, theme: ThemeName) => Promise<void>
   getState: () => Promise<MurmurState>
+  getScreens: () => Promise<{ id: string; width: number; height: number }[]>
+  getE2eGenerationCount?: () => Promise<number>
+  resetE2eGenerationCount?: () => Promise<void>
   onStateUpdated: (callback: (state: MurmurState) => void) => () => void
   onConfigUpdated: (callback: (config: MurmurConfig) => void) => () => void
   openExternal: (url: string) => Promise<void>
