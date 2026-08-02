@@ -7,8 +7,8 @@ import { IHistoryStore } from '../ports/IHistoryStore'
 import { ISystemTray } from '../ports/ISystemTray'
 import { sampleHeadlines } from './HeadlineSampler'
 import { LayoutContentEnvelope, MurmurState, ThemeName } from './types'
-import { getLayoutContentSpec } from '../shared/layoutContentSpecs'
-import { payloadToPlainSummary } from '../shared/payloadToPlainSummary'
+import { getLayoutContentSpec } from '../lib/layoutContentSpecs'
+import { payloadToPlainSummary } from '../lib/payloadToPlainSummary'
 
 export type MurmurRefreshContext = Pick<MurmurState, 'lastContent' | 'lastPhrases'>
 

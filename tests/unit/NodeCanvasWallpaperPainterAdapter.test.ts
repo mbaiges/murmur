@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { NodeCanvasWallpaperPainterAdapter } from '../../src/adapters/canvas/NodeCanvasWallpaperPainterAdapter'
-import { ThemeName } from '../../src/domain/types'
-import { DEFAULT_PHRASE_FORMAT_FLAGS } from '../../src/shared/phraseFormatFlags'
+import { ThemeName } from '../../src/core/domain/types'
+import { DEFAULT_PHRASE_FORMAT_FLAGS } from '../../src/core/lib/phraseFormatFlags'
 
 const basePaintOptions = {
   fontFamily: 'Outfit',

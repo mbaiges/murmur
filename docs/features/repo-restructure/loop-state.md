@@ -1,7 +1,7 @@
 # Loop state: repo-restructure
 
-Updated: 2026-08-02 (iteration 1 complete — Phase 0)
-Iteration: 1
+Updated: 2026-08-02 (iteration 2 — Phase 1 complete)
+Iteration: 2
 Spec:
 
 - docs/features/repo-restructure/functional-spec.md

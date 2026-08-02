@@ -8,24 +8,28 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin()],
     resolve: {
       alias: {
-        '@domain': resolve('src/domain'),
-        '@ports': resolve('src/ports'),
+        '@core/domain': resolve('src/core/domain'),
+        '@core/ports': resolve('src/core/ports'),
+        '@core/lib': resolve('src/core/lib'),
         '@adapters': resolve('src/adapters'),
-        '@shared': resolve('src/shared')
+        '@shared/ipc': resolve('src/shared/ipc-contract.ts')
       }
     }
   },
   preload: {
-    plugins: [externalizeDepsPlugin()]
+    plugins: [externalizeDepsPlugin()],
+    resolve: {
+      alias: {
+        '@core/domain': resolve('src/core/domain')
+      }
+    }
   },
   renderer: {
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
-        '@domain': resolve('src/domain'),
-        '@ports': resolve('src/ports'),
-        '@adapters': resolve('src/adapters'),
-        '@shared': resolve('src/shared')
+        '@core/domain': resolve('src/core/domain'),
+        '@core/lib': resolve('src/core/lib')
       }
     }
   }

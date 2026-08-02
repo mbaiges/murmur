@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
-import { MurmurConfig, MurmurState } from '../domain/types'
-import { splitPhraseLines } from '../shared/phraseFormatFlags'
-import { splitFlatCharsAtWordMidpoint, splitPlainPhraseHeadlineDeck } from '../shared/phraseLayoutSplit'
-import { phraseToPlainText } from '../shared/phrasePlainText'
+import { MurmurConfig, MurmurState } from '../core/domain/types'
+import { splitPhraseLines } from '../core/lib/phraseFormatFlags'
+import { splitFlatCharsAtWordMidpoint, splitPlainPhraseHeadlineDeck } from '../core/lib/phraseLayoutSplit'
+import { phraseToPlainText } from '../core/lib/phrasePlainText'
 
 const api = (window as any).api
 

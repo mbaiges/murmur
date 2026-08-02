@@ -3,7 +3,7 @@ import { exec } from 'child_process'
 import { promisify } from 'util'
 import { writeFileSync, mkdirSync, existsSync, unlinkSync } from 'fs'
 import { join } from 'path'
-import { IWallpaperRenderer } from '../../ports/IWallpaperRenderer'
+import { IWallpaperRenderer } from '../../core/ports/IWallpaperRenderer'
 
 const execAsync = promisify(exec)
 

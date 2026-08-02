@@ -1,5 +1,5 @@
 import { test, expect, _electron as electron, ElectronApplication } from '@playwright/test'
-import { phraseToPlainText } from '../../src/shared/phrasePlainText'
+import { phraseToPlainText } from '../../src/core/lib/phrasePlainText'
 import {
   CAPTURED_PHRASE_FIXTURE_PATH,
   ensureCapturedPhraseFixture

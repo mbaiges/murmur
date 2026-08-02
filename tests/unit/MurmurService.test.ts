@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { MurmurService } from '../../src/domain/MurmurService'
-import { IRssFetcher } from '../../src/ports/IRssFetcher'
-import { IPhraseGenerator, PhraseGenerationResult } from '../../src/ports/IPhraseGenerator'
-import { IWallpaperPainter } from '../../src/ports/IWallpaperPainter'
-import { IWallpaperRenderer } from '../../src/ports/IWallpaperRenderer'
-import { IConfigStore } from '../../src/ports/IConfigStore'
-import { IHistoryStore } from '../../src/ports/IHistoryStore'
-import { ISystemTray } from '../../src/ports/ISystemTray'
-import { MurmurConfig, RssItem } from '../../src/domain/types'
+import { MurmurService } from '../../src/core/domain/MurmurService'
+import { IRssFetcher } from '../../src/core/ports/IRssFetcher'
+import { IPhraseGenerator, PhraseGenerationResult } from '../../src/core/ports/IPhraseGenerator'
+import { IWallpaperPainter } from '../../src/core/ports/IWallpaperPainter'
+import { IWallpaperRenderer } from '../../src/core/ports/IWallpaperRenderer'
+import { IConfigStore } from '../../src/core/ports/IConfigStore'
+import { IHistoryStore } from '../../src/core/ports/IHistoryStore'
+import { ISystemTray } from '../../src/core/ports/ISystemTray'
+import { MurmurConfig, RssItem } from '../../src/core/domain/types'
 
 describe('MurmurService', () => {
   let rssMock: IRssFetcher

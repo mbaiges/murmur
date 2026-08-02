@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { allLayoutContentSpecs, getLayoutContentSpec } from '../../src/shared/layoutContentSpecs'
-import { validateLayoutPayload } from '../../src/shared/layoutSpecToZod'
-import { parseHistoryEntry, serializeLayoutContentEnvelope } from '../../src/shared/layoutContentParse'
-import { layoutContentPreview } from '../../src/shared/layoutContentPreview'
-import { buildE2eStructuredResult } from '../../src/shared/e2eStructuredPhraseStub'
+import { allLayoutContentSpecs, getLayoutContentSpec } from '../../src/core/lib/layoutContentSpecs'
+import { validateLayoutPayload } from '../../src/core/lib/layoutSpecToZod'
+import { parseHistoryEntry, serializeLayoutContentEnvelope } from '../../src/core/lib/layoutContentParse'
+import { layoutContentPreview } from '../../src/core/lib/layoutContentPreview'
+import { buildE2eStructuredResult } from '../../src/core/lib/e2eStructuredPhraseStub'
 
 describe('layoutContentSpecs', () => {
   it('registers every layout style', () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildPhraseFormattingRules } from '../../src/shared/geminiFormattingRules'
+import { buildPhraseFormattingRules } from '../../src/core/lib/geminiFormattingRules'
 
 describe('buildPhraseFormattingRules', () => {
   it('lists only enabled formatters and forbids disabled ones', () => {

@@ -1,6 +1,6 @@
-import { LayoutContentSpec } from '../shared/layoutContentSpecs'
+import { LayoutContentSpec } from '../lib/layoutContentSpecs'
 import { LayoutStyleName } from '../domain/types'
-import { PhraseFormatFlags } from '../shared/phraseFormatFlags'
+import { PhraseFormatFlags } from '../lib/phraseFormatFlags'
 
 export interface PhraseGenerationRequest {
   headlines: string[]

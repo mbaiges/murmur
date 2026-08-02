@@ -1,7 +1,7 @@
 import { Tray, Menu, app, nativeImage } from 'electron'
-import { resolveBrandIconPath } from '../../shared/resolveBrandIcon'
-import { ISystemTray } from '../../ports/ISystemTray'
-import { MurmurState } from '../../domain/types'
+import { resolveBrandIconPath } from '../../main/lib/resolveBrandIcon'
+import { ISystemTray } from '../../core/ports/ISystemTray'
+import { MurmurState } from '../../core/domain/types'
 
 function createTrayImage() {
   const iconPath = resolveBrandIconPath()

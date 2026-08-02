@@ -1,6 +1,6 @@
 import { XMLParser } from 'fast-xml-parser'
-import { IRssFetcher } from '../../ports/IRssFetcher'
-import { RssItem } from '../../domain/types'
+import { IRssFetcher } from '../../core/ports/IRssFetcher'
+import { RssItem } from '../../core/domain/types'
 
 export class FastXmlRssFetcherAdapter implements IRssFetcher {
   private parser = new XMLParser({

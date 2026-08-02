@@ -1,6 +1,6 @@
 import { app } from 'electron'
 import { execSync } from 'child_process'
-import { IStartupIntegration } from '../../ports/IStartupIntegration'
+import { IStartupIntegration } from '../../core/ports/IStartupIntegration'
 
 export class WinStartupAdapter implements IStartupIntegration {
   private keyName = 'Murmur'

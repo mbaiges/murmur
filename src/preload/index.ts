@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { MurmurConfig, MurmurState, ThemeName } from '../domain/types'
+import { MurmurConfig, MurmurState, ThemeName } from '../core/domain/types'
 import { IpcChannel } from '../shared/ipc-contract'
 
 contextBridge.exposeInMainWorld('api', {

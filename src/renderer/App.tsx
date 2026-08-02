@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react'
-import { MurmurConfig, MurmurState, ThemeName, DEFAULT_SYSTEM_PROMPT, ABSURD_PROVERB_PROMPT, WORST_NEWS_TITLE_PROMPT, BEST_NEWS_TITLE_PROMPT, CYBERPUNK_TERMINAL_PROMPT, ZEN_KOAN_PROMPT, PARANOID_CONSPIRACY_PROMPT, EXISTENTIAL_DREAD_PROMPT, GOTHIC_PURPLE_PROSE_PROMPT } from '../domain/types'
-import { phraseToPlainText } from '../shared/phrasePlainText'
-import { parseHistoryEntry } from '../shared/layoutContentParse'
-import { layoutContentPreview } from '../shared/layoutContentPreview'
+import { MurmurConfig, MurmurState, ThemeName, DEFAULT_SYSTEM_PROMPT, ABSURD_PROVERB_PROMPT, WORST_NEWS_TITLE_PROMPT, BEST_NEWS_TITLE_PROMPT, CYBERPUNK_TERMINAL_PROMPT, ZEN_KOAN_PROMPT, PARANOID_CONSPIRACY_PROMPT, EXISTENTIAL_DREAD_PROMPT, GOTHIC_PURPLE_PROSE_PROMPT } from '../core/domain/types'
+import { phraseToPlainText } from '../core/lib/phrasePlainText'
+import { parseHistoryEntry } from '../core/lib/layoutContentParse'
+import { layoutContentPreview } from '../core/lib/layoutContentPreview'
 import {
   MOOD_LINKED_PROMPT_PRESETS,
   STANDALONE_PROMPT_PRESETS,
   presetIdToPrompt,
   promptToPresetId
-} from '../shared/promptPresets'
+} from '../core/lib/promptPresets'
 import WallpaperView from './WallpaperView'
 import MoodsTab from './components/MoodsTab'
 

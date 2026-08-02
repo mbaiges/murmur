@@ -1,8 +1,8 @@
 import { app, BrowserWindow, ipcMain, screen } from 'electron'
 import { join } from 'path'
 import { configureAppBranding } from './configureAppBranding'
-import { resolveBrandIconPath } from '../shared/resolveBrandIcon'
-import { shouldRegeneratePhraseAfterConfigSave } from '../shared/appearanceRegenerate'
+import { resolveBrandIconPath } from './lib/resolveBrandIcon'
+import { shouldRegeneratePhraseAfterConfigSave } from '../core/lib/appearanceRegenerate'
 import { existsSync, readFileSync } from 'fs'
 import { FastXmlRssFetcherAdapter } from '../adapters/rss/FastXmlRssFetcherAdapter'
 import { GeminiPhraseGeneratorAdapter } from '../adapters/gemini/GeminiPhraseGeneratorAdapter'
@@ -14,23 +14,23 @@ import { JsonHistoryStoreAdapter } from '../adapters/history/JsonHistoryStoreAda
 import { ElectronTrayAdapter } from '../adapters/tray/ElectronTrayAdapter'
 import { WinStartupAdapter } from '../adapters/startup/WinStartupAdapter'
 import { MacStartupAdapter } from '../adapters/startup/MacStartupAdapter'
-import { MurmurService } from '../domain/MurmurService'
-import { Scheduler } from '../domain/Scheduler'
-import { MurmurState } from '../domain/types'
-import { IRssFetcher } from '../ports/IRssFetcher'
-import { IStartupIntegration } from '../ports/IStartupIntegration'
+import { MurmurService } from '../core/domain/MurmurService'
+import { Scheduler } from '../core/domain/Scheduler'
+import { MurmurState } from '../core/domain/types'
+import { IRssFetcher } from '../core/ports/IRssFetcher'
+import { IStartupIntegration } from '../core/ports/IStartupIntegration'
 import { IpcChannel } from '../shared/ipc-contract'
 
 configureAppBranding()
 
 // Disable GPU acceleration globally to allow Electron windows to render reliably inside WorkerW
 app.disableHardwareAcceleration()
-import { buildE2eStructuredResult, E2eStructuredDemoFixtures } from '../shared/e2eStructuredPhraseStub'
-import { parseHistoryEntry } from '../shared/layoutContentParse'
-import { payloadToPlainSummary } from '../shared/payloadToPlainSummary'
-import { getLayoutContentSpec } from '../shared/layoutContentSpecs'
-import { IPhraseGenerator } from '../ports/IPhraseGenerator'
-import { IWallpaperRenderer } from '../ports/IWallpaperRenderer'
+import { buildE2eStructuredResult, E2eStructuredDemoFixtures } from '../core/lib/e2eStructuredPhraseStub'
+import { parseHistoryEntry } from '../core/lib/layoutContentParse'
+import { payloadToPlainSummary } from '../core/lib/payloadToPlainSummary'
+import { getLayoutContentSpec } from '../core/lib/layoutContentSpecs'
+import { IPhraseGenerator } from '../core/ports/IPhraseGenerator'
+import { IWallpaperRenderer } from '../core/ports/IWallpaperRenderer'
 
 function isMurmurE2eMode(): boolean {
   return process.env.MURMUR_E2E === 'true' || process.argv.includes('--murmur-e2e')
