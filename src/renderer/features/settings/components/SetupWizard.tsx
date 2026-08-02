@@ -50,7 +50,20 @@ export default function SetupWizard({ toast, onSubmit }: SetupWizardProps) {
               value={wizardKey}
               onChange={(e) => setWizardKey(e.target.value)}
             />
-            <p className="text-slate-500 text-xs mt-1">Get a free key from Google AI Studio / Gemini Playground.</p>
+            <p className="text-slate-500 text-xs mt-2">
+              Get a free key from{' '}
+              <a
+                href="https://aistudio.google.com/apikey"
+                className="text-indigo-400 hover:text-indigo-300"
+                onClick={(e) => {
+                  e.preventDefault()
+                  void window.api?.openExternal('https://aistudio.google.com/apikey')
+                }}
+              >
+                Google AI Studio
+              </a>
+              .
+            </p>
           </div>
 
           <div>

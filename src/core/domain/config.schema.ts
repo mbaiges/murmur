@@ -44,7 +44,7 @@ export const MurmurConfigSchema = z.object({
   enableBold: z.boolean().default(true),
   enableItalic: z.boolean().default(true),
   enableNewlines: z.boolean().default(true),
-  enableDifferentFonts: z.boolean().default(true),
+  enableDifferentFonts: z.boolean().default(false),
   noiseIntensity: z.enum(['none', 'subtle', 'heavy']).default('none'),
   tonePreset: z.enum(['none', 'neutral', 'professional', 'villero', 'custom']).default('none'),
   customToneText: z.string().default('')

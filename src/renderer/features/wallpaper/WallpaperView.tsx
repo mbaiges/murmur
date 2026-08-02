@@ -3,6 +3,7 @@ import { MurmurConfig, MurmurState } from '@core/domain/types'
 import { splitPhraseLines } from '@core/lib/phrase/phraseFormatFlags'
 import { splitFlatCharsAtWordMidpoint, splitPlainPhraseHeadlineDeck } from '@core/lib/phrase/phraseLayoutSplit'
 import { phraseToPlainText } from '@core/lib/phrase/phrasePlainText'
+import { playTypewriterBlip } from './typewriterBlipSound'
 
 const api = (window as any).api
 
@@ -382,25 +383,7 @@ export default function WallpaperView() {
       
       const playBlipSound = () => {
         if (!config.audioFeedback) return
-        try {
-          const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)()
-          const osc = audioCtx.createOscillator()
-          const gainNode = audioCtx.createGain()
-          
-          osc.type = 'triangle'
-          osc.frequency.setValueAtTime(140 + Math.random() * 40, audioCtx.currentTime)
-          
-          gainNode.gain.setValueAtTime(0.04, audioCtx.currentTime)
-          gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08)
-          
-          osc.connect(gainNode)
-          gainNode.connect(audioCtx.destination)
-          
-          osc.start()
-          osc.stop(audioCtx.currentTime + 0.08)
-        } catch (e) {
-          console.error(e)
-        }
+        playTypewriterBlip(0.04)
       }
 
       const flatChars = compiled.flat()

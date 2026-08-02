@@ -1,31 +1,58 @@
-import React from 'react'
-import type { MurmurConfig } from '@core/domain/types'
-import { phraseToPlainText } from '@core/lib/phrase/phrasePlainText'
-import {
-  fontFamilyPreviewClass,
-  themePreviewBackgroundClass,
-  themePreviewIsDark
-} from './wallpaperThemePreview'
+import React, { useMemo } from 'react'
+import type { LayoutContentEnvelope, MurmurConfig } from '@core/domain/types'
+import { resolvePreviewLayoutEnvelope } from '@core/lib/layout/resolvePreviewLayoutEnvelope'
+import { themePreviewBackgroundClass } from './wallpaperThemePreview'
+import { previewScaleForFrame } from './wallpaperPreviewScale'
+import WallpaperPreviewLayoutBody from './WallpaperPreviewLayoutBody'
 
 type WallpaperPreviewContentProps = {
   config: MurmurConfig
   phrase: string
   className?: string
+  frameWidthPx: number
+  displayWidthPx: number
+  displayHeightPx: number
+  /** Last committed layout envelope (any monitor); used when draft layout matches. */
+  committedLayoutEnvelope?: LayoutContentEnvelope | null
 }
 
 export default function WallpaperPreviewContent({
   config,
   phrase,
-  className = ''
+  className = '',
+  frameWidthPx,
+  displayWidthPx,
+  displayHeightPx,
+  committedLayoutEnvelope = null
 }: WallpaperPreviewContentProps) {
-  const plain = phraseToPlainText(phrase).trim() || 'Your phrase will appear here after refresh.'
-  const dark = themePreviewIsDark(config.theme)
-  const align =
-    config.textAlignment === 'left'
-      ? 'text-left items-start'
-      : config.textAlignment === 'right'
-        ? 'text-right items-end'
-        : 'text-center items-center'
+  const displayW = displayWidthPx > 0 ? displayWidthPx : 1920
+  const displayH = displayHeightPx > 0 ? displayHeightPx : 1080
+  const scale = previewScaleForFrame(frameWidthPx, displayW)
+
+  const layoutEnvelope = useMemo(
+    () => resolvePreviewLayoutEnvelope(config.layoutStyle, phrase, committedLayoutEnvelope),
+    [config.layoutStyle, phrase, committedLayoutEnvelope]
+  )
+
+  const replayKey = useMemo(
+    () =>
+      [
+        config.layoutStyle,
+        config.animation,
+        config.audioFeedback,
+        config.textAlignment,
+        config.fontFamily,
+        phrase
+      ].join('|'),
+    [
+      config.layoutStyle,
+      config.animation,
+      config.audioFeedback,
+      config.textAlignment,
+      config.fontFamily,
+      phrase
+    ]
+  )
 
   return (
     <div
@@ -33,7 +60,7 @@ export default function WallpaperPreviewContent({
     >
       {config.vignetteStyle !== 'none' && (
         <div
-          className={`pointer-events-none absolute inset-0 ${
+          className={`pointer-events-none absolute inset-0 z-10 ${
             config.vignetteStyle === 'dramatic'
               ? 'bg-[radial-gradient(circle,transparent_20%,rgba(0,0,0,0.75)_100%)]'
               : config.vignetteStyle === 'medium'
@@ -42,14 +69,22 @@ export default function WallpaperPreviewContent({
           }`}
         />
       )}
-      <div className={`relative flex h-full min-h-0 flex-col justify-center px-4 py-4 ${align}`}>
-        <p
-          className={`text-sm leading-snug line-clamp-4 max-w-full ${fontFamilyPreviewClass(config.fontFamily)} ${
-            dark ? 'text-white/90' : 'text-slate-900/90'
-          }`}
+      <div className="absolute inset-0 overflow-hidden">
+        <div
+          className="relative origin-top-left"
+          style={{
+            width: displayW,
+            height: displayH,
+            transform: `scale(${scale})`
+          }}
         >
-          {plain}
-        </p>
+          <WallpaperPreviewLayoutBody
+            config={config}
+            phrase={phrase}
+            layoutEnvelope={layoutEnvelope}
+            replayKey={replayKey}
+          />
+        </div>
       </div>
     </div>
   )

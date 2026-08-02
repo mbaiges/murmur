@@ -1,5 +1,5 @@
 import React from 'react'
-import type { MurmurConfig } from '@core/domain/types'
+import type { LayoutContentEnvelope, MurmurConfig } from '@core/domain/types'
 import MoodGallery from '../components/MoodGallery'
 import StyleMiniPreview from '../components/StyleMiniPreview'
 import StyleBackgroundCard from '../components/StyleBackgroundCard'
@@ -11,10 +11,10 @@ type StyleTabProps = {
   patchDraft: (partial: Partial<MurmurConfig>) => void
   onMoodChange: (moodName: string) => void
   previewPhrase: string
+  previewLayoutEnvelope?: LayoutContentEnvelope | null
   displayWidth: number
   displayHeight: number
-  previewVisible: boolean
-  onPreviewVisibleChange: (visible: boolean) => void
+  scrollContainerRef?: React.RefObject<HTMLElement | null>
 }
 
 export default function StyleTab({
@@ -22,10 +22,10 @@ export default function StyleTab({
   patchDraft,
   onMoodChange,
   previewPhrase,
+  previewLayoutEnvelope,
   displayWidth,
   displayHeight,
-  previewVisible,
-  onPreviewVisibleChange
+  scrollContainerRef
 }: StyleTabProps) {
   return (
     <div className="max-w-4xl space-y-6 pb-16">
@@ -41,8 +41,8 @@ export default function StyleTab({
         phrase={previewPhrase}
         displayWidth={displayWidth}
         displayHeight={displayHeight}
-        visible={previewVisible}
-        onToggleVisible={onPreviewVisibleChange}
+        committedLayoutEnvelope={previewLayoutEnvelope}
+        scrollContainerRef={scrollContainerRef}
       />
 
       <MoodGallery config={config} onMoodChange={onMoodChange} />

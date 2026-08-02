@@ -22,7 +22,6 @@ function loadUiState(): SettingsUiState {
     activeTab: sessionStorage.getItem(WIZARD_FLAG) ? 'general' : (stored?.activeTab ?? 'general'),
     displaysSection: stored?.displaysSection ?? 'monitors',
     scrollByTab: stored?.scrollByTab ?? {},
-    stylePreviewVisible: stored?.stylePreviewVisible ?? true
   }
 }
 
@@ -61,22 +60,7 @@ export default function SettingsShell() {
     }
   }, [uiState.activeTab])
 
-  useEffect(() => {
-    if (!isDirty) return
-    const handler = (e: BeforeUnloadEvent) => {
-      e.preventDefault()
-      e.returnValue = ''
-    }
-    window.addEventListener('beforeunload', handler)
-    return () => window.removeEventListener('beforeunload', handler)
-  }, [isDirty])
-
   const handleTabChange = (tab: SettingsTab) => {
-    if (tab !== uiState.activeTab && isDirty) {
-      const discard = window.confirm('Discard unapplied Style and Voice changes?')
-      if (!discard) return
-      resetDraft()
-    }
     if (scrollRef.current) {
       persistUi({
         activeTab: tab,
@@ -158,12 +142,17 @@ export default function SettingsShell() {
   }
 
   const draftConfig = draft ?? config
-  const showApplyBar =
-    isDirty && (uiState.activeTab === 'style' || uiState.activeTab === 'voice')
+  const showApplyBar = isDirty
 
   const previewPhrase =
     state?.lastPhrases &&
     (Object.values(state.lastPhrases).find((p) => p && p.trim()) as string | undefined)
+
+  const previewLayoutEnvelope =
+    state?.lastContent &&
+    (Object.values(state.lastContent).find((e) => e?.payload) as
+      | import('@core/domain/types').LayoutContentEnvelope
+      | undefined)
 
   return (
     <>
@@ -176,6 +165,7 @@ export default function SettingsShell() {
             onRefresh={handleRefresh}
             isRefreshing={isRefreshing}
             state={state}
+            hasDraftPending={isDirty}
           />
         }
         mainScrollRef={scrollRef}
@@ -194,10 +184,10 @@ export default function SettingsShell() {
             patchDraft={patchDraft}
             onMoodChange={applyMoodToDraft}
             previewPhrase={previewPhrase ?? ''}
+            previewLayoutEnvelope={previewLayoutEnvelope ?? null}
             displayWidth={displaySize.width}
             displayHeight={displaySize.height}
-            previewVisible={uiState.stylePreviewVisible !== false}
-            onPreviewVisibleChange={(visible) => persistUi({ stylePreviewVisible: visible })}
+            scrollContainerRef={scrollRef}
           />
         )}
         {uiState.activeTab === 'displays' && (

@@ -4,6 +4,10 @@ import {
   draftFieldsEqual,
   pickDraftFields
 } from '../../../../../src/core/lib/presets/configDelta'
+import {
+  AESTHETIC_MOOD_IDS,
+  applyAestheticMood
+} from '../../../../../src/core/lib/presets/aestheticMoods'
 import type { MurmurConfig } from '../../../../../src/core/domain/types'
 
 const base = (): MurmurConfig =>
@@ -97,5 +101,26 @@ describe('pickDraftFields', () => {
     const picked = pickDraftFields(c)
     expect(picked.overlays).toEqual(c.overlays)
     expect(picked.overlays).not.toBe(c.overlays)
+  })
+})
+
+describe('mood Apply parity (AC7)', () => {
+  it('legacy saveConfig(applyAestheticMood) matches draft field snapshot for every mood', () => {
+    for (const moodId of AESTHETIC_MOOD_IDS) {
+      const prev = base()
+      const legacyCommitted = { ...prev, ...applyAestheticMood(moodId) }
+      const draftAfterMood = { ...prev, ...applyAestheticMood(moodId) }
+      expect(draftFieldsEqual(legacyCommitted, draftAfterMood)).toBe(true)
+      expect(pickDraftFields(legacyCommitted)).toEqual(pickDraftFields(draftAfterMood))
+    }
+  })
+
+  it('mood bundle keys are covered by DRAFT_FIELD_KEYS', () => {
+    for (const moodId of AESTHETIC_MOOD_IDS) {
+      const updates = applyAestheticMood(moodId)
+      for (const key of Object.keys(updates) as (keyof MurmurConfig)[]) {
+        expect(pickDraftFields({ ...base(), ...updates })[key as keyof ReturnType<typeof pickDraftFields>]).toBeDefined()
+      }
+    }
   })
 })

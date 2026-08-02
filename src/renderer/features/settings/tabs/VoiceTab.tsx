@@ -8,6 +8,7 @@ import {
 import type { TonePreset } from '@core/domain/types'
 import SettingsSelect from '../components/SettingsSelect'
 import SettingsChipGroup from '../components/SettingsChipGroup'
+import MarkupRulesChips from '../components/MarkupRulesChips'
 
 type VoiceTabProps = {
   config: MurmurConfig
@@ -106,31 +107,8 @@ export default function VoiceTab({ config, patchDraft, onPresetChange }: VoiceTa
       </div>
 
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4">
-        <p className="text-xs text-slate-500">Markup changes apply when you click Apply changes.</p>
         <h3 className="text-sm font-bold text-white">Markup rules</h3>
-        <div className="grid grid-cols-2 gap-4">
-          {(
-            [
-              ['enableBold', 'Bold', '**bold** markers'],
-              ['enableItalic', 'Italic', '*italic* markers'],
-              ['enableNewlines', 'Multi-line', 'Line breaks'],
-              ['enableDifferentFonts', 'Mixed fonts', '[font:…] tags']
-            ] as const
-          ).map(([key, title, desc]) => (
-            <label key={key} className="flex items-center justify-between gap-2 text-sm">
-              <span>
-                <span className="text-white block">{title}</span>
-                <span className="text-[10px] text-slate-500">{desc}</span>
-              </span>
-              <input
-                type="checkbox"
-                className="rounded border-slate-800 text-indigo-600 h-4 w-4 bg-slate-950 shrink-0"
-                checked={config[key]}
-                onChange={(e) => patchDraft({ [key]: e.target.checked })}
-              />
-            </label>
-          ))}
-        </div>
+        <MarkupRulesChips config={config} patchDraft={patchDraft} />
       </div>
 
       <details className="bg-slate-900 border border-slate-800 rounded-xl p-6 group">
