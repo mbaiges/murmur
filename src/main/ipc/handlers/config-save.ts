@@ -1,13 +1,13 @@
 import { screen } from 'electron'
-import type { MurmurConfig } from '../../../core/domain/types'
-import type { MurmurState } from '../../../core/domain/types'
-import { shouldRegeneratePhraseAfterConfigSave } from '../../../core/lib/appearanceRegenerate'
-import type { IConfigStore } from '../../../core/ports/IConfigStore'
-import type { IStartupIntegration } from '../../../core/ports/IStartupIntegration'
-import type { IWallpaperRenderer } from '../../../core/ports/IWallpaperRenderer'
-import type { MurmurService } from '../../../core/domain/MurmurService'
-import type { Scheduler } from '../../../core/domain/Scheduler'
-import { IpcChannel } from '../../../shared/ipc-contract'
+import type { MurmurConfig } from '@core/domain/types'
+import type { MurmurState } from '@core/domain/types'
+import { shouldRegeneratePhraseAfterConfigSave } from '@core/lib/appearanceRegenerate'
+import type { IConfigStore } from '@core/ports/IConfigStore'
+import type { IStartupIntegration } from '@core/ports/IStartupIntegration'
+import type { IWallpaperRenderer } from '@core/ports/IWallpaperRenderer'
+import type { MurmurService } from '@core/domain/MurmurService'
+import type { Scheduler } from '@core/domain/Scheduler'
+import { IpcChannel } from '@shared/ipc'
 import {
   createBackgroundWindow,
   destroyAllBackgroundWindows,

@@ -3,16 +3,22 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { resolve } from 'path'
 
+const coreDomain = resolve('src/core/domain')
+const corePorts = resolve('src/core/ports')
+const coreLib = resolve('src/core/lib')
+const mainRoot = resolve('src/main')
+const ipcContract = resolve('src/shared/ipc-contract.ts')
+
 export default defineConfig({
   main: {
     plugins: [externalizeDepsPlugin()],
     resolve: {
       alias: {
-        '@core/domain': resolve('src/core/domain'),
-        '@core/ports': resolve('src/core/ports'),
-        '@core/lib': resolve('src/core/lib'),
-        '@adapters': resolve('src/main/infrastructure'),
-        '@shared/ipc': resolve('src/shared/ipc-contract.ts')
+        '@core/domain': coreDomain,
+        '@core/ports': corePorts,
+        '@core/lib': coreLib,
+        '@main': mainRoot,
+        '@shared/ipc': ipcContract
       }
     }
   },
@@ -20,7 +26,9 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin()],
     resolve: {
       alias: {
-        '@core/domain': resolve('src/core/domain')
+        '@core/domain': coreDomain,
+        '@core/lib': coreLib,
+        '@shared/ipc': ipcContract
       }
     }
   },
@@ -28,8 +36,9 @@ export default defineConfig({
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
-        '@core/domain': resolve('src/core/domain'),
-        '@core/lib': resolve('src/core/lib')
+        '@core/domain': coreDomain,
+        '@core/lib': coreLib,
+        '@shared/ipc': ipcContract
       }
     }
   }

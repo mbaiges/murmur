@@ -19,13 +19,17 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    
+
     "baseUrl": ".",
     "paths": {
+      "@core/domain": ["src/core/domain"],
       "@core/domain/*": ["src/core/domain/*"],
+      "@core/ports": ["src/core/ports"],
       "@core/ports/*": ["src/core/ports/*"],
+      "@core/lib": ["src/core/lib"],
       "@core/lib/*": ["src/core/lib/*"],
-      "@adapters/*": ["src/main/infrastructure/*"],
+      "@main": ["src/main"],
+      "@main/*": ["src/main/*"],
       "@shared/ipc": ["src/shared/ipc-contract.ts"]
     }
   },

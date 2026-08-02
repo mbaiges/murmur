@@ -12,7 +12,8 @@ export default defineConfig({
       '@core/domain': resolve('src/core/domain'),
       '@core/ports': resolve('src/core/ports'),
       '@core/lib': resolve('src/core/lib'),
-      '@adapters': resolve('src/main/infrastructure')
+      '@main': resolve('src/main'),
+      '@shared/ipc': resolve('src/shared/ipc-contract.ts')
     }
   }
 })

@@ -1,7 +1,7 @@
 # Loop state: repo-restructure
 
-Updated: 2026-08-02 (iteration 6 — Phase 5 complete)
-Iteration: 6
+Updated: 2026-08-02 (iteration 7 — Phase 6 complete)
+Iteration: 7
 Spec:
 
 - docs/features/repo-restructure/functional-spec.md
@@ -27,8 +27,8 @@ E2E screenshot dir (gitignored): `tests/e2e/artifacts/screenshots/repo-restructu
 - [x] AC-9 build (Phase 1 gate)
 - [x] AC-2 composition (bootstrap + ipc + windows; index.ts lifecycle/tray/state)
 - [x] AC-3 IPC parity (IpcChannel wired in main + preload)
-- [ ] AC-4 lint boundaries (rules active; full alias tighten later)
-- [ ] AC-5 aliases
+- [x] AC-5 aliases (Vite/tsconfig/vitest; renderer/preload use @core + @shared/ipc only)
+- [ ] AC-4 lint boundaries (rules active; @core/ports blocked on renderer/preload)
 - [ ] AC-6 unit
 - [ ] AC-7 integration
 - [ ] AC-8 E2E
@@ -75,5 +75,5 @@ In-loop uses `murmur.spec.ts` smoke until restructure-specific spec added. Copy 
 
 ## Next iteration focus
 
-1. **Phase 6:** Tighten Vite/tsconfig aliases; verify AC-5.
-2. Re-run lint + feature E2E.
+1. **Phase 7:** `core/lib` subfolders + domain split (`config-types.ts`, `prompts.ts`).
+2. Re-run unit + integration.

@@ -27,9 +27,9 @@ export default tseslint.config(
                 'Renderer/preload must not import main infrastructure or bootstrap. Use window.api / ipc-contract / core only.'
             },
             {
-              group: ['@adapters/*', '@main/*'],
+              group: ['@adapters/*', '@main/*', '@core/ports', '@core/ports/*'],
               message:
-                'Renderer/preload must not import main infrastructure or bootstrap. Use window.api / ipc-contract / core only.'
+                'Renderer/preload must not import main infrastructure, bootstrap, or core ports. Use window.api / ipc-contract / core domain+lib only.'
             }
           ]
         }

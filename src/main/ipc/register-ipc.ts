@@ -1,9 +1,9 @@
 import { ipcMain } from 'electron'
-import type { MurmurState } from '../../core/domain/types'
-import type { IConfigStore } from '../../core/ports/IConfigStore'
-import type { IHistoryStore } from '../../core/ports/IHistoryStore'
-import type { MurmurService } from '../../core/domain/MurmurService'
-import { IpcChannel } from '../../shared/ipc-contract'
+import type { MurmurState } from '@core/domain/types'
+import type { IConfigStore } from '@core/ports/IConfigStore'
+import type { IHistoryStore } from '@core/ports/IHistoryStore'
+import type { MurmurService } from '@core/domain/MurmurService'
+import { IpcChannel } from '@shared/ipc'
 import { handleConfigSave, type ConfigSaveHandlerDeps } from './handlers/config-save'
 
 export type RegisterIpcDeps = ConfigSaveHandlerDeps & {
