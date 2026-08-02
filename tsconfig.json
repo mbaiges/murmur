@@ -19,14 +19,18 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    
-    /* Paths mapping for hexagonal architecture */
+
     "baseUrl": ".",
     "paths": {
-      "@domain/*": ["src/domain/*"],
-      "@ports/*": ["src/ports/*"],
-      "@adapters/*": ["src/adapters/*"],
-      "@shared/*": ["src/shared/*"]
+      "@core/domain": ["src/core/domain"],
+      "@core/domain/*": ["src/core/domain/*"],
+      "@core/ports": ["src/core/ports"],
+      "@core/ports/*": ["src/core/ports/*"],
+      "@core/lib": ["src/core/lib"],
+      "@core/lib/*": ["src/core/lib/*"],
+      "@main": ["src/main"],
+      "@main/*": ["src/main/*"],
+      "@shared/ipc": ["src/shared/ipc-contract.ts"]
     }
   },
   "include": ["src/**/*", "tests/**/*"]

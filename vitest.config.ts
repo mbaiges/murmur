@@ -9,10 +9,11 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@domain': resolve('src/domain'),
-      '@ports': resolve('src/ports'),
-      '@adapters': resolve('src/adapters'),
-      '@shared': resolve('src/shared')
+      '@core/domain': resolve('src/core/domain'),
+      '@core/ports': resolve('src/core/ports'),
+      '@core/lib': resolve('src/core/lib'),
+      '@main': resolve('src/main'),
+      '@shared/ipc': resolve('src/shared/ipc-contract.ts')
     }
   }
 })

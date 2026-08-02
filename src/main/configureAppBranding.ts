@@ -1,5 +1,5 @@
 import { app, nativeImage } from 'electron'
-import { resolveBrandIconPath } from '../shared/resolveBrandIcon'
+import { resolveBrandIconPath } from './lib/resolveBrandIcon'
 
 export function configureAppBranding(): void {
   if (process.platform !== 'darwin') {
