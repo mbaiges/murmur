@@ -1,13 +1,13 @@
 import React from 'react'
-import type { MurmurConfig } from '@core/domain/types'
+import type { MonitorProfile } from '@core/domain/types'
 
 type StyleWidgetsCardProps = {
-  config: MurmurConfig
-  patchDraft: (partial: Partial<MurmurConfig>) => void
+  config: MonitorProfile
+  patchDraft: (partial: Partial<MonitorProfile>) => void
 }
 
 const WIDGETS: {
-  key: keyof MurmurConfig['overlays']
+  key: keyof MonitorProfile['overlays']
   label: string
   hint: string
 }[] = [

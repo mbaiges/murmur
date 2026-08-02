@@ -1,4 +1,5 @@
 import { MurmurConfig, WORST_NEWS_TITLE_PROMPT } from '../../domain/types'
+import type { MonitorProfile } from '../../domain/types'
 
 export function isClickbaitPressConfig(config: {
   systemPrompt?: string
@@ -19,6 +20,10 @@ export function isClickbaitPressConfig(config: {
     config.vignetteStyle === 'none' &&
     config.noiseIntensity === 'none'
   )
+}
+
+export function isClickbaitPressProfile(profile: MonitorProfile): boolean {
+  return isClickbaitPressConfig(profile)
 }
 
 /** Clickbait Press used Instant Cut, which hides the live overlay on macOS. */

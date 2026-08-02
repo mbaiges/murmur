@@ -22,7 +22,8 @@
     "lint": "eslint src",
     "test:e2e:repo-restructure": "playwright test tests/e2e/murmur.spec.ts",
     "test:e2e:settings-ui-reorg": "playwright test tests/e2e/settings-ui-reorg.spec.ts",
-    "test:e2e:style-voice-settings-polish": "playwright test tests/e2e/style-voice-settings-polish.spec.ts"
+    "test:e2e:style-voice-settings-polish": "playwright test tests/e2e/style-voice-settings-polish.spec.ts",
+    "test:e2e:per-monitor-settings": "playwright test tests/e2e/per-monitor-settings.spec.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

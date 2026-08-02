@@ -1,4 +1,4 @@
-import type { MurmurConfig, TonePreset } from '../../domain/types'
+import type { MonitorProfile, TonePreset } from '../../domain/types'
 import {
   CYBERPUNK_TERMINAL_PROMPT,
   GOTHIC_PURPLE_PROSE_PROMPT,
@@ -19,7 +19,7 @@ export function defaultToneForMood(_moodId: AestheticMoodId): TonePreset {
   return 'none'
 }
 
-export function applyAestheticMood(moodId: AestheticMoodId): Partial<MurmurConfig> {
+export function applyAestheticMood(moodId: AestheticMoodId): Partial<MonitorProfile> {
   const tonePreset = defaultToneForMood(moodId)
   switch (moodId) {
     case 'Rogue Terminal':
@@ -89,10 +89,10 @@ export function applyAestheticMood(moodId: AestheticMoodId): Partial<MurmurConfi
   }
 }
 
-export function isAestheticMoodActive(config: MurmurConfig, moodId: AestheticMoodId): boolean {
+export function isAestheticMoodActive(profile: MonitorProfile, moodId: AestheticMoodId): boolean {
   const expected = applyAestheticMood(moodId)
-  return (Object.keys(expected) as (keyof MurmurConfig)[]).every((key) => {
-    if (key === 'tonePreset') return config.tonePreset === expected.tonePreset
-    return config[key] === expected[key]
+  return (Object.keys(expected) as (keyof MonitorProfile)[]).every((key) => {
+    if (key === 'tonePreset') return profile.tonePreset === expected.tonePreset
+    return profile[key] === expected[key]
   })
 }

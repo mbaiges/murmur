@@ -33,7 +33,7 @@ export default function SetupWizard({ toast, onSubmit }: SetupWizardProps) {
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
 
         <div className="flex items-center space-x-3 mb-6">
-          <img src="./logo.png" className="h-10 w-10 object-contain rounded-lg border border-slate-800 p-1 bg-slate-955" alt="" />
+          <img src="./logo.png" className="h-10 w-10 object-contain rounded-lg" alt="" />
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-white">Murmur</h1>
             <p className="text-xs text-slate-400">First-time Setup Wizard</p>

@@ -50,7 +50,7 @@ Industry patterns (scope-first settings sidebars, VS Code user vs workspace scop
 | Display profile | Per-monitor bundle: feeds, voice fields, style fields, enable, and sync toggles. |
 | Scoped tab | **News sources**, **Voice & prompts**, or **Style** while a display is selected. |
 | Global tab | **General** — display selector disabled or labeled “All displays”. |
-| Displays tab | **Displays** — operational view (status, enable, preview, history); uses selected display where applicable. |
+| Displays tab | **History** — phrase history for the sidebar-selected display. |
 | Tab sync (Sync toggle) | Per display, per scoped tab: when **on**, that display participates in the tab’s **sync mesh**. |
 | Sync mesh | All displays with Sync **on** for the same tab; one logical shared config for that tab’s fields. |
 | Sync all tabs chip | Sidebar chip: toggles Sync **on** for News + Voice + Style on the **selected display**. |
@@ -77,7 +77,7 @@ Industry patterns (scope-first settings sidebars, VS Code user vs workspace scop
 
 1. **Branding** (unchanged role).
 2. **Display selector** — Compact control (dropdown or segmented list): **Display 1**, **Display 2**, … using friendly labels; optional secondary hint (resolution or truncated id). **Persist last selected display** in Settings UI state.
-3. **Task tabs** (unchanged labels and order): General → News sources → Voice & prompts → Style → Displays.
+3. **Task tabs** (unchanged labels and order): General → News sources → Voice & prompts → Style → **History**.
 4. **Footer** (unchanged): Refresh Now, last refresh / idle.
 
 ### Scope rules by tab
@@ -88,7 +88,7 @@ Industry patterns (scope-first settings sidebars, VS Code user vs workspace scop
 | **News sources** | Active | Selected display’s feed list |
 | **Voice & prompts** | Active | Selected display’s voice fields (incl. tone, language, markup, advanced sample size) |
 | **Style** | Active | Selected display’s mood/style/widgets; draft **Apply** affects sync mesh when Style Sync is on |
-| **Displays** | Active | **Monitors**: status/enable/quick actions for **selected display only** (single card; subtitle may note total connected count). **History**: history for **selected display** |
+| **History** | Active | Phrase **history** for the sidebar-selected display |
 
 ### Switching display
 
@@ -108,7 +108,7 @@ Sync is controlled with **selectable chips** (same visual language as existing S
 
 **One-shot align** (push this display’s committed settings to the mesh without toggling): **not** a separate button in v1. If the user turns a sync chip **on** after editing while off, product default is **hint tooltip only** (“Other displays may differ until you edit or re-toggle”) unless review locks auto-align—see checklist. Optional post-v1: long-press chip to “Push to synced displays.”
 
-**General** tab: no sync chip (global scope). **Displays** tab: no tab-level sync chip (use sidebar **Sync all tabs** + per-tab chips when editing those tabs).
+**General** tab: no sync chip (global scope). **History** tab: no tab-level sync chip (use sidebar **Sync all tabs** + per-tab chips when editing those tabs).
 
 No “Sync with Display 1” wording—avoid implying a permanent master.
 
@@ -228,7 +228,7 @@ No “Sync with Display 1” wording—avoid implying a permanent master.
 8. Sync chips are **icon-only** with accessible name + tooltip; visual selected state matches Settings chip pattern.
 9. New monitor id receives profile cloned from **primary display**; appears in selector.
 10. Legacy config migrates without user action; until Sync is turned off, editing any display still updates all displays (mesh default).
-11. **Displays → History** shows history for the **selected display** only.
+11. **History** tab shows history for the **selected display** only.
 12. E2E/unit tests updated for selector, sync chips, scoped save, and at least one sync propagation scenario.
 
 ## Out-of-Scope Follow-ups (post-v1)

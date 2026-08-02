@@ -1,5 +1,5 @@
 import React from 'react'
-import type { MurmurConfig } from '@core/domain/types'
+import type { MonitorProfile } from '@core/domain/types'
 import { AESTHETIC_MOOD_IDS, isAestheticMoodActive, type AestheticMoodId } from '@core/lib/presets/aestheticMoods'
 
 const MOOD_UI: Record<
@@ -53,7 +53,7 @@ const MOOD_UI: Record<
 }
 
 type MoodGalleryProps = {
-  config: MurmurConfig
+  config: MonitorProfile
   onMoodChange: (moodName: string) => void
 }
 

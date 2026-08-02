@@ -176,8 +176,6 @@ test.describe.serial('Structured layout semantics vs legacy heuristics', () => {
     await page.locator('button:has-text("Refresh Now")').click()
     await page.waitForTimeout(2500)
 
-    await page.locator('button:has-text("Displays")').click()
-    await page.waitForTimeout(400)
     await page.locator('button:has-text("History")').click()
     await page.waitForTimeout(800)
     await page.getByRole('button', { name: 'Raw JSON' }).click()

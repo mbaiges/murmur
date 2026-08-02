@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react'
-import type { LayoutContentEnvelope, MurmurConfig } from '@core/domain/types'
+import type { LayoutContentEnvelope, MonitorProfile } from '@core/domain/types'
 import WallpaperPreviewContent from '../../wallpaper/WallpaperPreviewContent'
 import { displayAspectRatioLabel, stylePreviewDimensions } from '../lib/stylePreviewLayout'
 
 const COMPACT_THUMB_MAX_WIDTH = 88
 
 type StyleMiniPreviewProps = {
-  config: MurmurConfig
+  config: MonitorProfile
   phrase: string
   displayWidth: number
   displayHeight: number

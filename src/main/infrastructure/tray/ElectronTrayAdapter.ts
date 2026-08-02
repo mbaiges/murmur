@@ -1,17 +1,30 @@
 import { Tray, Menu, app, nativeImage } from 'electron'
+import { join, dirname } from 'path'
+import { existsSync } from 'fs'
 import { resolveBrandIconPath } from '../../lib/resolveBrandIcon'
 import { ISystemTray } from '../../../core/ports/ISystemTray'
 import { MurmurState } from '../../../core/domain/types'
 
+function resolveTrayIconPath(): string {
+  const brandPath = resolveBrandIconPath()
+  if (process.platform === 'darwin') {
+    const trayPath = join(dirname(brandPath), 'logo-tray.png')
+    if (existsSync(trayPath)) {
+      return trayPath
+    }
+  }
+  return brandPath
+}
+
 function createTrayImage() {
-  const iconPath = resolveBrandIconPath()
+  const iconPath = resolveTrayIconPath()
   let image = nativeImage.createFromPath(iconPath)
   if (image.isEmpty()) {
     throw new Error(`Tray icon could not be loaded from ${iconPath}`)
   }
   if (process.platform === 'darwin') {
     image = image.resize({ width: 22, height: 22 })
-    image.setTemplateImage(false)
+    image.setTemplateImage(true)
   }
   return image
 }

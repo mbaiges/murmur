@@ -1,6 +1,6 @@
-import type { MurmurConfig } from '../../domain/types'
+import type { MonitorProfile, MurmurConfig } from '../../domain/types'
 
-/** Fields edited via unified Settings draft (Style + Voice). */
+/** Fields edited via unified Settings draft (Style + Voice) on a monitor profile. */
 export const DRAFT_FIELD_KEYS = [
   'theme',
   'noiseIntensity',
@@ -20,7 +20,7 @@ export const DRAFT_FIELD_KEYS = [
   'enableNewlines',
   'enableDifferentFonts',
   'headlineSampleSize'
-] as const satisfies readonly (keyof MurmurConfig)[]
+] as const satisfies readonly (keyof MonitorProfile)[]
 
 export type DraftFieldKey = (typeof DRAFT_FIELD_KEYS)[number]
 
@@ -35,7 +35,7 @@ const CONTENT_DELTA_KEYS = [
   'enableNewlines',
   'enableDifferentFonts',
   'headlineSampleSize'
-] as const satisfies readonly (keyof MurmurConfig)[]
+] as const satisfies readonly (keyof MonitorProfile)[]
 
 const VISUAL_SCALAR_KEYS = [
   'theme',
@@ -45,9 +45,9 @@ const VISUAL_SCALAR_KEYS = [
   'audioFeedback',
   'noiseIntensity',
   'vignetteStyle'
-] as const satisfies readonly (keyof MurmurConfig)[]
+] as const satisfies readonly (keyof MonitorProfile)[]
 
-function overlaysEqual(a: MurmurConfig['overlays'], b: MurmurConfig['overlays']): boolean {
+function overlaysEqual(a: MonitorProfile['overlays'], b: MonitorProfile['overlays']): boolean {
   return (
     a.dateTime === b.dateTime &&
     a.sourceCredit === b.sourceCredit &&
@@ -55,14 +55,26 @@ function overlaysEqual(a: MurmurConfig['overlays'], b: MurmurConfig['overlays'])
   )
 }
 
-function hasContentDelta(prev: MurmurConfig, next: MurmurConfig): boolean {
+function profilesEqual(a: MonitorProfile, b: MonitorProfile): boolean {
+  if (a.feeds.length !== b.feeds.length || a.feeds.some((f, i) => f !== b.feeds[i])) return false
+  for (const key of DRAFT_FIELD_KEYS) {
+    if (key === 'overlays') {
+      if (!overlaysEqual(a.overlays, b.overlays)) return false
+    } else if (a[key] !== b[key]) {
+      return false
+    }
+  }
+  return true
+}
+
+function hasContentDeltaProfile(prev: MonitorProfile, next: MonitorProfile): boolean {
   for (const key of CONTENT_DELTA_KEYS) {
     if (prev[key] !== next[key]) return true
   }
   return false
 }
 
-function hasVisualDelta(prev: MurmurConfig, next: MurmurConfig): boolean {
+function hasVisualDeltaProfile(prev: MonitorProfile, next: MonitorProfile): boolean {
   for (const key of VISUAL_SCALAR_KEYS) {
     if (prev[key] !== next[key]) return true
   }
@@ -72,37 +84,74 @@ function hasVisualDelta(prev: MurmurConfig, next: MurmurConfig): boolean {
 
 export type ConfigDeltaKind = 'none' | 'visual' | 'content'
 
+function monitorMapsEqual(prev: MurmurConfig, next: MurmurConfig): boolean {
+  if (prev.monitors.length !== next.monitors.length) return false
+  for (const pm of prev.monitors) {
+    const nm = next.monitors.find((m) => m.id === pm.id)
+    if (!nm) return false
+    if (pm.enabled !== nm.enabled) return false
+    if (!profilesEqual(pm.profile, nm.profile)) return false
+  }
+  return true
+}
+
 /** Classify persisted config change for post-save wallpaper side effects. */
 export function classifyConfigDelta(prev: MurmurConfig, next: MurmurConfig): ConfigDeltaKind {
-  if (hasContentDelta(prev, next)) return 'content'
-  if (hasVisualDelta(prev, next)) return 'visual'
+  if (
+    prev.geminiApiKey !== next.geminiApiKey ||
+    prev.refreshIntervalMinutes !== next.refreshIntervalMinutes ||
+    prev.launchAtLogin !== next.launchAtLogin
+  ) {
+    return 'none'
+  }
+
+  let anyContent = false
+  let anyVisual = false
+
+  const ids = new Set([...prev.monitors.map((m) => m.id), ...next.monitors.map((m) => m.id)])
+  for (const id of ids) {
+    const p = prev.monitors.find((m) => m.id === id)
+    const n = next.monitors.find((m) => m.id === id)
+    if (!p || !n) {
+      anyContent = true
+      continue
+    }
+    if (p.enabled !== n.enabled) anyVisual = true
+    if (hasContentDeltaProfile(p.profile, n.profile)) anyContent = true
+    else if (hasVisualDeltaProfile(p.profile, n.profile)) anyVisual = true
+    if (p.profile.feeds.join() !== n.profile.feeds.join()) anyContent = true
+  }
+
+  if (anyContent) return 'content'
+  if (anyVisual) return 'visual'
+  if (!monitorMapsEqual(prev, next)) return 'visual'
   return 'none'
 }
 
-export function pickDraftFields(config: MurmurConfig): Pick<MurmurConfig, DraftFieldKey> {
+export function pickDraftFields(profile: MonitorProfile): Pick<MonitorProfile, DraftFieldKey> {
   return {
-    theme: config.theme,
-    noiseIntensity: config.noiseIntensity,
-    vignetteStyle: config.vignetteStyle,
-    fontFamily: config.fontFamily,
-    textAlignment: config.textAlignment,
-    layoutStyle: config.layoutStyle,
-    animation: config.animation,
-    audioFeedback: config.audioFeedback,
-    overlays: { ...config.overlays },
-    systemPrompt: config.systemPrompt,
-    tonePreset: config.tonePreset,
-    customToneText: config.customToneText,
-    language: config.language,
-    enableBold: config.enableBold,
-    enableItalic: config.enableItalic,
-    enableNewlines: config.enableNewlines,
-    enableDifferentFonts: config.enableDifferentFonts,
-    headlineSampleSize: config.headlineSampleSize
+    theme: profile.theme,
+    noiseIntensity: profile.noiseIntensity,
+    vignetteStyle: profile.vignetteStyle,
+    fontFamily: profile.fontFamily,
+    textAlignment: profile.textAlignment,
+    layoutStyle: profile.layoutStyle,
+    animation: profile.animation,
+    audioFeedback: profile.audioFeedback,
+    overlays: { ...profile.overlays },
+    systemPrompt: profile.systemPrompt,
+    tonePreset: profile.tonePreset,
+    customToneText: profile.customToneText,
+    language: profile.language,
+    enableBold: profile.enableBold,
+    enableItalic: profile.enableItalic,
+    enableNewlines: profile.enableNewlines,
+    enableDifferentFonts: profile.enableDifferentFonts,
+    headlineSampleSize: profile.headlineSampleSize
   }
 }
 
-export function draftFieldsEqual(a: MurmurConfig, b: MurmurConfig): boolean {
+export function draftFieldsEqual(a: MonitorProfile, b: MonitorProfile): boolean {
   const pa = pickDraftFields(a)
   const pb = pickDraftFields(b)
   for (const key of DRAFT_FIELD_KEYS) {

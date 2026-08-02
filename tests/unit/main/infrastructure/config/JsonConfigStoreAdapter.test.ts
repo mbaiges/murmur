@@ -25,16 +25,16 @@ describe('JsonConfigStoreAdapter', () => {
     const config = await store.get()
 
     expect(existsSync(filePath)).toBe(true)
-    expect(config.theme).toBe('Midnight')
+    expect(config.configVersion).toBe(2)
     expect(config.refreshIntervalMinutes).toBe(60)
+    expect(config.monitors).toEqual([])
   })
 
   it('updates configuration and saves correctly', async () => {
     const store = new JsonConfigStoreAdapter()
-    await store.set({ theme: 'Parchment', refreshIntervalMinutes: 30 })
+    await store.set({ refreshIntervalMinutes: 30 })
 
     const config = await store.get()
-    expect(config.theme).toBe('Parchment')
     expect(config.refreshIntervalMinutes).toBe(30)
   })
 })

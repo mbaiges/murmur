@@ -94,7 +94,7 @@ flowchart TB
 | `SettingsSidebar` | Display `<select>`, sync-all chip, pass `selectedMonitorId` |
 | `SyncIconChip.tsx` | Toggle chip, link icon, `aria-label`, `title` tooltip |
 | `useScopedMonitorSave.ts` | Wrap `saveConfig`: apply sync propagation, update `monitors` array |
-| `DisplaysTab` | Drop duplicate monitor picker; use shell `selectedMonitorId`; single monitor card |
+| `HistoryTab` | Phrase history for shell `selectedMonitorId`; no duplicate monitor picker |
 
 ## Auth & authorization
 
@@ -258,7 +258,7 @@ type SettingsUiState = {
 | `NewsSourcesTab` | Read/write `monitors[i].profile.feeds`; header `SyncIconChip` → `syncNews` |
 | `VoiceTab` | Draft on selected monitor profile; chip → `syncVoice` |
 | `StyleTab` | Draft on selected monitor profile; chip → `syncStyle` |
-| `DisplaysTab` | Single card for `selectedMonitorId`; History uses same id; remove internal multi-select when sidebar selector present |
+| `HistoryTab` | History for `selectedMonitorId`; remove internal multi-select when sidebar selector present |
 
 ### `useScopedMonitorSave`
 
@@ -352,7 +352,7 @@ Unchanged (`MURMUR_E2E`, etc.). E2E may stub two virtual displays only if harnes
 | **2 — Sync + save** | `monitorSync`, `useScopedMonitorSave`, update `configDelta` |
 | **3 — Service** | `MurmurService` + `previewTheme` + `updateClockWallpapers` use profiles; union RSS |
 | **4 — Migration path** | `JsonConfigStoreAdapter` + bootstrap `ensureMonitorsForScreens` persist |
-| **5 — Settings UI** | Sidebar selector, chips, scoped tabs, Displays simplification, UI state |
+| **5 — Settings UI** | Sidebar selector, chips, scoped tabs, History tab, UI state |
 | **6 — Wallpaper** | `WallpaperView` profile resolve |
 | **7 — Verification** | E2E spec, fix broken tests, full suite before loop-build COMPLETE |
 
@@ -372,7 +372,7 @@ Maps to [functional-spec acceptance criteria](./functional-spec.md#acceptance-cr
 | 7 | Sync-all sets three booleans on selected monitor only |
 | 9 | `ensureMonitorsForScreens` + `cloneProfileFromPrimary` |
 | 10 | `configMigrate` + default sync flags true |
-| 11 | `DisplaysTab` history keyed to `selectedMonitorId` |
+| 11 | `HistoryTab` history keyed to `selectedMonitorId` |
 | 12 | E2E file + unit suite listed above |
 
 ## Out of scope (technical)

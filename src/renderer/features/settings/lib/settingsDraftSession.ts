@@ -1,24 +1,26 @@
-import type { MurmurConfig } from '@core/domain/types'
+import type { MonitorProfile } from '@core/domain/types'
 import { draftFieldsEqual, pickDraftFields } from '@core/lib/presets/configDelta'
 
-export const DRAFT_SESSION_KEY = 'murmur.settingsDraft.v1'
+export function draftSessionKey(monitorId: string): string {
+  return `murmur.settingsDraft.v2:${monitorId}`
+}
 
 type DraftSessionPayload = {
-  version: 1
-  draft: MurmurConfig
+  version: 2
+  draft: MonitorProfile
   committedRevision: string
 }
 
-export function committedDraftRevision(config: MurmurConfig): string {
-  return JSON.stringify(pickDraftFields(config))
+export function committedDraftRevision(profile: MonitorProfile): string {
+  return JSON.stringify(pickDraftFields(profile))
 }
 
-export function readDraftSession(committed: MurmurConfig): MurmurConfig | null {
+export function readDraftSession(monitorId: string, committed: MonitorProfile): MonitorProfile | null {
   try {
-    const raw = sessionStorage.getItem(DRAFT_SESSION_KEY)
+    const raw = sessionStorage.getItem(draftSessionKey(monitorId))
     if (!raw) return null
     const parsed = JSON.parse(raw) as DraftSessionPayload
-    if (parsed.version !== 1) return null
+    if (parsed.version !== 2) return null
     if (parsed.committedRevision !== committedDraftRevision(committed)) return null
     return parsed.draft
   } catch {
@@ -26,19 +28,19 @@ export function readDraftSession(committed: MurmurConfig): MurmurConfig | null {
   }
 }
 
-export function writeDraftSession(draft: MurmurConfig, committed: MurmurConfig): void {
+export function writeDraftSession(monitorId: string, draft: MonitorProfile, committed: MonitorProfile): void {
   const payload: DraftSessionPayload = {
-    version: 1,
+    version: 2,
     draft,
     committedRevision: committedDraftRevision(committed)
   }
-  sessionStorage.setItem(DRAFT_SESSION_KEY, JSON.stringify(payload))
+  sessionStorage.setItem(draftSessionKey(monitorId), JSON.stringify(payload))
 }
 
-export function clearDraftSession(): void {
-  sessionStorage.removeItem(DRAFT_SESSION_KEY)
+export function clearDraftSession(monitorId: string): void {
+  sessionStorage.removeItem(draftSessionKey(monitorId))
 }
 
-export function isDraftDirty(committed: MurmurConfig, draft: MurmurConfig): boolean {
+export function isDraftDirty(committed: MonitorProfile, draft: MonitorProfile): boolean {
   return !draftFieldsEqual(committed, draft)
 }

@@ -1,6 +1,6 @@
-import type { MurmurConfig } from '../../domain/types'
+import type { MonitorProfile } from '../../domain/types'
 
-export type TonePreset = MurmurConfig['tonePreset']
+export type TonePreset = MonitorProfile['tonePreset']
 
 const BUILTIN: Record<Exclude<TonePreset, 'none' | 'custom'>, string> = {
   neutral:
@@ -11,7 +11,9 @@ const BUILTIN: Record<Exclude<TonePreset, 'none' | 'custom'>, string> = {
     'Write in Argentine street / villero register: informal, rough, and deliberately vulgar where it fits the headlines. Stay intelligible; do not sanitize into corporate news tone.'
 }
 
-export function resolveToneInstruction(config: Pick<MurmurConfig, 'tonePreset' | 'customToneText'>): string | null {
+export function resolveToneInstruction(
+  config: Pick<MonitorProfile, 'tonePreset' | 'customToneText'>
+): string | null {
   switch (config.tonePreset) {
     case 'none':
       return null

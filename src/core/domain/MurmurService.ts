@@ -6,13 +6,53 @@ import { IConfigStore } from '../ports/IConfigStore'
 import { IHistoryStore } from '../ports/IHistoryStore'
 import { ISystemTray } from '../ports/ISystemTray'
 import { sampleHeadlines } from './HeadlineSampler'
-import { LayoutContentEnvelope, MurmurState, ThemeName } from './types'
+import { LayoutContentEnvelope, MonitorProfile, MurmurState, ThemeName } from './types'
 import { getLayoutContentSpec } from '../lib/layout/layoutContentSpecs'
 import { payloadToPlainSummary } from '../lib/phrase/payloadToPlainSummary'
 import { resolveToneInstruction } from '../lib/generation/toneInstructions'
 import { buildEffectiveSystemPrompt } from '../lib/generation/buildEffectiveSystemPrompt'
+import {
+  collectUnionFeedUrls,
+  ensureMonitorsForScreens,
+  getMonitorEntry,
+  getMonitorProfile
+} from '../lib/config/monitorProfiles'
 
 export type MurmurRefreshContext = Pick<MurmurState, 'lastContent' | 'lastPhrases'>
+
+function paintOptionsFromProfile(
+  profile: MonitorProfile,
+  theme: ThemeName,
+  screen: { width: number; height: number },
+  envelope: LayoutContentEnvelope | undefined,
+  phrase: string,
+  isStaticMode: boolean,
+  headlines?: string[],
+  sources?: string[]
+) {
+  return {
+    phrase: isStaticMode ? phrase : '',
+    layoutContent: envelope,
+    theme,
+    fontFamily: profile.fontFamily,
+    animation: 'Instant' as const,
+    overlays: isStaticMode
+      ? profile.overlays
+      : { dateTime: false, sourceCredit: false, inspiringHeadlines: false },
+    resolution: { width: screen.width, height: screen.height },
+    textAlignment: profile.textAlignment,
+    layoutStyle: profile.layoutStyle,
+    vignetteStyle: profile.vignetteStyle,
+    noiseIntensity: profile.noiseIntensity,
+    audioFeedback: false,
+    enableBold: profile.enableBold,
+    enableItalic: profile.enableItalic,
+    enableNewlines: profile.enableNewlines,
+    enableDifferentFonts: profile.enableDifferentFonts,
+    headlines: isStaticMode ? headlines : undefined,
+    sources: isStaticMode ? sources : undefined
+  }
+}
 
 export class MurmurService {
   private isRefreshing = false
@@ -26,6 +66,17 @@ export class MurmurService {
     private readonly historyStore: IHistoryStore,
     private readonly tray: ISystemTray
   ) {}
+
+  private async loadConfigWithMonitors() {
+    let config = await this.configStore.get()
+    const activeScreens = await this.renderer.getScreens()
+    const { config: ensured, dirty } = ensureMonitorsForScreens(config, activeScreens)
+    if (dirty) {
+      await this.configStore.set({ monitors: ensured.monitors })
+      config = ensured
+    }
+    return { config, activeScreens }
+  }
 
   public async refresh(previous?: MurmurRefreshContext): Promise<void> {
     if (this.isRefreshing) {
@@ -42,7 +93,7 @@ export class MurmurService {
     let anySuccess = false
 
     try {
-      const config = await this.configStore.get()
+      const { config, activeScreens } = await this.loadConfigWithMonitors()
       if (!config.geminiApiKey) {
         console.warn('MurmurService: No API key configured.')
         this.tray.updateState({
@@ -54,39 +105,55 @@ export class MurmurService {
         return
       }
 
-      const rssItems = await this.rss.fetchAll(config.feeds)
+      const feedUrls = collectUnionFeedUrls(
+        config,
+        activeScreens.map((s) => s.id)
+      )
+      if (feedUrls.length === 0) {
+        console.warn('MurmurService: No feeds configured for enabled displays.')
+        return
+      }
+
+      const rssItems = await this.rss.fetchAll(feedUrls)
       if (rssItems.length === 0) {
         console.warn('MurmurService: No RSS items found.')
         return
       }
 
-      const activeScreens = await this.renderer.getScreens()
       const lastHeadlines: Record<string, string[]> = {}
       const lastSources: Record<string, string[]> = {}
-      const contentSpec = getLayoutContentSpec(config.layoutStyle)
 
       for (const screen of activeScreens) {
-        const monitorConf = config.monitors.find((m) => m.id === screen.id)
+        const monitorConf = getMonitorEntry(config, screen.id)
         if (monitorConf && !monitorConf.enabled) {
           continue
         }
 
-        const sampled = sampleHeadlines(rssItems, config.headlineSampleSize)
+        const profile = getMonitorProfile(config, screen.id)
+        const feedSet = new Set(profile.feeds)
+        const itemsForMonitor = rssItems.filter((item) => feedSet.has(item.feedUrl))
+        if (itemsForMonitor.length === 0) {
+          console.warn(`MurmurService: No RSS items for display ${screen.id}`)
+          continue
+        }
+
+        const contentSpec = getLayoutContentSpec(profile.layoutStyle)
+        const sampled = sampleHeadlines(itemsForMonitor, profile.headlineSampleSize)
         const generatorInputs = sampled.map((item) => `[Source: ${item.source}] ${item.title}`)
 
         try {
-          const toneInstruction = resolveToneInstruction(config)
-          const effectiveSystemPrompt = buildEffectiveSystemPrompt(config.systemPrompt, toneInstruction)
+          const toneInstruction = resolveToneInstruction(profile)
+          const effectiveSystemPrompt = buildEffectiveSystemPrompt(profile.systemPrompt, toneInstruction)
           const result = await this.ai.generateStructured({
             headlines: generatorInputs,
-            language: config.language,
+            language: profile.language,
             systemPrompt: effectiveSystemPrompt,
             contentSpec,
             formatFlags: {
-              enableBold: config.enableBold,
-              enableItalic: config.enableItalic,
-              enableNewlines: config.enableNewlines,
-              enableDifferentFonts: config.enableDifferentFonts
+              enableBold: profile.enableBold,
+              enableItalic: profile.enableItalic,
+              enableNewlines: profile.enableNewlines,
+              enableDifferentFonts: profile.enableDifferentFonts
             }
           })
 
@@ -105,30 +172,18 @@ export class MurmurService {
 
           await this.historyStore.save(screen.id, result.rawJson)
 
-          const theme = monitorConf?.themeOverride || config.theme
-          const isStaticMode = config.animation === 'Instant'
+          const isStaticMode = profile.animation === 'Instant'
           const phraseForPaint = result.payload.phrase ?? summary
-
-          const staticOptions = {
-            phrase: isStaticMode ? phraseForPaint : '',
-            layoutContent: envelope,
-            theme,
-            fontFamily: config.fontFamily,
-            animation: 'Instant' as const,
-            overlays: isStaticMode ? config.overlays : { dateTime: false, sourceCredit: false, inspiringHeadlines: false },
-            resolution: { width: screen.width, height: screen.height },
-            textAlignment: config.textAlignment,
-            layoutStyle: config.layoutStyle,
-            vignetteStyle: config.vignetteStyle,
-            noiseIntensity: config.noiseIntensity,
-            audioFeedback: false,
-            enableBold: config.enableBold,
-            enableItalic: config.enableItalic,
-            enableNewlines: config.enableNewlines,
-            enableDifferentFonts: config.enableDifferentFonts,
-            headlines: isStaticMode ? sampled.map((item) => item.title) : undefined,
-            sources: isStaticMode ? Array.from(new Set(sampled.map((i) => i.source))) : undefined
-          }
+          const staticOptions = paintOptionsFromProfile(
+            profile,
+            profile.theme,
+            screen,
+            envelope,
+            phraseForPaint,
+            isStaticMode,
+            sampled.map((item) => item.title),
+            Array.from(new Set(sampled.map((i) => i.source)))
+          )
           const buffer = await this.painter.paint(staticOptions)
           await this.renderer.set(screen.id, buffer)
         } catch (error) {
@@ -164,30 +219,14 @@ export class MurmurService {
 
   public async previewTheme(monitorId: string, theme: ThemeName): Promise<void> {
     try {
-      const config = await this.configStore.get()
-      const activeScreens = await this.renderer.getScreens()
+      const { config, activeScreens } = await this.loadConfigWithMonitors()
       const targetScreen = activeScreens.find((s) => s.id === monitorId)
       if (!targetScreen) {
         throw new Error(`Monitor with ID ${monitorId} not found`)
       }
 
-      const staticOptions = {
-        phrase: '',
-        theme,
-        fontFamily: config.fontFamily,
-        animation: 'Instant' as const,
-        overlays: { dateTime: false, sourceCredit: false, inspiringHeadlines: false },
-        resolution: { width: targetScreen.width, height: targetScreen.height },
-        textAlignment: config.textAlignment,
-        layoutStyle: config.layoutStyle,
-        vignetteStyle: config.vignetteStyle,
-        noiseIntensity: config.noiseIntensity,
-        audioFeedback: false,
-        enableBold: config.enableBold,
-        enableItalic: config.enableItalic,
-        enableNewlines: config.enableNewlines,
-        enableDifferentFonts: config.enableDifferentFonts
-      }
+      const profile = getMonitorProfile(config, monitorId)
+      const staticOptions = paintOptionsFromProfile(profile, theme, targetScreen, undefined, '', true)
       const buffer = await this.painter.paint(staticOptions)
       await this.renderer.set(monitorId, buffer)
     } catch (error) {
@@ -202,20 +241,19 @@ export class MurmurService {
 
   public async updateClockWallpapers(state: MurmurState): Promise<void> {
     try {
-      const config = await this.configStore.get()
+      const { config, activeScreens } = await this.loadConfigWithMonitors()
       if (!config.geminiApiKey) {
         return
       }
 
-      const activeScreens = await this.renderer.getScreens()
       for (const screen of activeScreens) {
-        const monitorConf = config.monitors.find((m) => m.id === screen.id)
+        const monitorConf = getMonitorEntry(config, screen.id)
         if (monitorConf && !monitorConf.enabled) {
           continue
         }
 
-        const theme = monitorConf?.themeOverride || config.theme
-        const isStaticMode = config.animation === 'Instant'
+        const profile = getMonitorProfile(config, screen.id)
+        const isStaticMode = profile.animation === 'Instant'
         const envelope = state.lastContent?.[screen.id]
         const phrase = isStaticMode
           ? (envelope?.payload?.phrase ?? state.lastPhrases?.[screen.id] ?? '')
@@ -224,26 +262,16 @@ export class MurmurService {
           continue
         }
 
-        const staticOptions = {
+        const staticOptions = paintOptionsFromProfile(
+          profile,
+          profile.theme,
+          screen,
+          envelope,
           phrase,
-          layoutContent: envelope,
-          theme,
-          fontFamily: config.fontFamily,
-          animation: 'Instant' as const,
-          overlays: isStaticMode ? config.overlays : { dateTime: false, sourceCredit: false, inspiringHeadlines: false },
-          resolution: { width: screen.width, height: screen.height },
-          textAlignment: config.textAlignment,
-          layoutStyle: config.layoutStyle,
-          vignetteStyle: config.vignetteStyle,
-          noiseIntensity: config.noiseIntensity,
-          audioFeedback: false,
-          enableBold: config.enableBold,
-          enableItalic: config.enableItalic,
-          enableNewlines: config.enableNewlines,
-          enableDifferentFonts: config.enableDifferentFonts,
-          headlines: isStaticMode ? state.lastHeadlines?.[screen.id] || [] : undefined,
-          sources: isStaticMode ? state.lastSources?.[screen.id] || [] : undefined
-        }
+          isStaticMode,
+          state.lastHeadlines?.[screen.id] || [],
+          state.lastSources?.[screen.id] || []
+        )
 
         const buffer = await this.painter.paint(staticOptions)
         await this.renderer.set(screen.id, buffer)

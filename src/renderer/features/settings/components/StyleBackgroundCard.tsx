@@ -1,5 +1,5 @@
 import React from 'react'
-import type { MurmurConfig, ThemeName } from '@core/domain/types'
+import type { MonitorProfile, ThemeName } from '@core/domain/types'
 import SettingsChipGroup from '../components/SettingsChipGroup'
 import { themePreviewBackgroundClass } from '../../wallpaper/wallpaperThemePreview'
 
@@ -15,8 +15,8 @@ const THEMES: { value: ThemeName; label: string }[] = [
 ]
 
 type StyleBackgroundCardProps = {
-  config: MurmurConfig
-  patchDraft: (partial: Partial<MurmurConfig>) => void
+  config: MonitorProfile
+  patchDraft: (partial: Partial<MonitorProfile>) => void
 }
 
 export default function StyleBackgroundCard({ config, patchDraft }: StyleBackgroundCardProps) {

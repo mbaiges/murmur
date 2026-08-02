@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import AppShell from '../../app/AppShell'
 import SetupWizard from './components/SetupWizard'
 import SettingsSidebar from './components/SettingsSidebar'
@@ -7,26 +7,46 @@ import GeneralTab from './tabs/GeneralTab'
 import NewsSourcesTab from './tabs/NewsSourcesTab'
 import VoiceTab from './tabs/VoiceTab'
 import StyleTab from './tabs/StyleTab'
-import DisplaysTab from './tabs/DisplaysTab'
+import HistoryTab from './tabs/HistoryTab'
 import { useMurmurConfig, readSettingsUiState, writeSettingsUiState } from './hooks/useMurmurConfig'
 import { useSettingsDraft } from './hooks/useSettingsDraft'
 import { usePrimaryDisplaySize } from './hooks/usePrimaryDisplaySize'
+import { useScopedMonitorSave } from './hooks/useScopedMonitorSave'
 import { getWindowApi } from './hooks/getWindowApi'
-import type { DisplaysSection, SettingsTab, SettingsUiState } from './types'
+import { createMonitorConfig, getMonitorEntry } from '@core/lib/config/monitorProfiles'
+import { getDefaultMonitorProfile } from '@core/lib/config/defaultMonitorProfile'
+import { isSyncAllTabs } from '@core/lib/config/monitorProfiles'
+import type { SettingsTab, SettingsUiState } from './types'
 
 const WIZARD_FLAG = 'murmur.wizardJustCompleted'
 
 function loadUiState(): SettingsUiState {
   const stored = readSettingsUiState()
+  const storedTab = stored?.activeTab ?? 'general'
+  const activeTab: SettingsTab =
+    storedTab === 'displays' ? 'history' : (storedTab as SettingsTab)
   return {
-    activeTab: sessionStorage.getItem(WIZARD_FLAG) ? 'general' : (stored?.activeTab ?? 'general'),
-    displaysSection: stored?.displaysSection ?? 'monitors',
+    activeTab: sessionStorage.getItem(WIZARD_FLAG) ? 'general' : activeTab,
     scrollByTab: stored?.scrollByTab ?? {},
+    selectedMonitorId: stored?.selectedMonitorId
   }
 }
 
 export default function SettingsShell() {
   const { config, state, setState, toast, showToast, saveConfig } = useMurmurConfig()
+  const [uiState, setUiState] = useState(loadUiState)
+  const [screenIds, setScreenIds] = useState<string[]>([])
+
+  const persistUi = (patch: Partial<SettingsUiState>) => {
+    setUiState((prev) => {
+      const next = { ...prev, ...patch }
+      writeSettingsUiState(next)
+      return next
+    })
+  }
+
+  const selectedMonitorId = uiState.selectedMonitorId ?? screenIds[0] ?? config?.monitors[0]?.id ?? ''
+
   const {
     draft,
     isDirty,
@@ -36,22 +56,37 @@ export default function SettingsShell() {
     applyDraft,
     resetDraft,
     handlePromptPresetChange
-  } = useSettingsDraft({ committed: config, showToast })
+  } = useSettingsDraft({ committed: config, monitorId: selectedMonitorId, showToast })
 
+  const { saveProfilePatch, saveSyncFlag } = useScopedMonitorSave(config, saveConfig)
   const displaySize = usePrimaryDisplaySize()
 
-  const [uiState, setUiState] = useState(loadUiState)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const scrollSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const persistUi = (patch: Partial<SettingsUiState>) => {
-    setUiState((prev) => {
-      const next = { ...prev, ...patch }
-      writeSettingsUiState(next)
-      return next
+  useEffect(() => {
+    const api = getWindowApi()
+    if (!api) return
+    api.getScreens().then((screens) => {
+      const ids = screens.map((s) => s.id)
+      setScreenIds(ids)
     })
-  }
+  }, [state?.lastPhrases])
+
+  const displayOptions = useMemo(() => {
+    if (config?.monitors.length) {
+      return config.monitors.map((m, i) => ({ id: m.id, label: `Display ${i + 1}` }))
+    }
+    const ids = screenIds.length > 0 ? screenIds : Object.keys(state?.lastPhrases ?? {})
+    return ids.map((id, i) => ({ id, label: `Display ${i + 1}` }))
+  }, [screenIds, state?.lastPhrases, config?.monitors])
+
+  useEffect(() => {
+    if (!selectedMonitorId && displayOptions[0]) {
+      persistUi({ selectedMonitorId: displayOptions[0].id })
+    }
+  }, [displayOptions, uiState.selectedMonitorId])
 
   useEffect(() => {
     const top = uiState.scrollByTab[uiState.activeTab]
@@ -99,25 +134,16 @@ export default function SettingsShell() {
     }
   }
 
-  const handlePreviewTheme = async (monitorId: string, theme: import('@core/domain/types').ThemeName) => {
-    const api = getWindowApi()
-    if (!api) return
-    showToast(`Applying preview for theme: ${theme}...`)
-    try {
-      await api.previewTheme(monitorId, theme)
-      showToast('Preview applied successfully')
-    } catch (err: unknown) {
-      console.error(err)
-      showToast('Failed to apply preview', 'error')
-    }
-  }
-
   const handleWizardSubmit = async (geminiApiKey: string, feedUrl: string) => {
     if (!geminiApiKey) {
       showToast('Please enter a valid Gemini API Key', 'error')
       return
     }
-    await saveConfig({ geminiApiKey, feeds: [feedUrl] })
+    const profile = getDefaultMonitorProfile({ feeds: [feedUrl] })
+    await saveConfig({
+      geminiApiKey,
+      monitors: [createMonitorConfig('primary', profile)]
+    })
     sessionStorage.setItem(WIZARD_FLAG, '1')
     persistUi({ activeTab: 'general' })
     showToast('Settings saved successfully. Pick a look in Style when you’re ready.')
@@ -141,18 +167,18 @@ export default function SettingsShell() {
     return <SetupWizard toast={toast} onSubmit={handleWizardSubmit} />
   }
 
-  const draftConfig = draft ?? config
+  const selectedMonitor = getMonitorEntry(config, selectedMonitorId)
+  const profileDraft = draft
   const showApplyBar = isDirty
+  const showSyncControls = displayOptions.length > 1
 
-  const previewPhrase =
-    state?.lastPhrases &&
-    (Object.values(state.lastPhrases).find((p) => p && p.trim()) as string | undefined)
+  const previewPhrase = state?.lastPhrases?.[selectedMonitorId] ?? ''
+  const previewLayoutEnvelope = state?.lastContent?.[selectedMonitorId] ?? null
 
-  const previewLayoutEnvelope =
-    state?.lastContent &&
-    (Object.values(state.lastContent).find((e) => e?.payload) as
-      | import('@core/domain/types').LayoutContentEnvelope
-      | undefined)
+  const handleSyncAllTabs = () => {
+    if (!selectedMonitor) return
+    void saveSyncFlag(selectedMonitorId, 'all', !isSyncAllTabs(selectedMonitor))
+  }
 
   return (
     <>
@@ -166,6 +192,11 @@ export default function SettingsShell() {
             isRefreshing={isRefreshing}
             state={state}
             hasDraftPending={isDirty}
+            displayOptions={displayOptions}
+            selectedMonitorId={selectedMonitorId}
+            onMonitorChange={(id) => persistUi({ selectedMonitorId: id })}
+            selectedMonitor={selectedMonitor}
+            onSyncAllTabsToggle={handleSyncAllTabs}
           />
         }
         mainScrollRef={scrollRef}
@@ -174,31 +205,50 @@ export default function SettingsShell() {
         {uiState.activeTab === 'general' && (
           <GeneralTab config={config} state={state} saveConfig={saveConfig} />
         )}
-        {uiState.activeTab === 'news' && <NewsSourcesTab config={config} saveConfig={saveConfig} />}
-        {uiState.activeTab === 'voice' && (
-          <VoiceTab config={draftConfig} patchDraft={patchDraft} onPresetChange={handlePromptPresetChange} />
+        {uiState.activeTab === 'news' && selectedMonitor && (
+          <NewsSourcesTab
+            feeds={selectedMonitor.profile.feeds}
+            syncNews={selectedMonitor.syncNews}
+            showSyncChip={showSyncControls}
+            onSyncToggle={() =>
+              void saveSyncFlag(selectedMonitorId, 'news', !selectedMonitor.syncNews)
+            }
+            onFeedsChange={(feeds) => void saveProfilePatch(selectedMonitorId, 'news', { feeds })}
+          />
         )}
-        {uiState.activeTab === 'style' && (
+        {uiState.activeTab === 'voice' && profileDraft && (
+          <VoiceTab
+            config={profileDraft}
+            syncVoice={selectedMonitor?.syncVoice ?? true}
+            showSyncChip={showSyncControls}
+            onSyncToggle={() =>
+              selectedMonitor &&
+              void saveSyncFlag(selectedMonitorId, 'voice', !selectedMonitor.syncVoice)
+            }
+            patchDraft={patchDraft}
+            onPresetChange={handlePromptPresetChange}
+          />
+        )}
+        {uiState.activeTab === 'style' && profileDraft && (
           <StyleTab
-            config={draftConfig}
+            config={profileDraft}
+            syncStyle={selectedMonitor?.syncStyle ?? true}
+            showSyncChip={showSyncControls}
+            onSyncToggle={() =>
+              selectedMonitor &&
+              void saveSyncFlag(selectedMonitorId, 'style', !selectedMonitor.syncStyle)
+            }
             patchDraft={patchDraft}
             onMoodChange={applyMoodToDraft}
-            previewPhrase={previewPhrase ?? ''}
-            previewLayoutEnvelope={previewLayoutEnvelope ?? null}
+            previewPhrase={previewPhrase}
+            previewLayoutEnvelope={previewLayoutEnvelope}
             displayWidth={displaySize.width}
             displayHeight={displaySize.height}
             scrollContainerRef={scrollRef}
           />
         )}
-        {uiState.activeTab === 'displays' && (
-          <DisplaysTab
-            config={config}
-            state={state}
-            saveConfig={saveConfig}
-            onPreviewTheme={handlePreviewTheme}
-            section={uiState.displaysSection}
-            onSectionChange={(s) => persistUi({ displaysSection: s })}
-          />
+        {uiState.activeTab === 'history' && (
+          <HistoryTab config={config} selectedMonitorId={selectedMonitorId} />
         )}
       </AppShell>
       {showApplyBar && (
