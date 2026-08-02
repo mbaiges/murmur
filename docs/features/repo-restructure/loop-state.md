@@ -40,9 +40,9 @@ E2E screenshot dir (gitignored): `tests/e2e/artifacts/screenshots/repo-restructu
 - [x] AC-14 domain split (config-types + prompts; types barrel)
 - [x] AC-15 settings granularity (tabs, hooks, SetupWizard, sidebar; files under ~400 lines)
 - [x] AC-16 test mirror (unit + integration paths; placeholder removed)
-- [ ] AC-17 window.api types
+- [x] AC-17 window.api types (`renderer/types/window-api.d.ts`)
 - [ ] AC-18 wallpaper port (delete IWallpaperBackup)
-- [ ] AC-19 E2E stub location
+- [x] AC-19 E2E stub location (`main/e2e/`)
 
 ## Unit test plan
 
