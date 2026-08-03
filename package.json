@@ -48,7 +48,7 @@
     "fast-xml-parser": "^5.10.0",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
-    "sharp": "^0.33.5",
+    "sharp": "^0.35.3",
     "zod": "^3.24.1"
   },
   "devDependencies": {
@@ -60,7 +60,7 @@
     "@types/react-dom": "^19.0.1",
     "@vitejs/plugin-react": "^5.2.0",
     "electron": "^41.7.1",
-    "electron-builder": "^26.15.3",
+    "electron-builder": "^26.15.7",
     "electron-playwright-helpers": "^1.7.1",
     "electron-vite": "^5.0.0",
     "eslint": "^10.8.0",
@@ -72,7 +72,7 @@
   },
   "overrides": {
     "esbuild": "0.25.0",
-    "tar": "7.5.16"
+    "tar": "7.5.22"
   },
   "build": {
     "appId": "com.mbaiges.murmur",
