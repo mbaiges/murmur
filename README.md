@@ -54,7 +54,7 @@ Settings are grouped by task:
 
 | Tab | Purpose |
 |-----|---------|
-| **General** | API key, refresh interval, launch at login, app version / updates |
+| **General** | API key, refresh interval, launch at login, **App updates** (version, check, install) |
 | **News sources** | RSS feed URLs |
 | **Voice & prompts** | Presets, tone, language, system prompt |
 | **Style** | Aesthetic moods and appearance |
