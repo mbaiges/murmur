@@ -54,7 +54,7 @@ Today’s Settings sidebar mixes **engineering labels** (“Ingestion & Feeds”
 | Last visited state | Persisted sidebar tab, **Displays** sub-section (Monitors vs History), and **scroll position** on long tabs (e.g. Style). |
 | Advanced (Voice) | Collapsed accordion on **Voice & prompts** for rarely changed generation controls (headline sample size). |
 | Tone | Product-controlled instruction layer appended at **Gemini call time**, not edited as part of the system prompt textarea. |
-| Tone preset | Built-in option: **No tone**, **Neutral**, **Professional**, **Villero**, or **Custom** (user-provided tone text). |
+| Tone preset | Built-in option: **No tone**, **Neutral**, **Professional**, **Vulgar**, or **Custom** (user-provided tone text). |
 | No tone | No tone instruction appended; generation uses system prompt + headlines only (headline “voice” may still follow RSS). |
 
 ## Actors
@@ -188,7 +188,7 @@ Cross-tab rules:
 | **No tone** | Do not append any tone instruction at Gemini call time. |
 | **Neutral** | Append fixed neutral-tone instruction (impartial delivery). |
 | **Professional** | Append fixed professional-tone instruction. |
-| **Villero** | Append fixed instruction for Argentine street / vulgar register (user-facing label **Villero**). |
+| **Vulgar** | Append fixed instruction for a deliberately vulgar informal register (user-facing label **Vulgar**). |
 | **Custom** | Append user’s **custom tone text** from config when non-empty. |
 
 - Tone instructions are **not** shown in the system prompt textarea; they are stored in config and combined at generation time (technical spec defines exact prompt assembly order).
@@ -233,7 +233,7 @@ Exact instruction copy for built-in tones lives in core/prompts (technical spec)
 ### Journey C — User changes tone
 
 1. User opens **Voice & prompts** → **Tone & language**.
-2. User selects **Villero** or **Custom** and enters custom text if needed.
+2. User selects **Vulgar** or **Custom** and enters custom text if needed.
 3. Next generation reflects tone; system prompt textarea unchanged.
 
 ### Journey D — Returning user changes AI voice only
@@ -314,7 +314,7 @@ Exact instruction copy for built-in tones lives in core/prompts (technical spec)
 | 26 | Post-wizard nudge | **Success toast** → Style |
 | 27 | Voice preset block | **One card** (preset + Apply + prompt) |
 | 28 | Tone & language card | **Tone then language**; card title **Tone & language** |
-| 29 | Tone v1 | **No tone, Neutral, Professional, Villero, Custom** (+ custom text) |
+| 29 | Tone v1 | **No tone, Neutral, Professional, Vulgar, Custom** (+ custom text) |
 | 30 | Tone at generation | **Append at Gemini call**; not shown in prompt textarea |
 | 31 | Tone vs mood | **Mood activation sets mood’s default tone**; **v1 all existing moods → No tone** |
 | 32 | History clear | **Top-right** of History section |

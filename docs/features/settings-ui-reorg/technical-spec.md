@@ -119,7 +119,7 @@ Preload: expose `openExternal(url: string)` on `window.api`; update `window-api.
 
 | Field | Type | Default | Notes |
 |-------|------|---------|--------|
-| `tonePreset` | `'none' \| 'neutral' \| 'professional' \| 'villero' \| 'custom'` | `'none'` | Stored in JSON |
+| `tonePreset` | `'none' \| 'neutral' \| 'professional' \| 'vulgar' \| 'custom'` | `'none'` | Stored in JSON |
 | `customToneText` | `string` | `''` | Required non-empty when `tonePreset === 'custom'` |
 
 Zod (conceptual):
@@ -189,7 +189,7 @@ Store strings in `toneInstructions.ts` (English, fixed):
 | `none` | `null` (omit block) |
 | `neutral` | Impartial, no sensationalism |
 | `professional` | Formal newsroom / professional register |
-| `villero` | Argentine street / vulgar register (label **Villero** in UI) |
+| `vulgar` | Deliberately vulgar informal register (label **Vulgar** in UI) |
 | `custom` | `config.customToneText.trim()` |
 
 ## Regeneration & toasts
