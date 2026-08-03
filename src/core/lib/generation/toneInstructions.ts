@@ -7,8 +7,8 @@ const BUILTIN: Record<Exclude<TonePreset, 'none' | 'custom'>, string> = {
     'Remain neutral and impartial. Avoid sensationalism, editorializing, or emotional manipulation when transforming the headlines.',
   professional:
     'Use a professional, clear newsroom register. Be concise, factual, and suitable for a broad audience.',
-  villero:
-    'Write in Argentine street / villero register: informal, rough, and deliberately vulgar where it fits the headlines. Stay intelligible; do not sanitize into corporate news tone.'
+  vulgar:
+    'Write in a deliberately vulgar, informal register where it fits the headlines. Stay intelligible; do not sanitize into corporate news tone.'
 }
 
 export function resolveToneInstruction(
@@ -23,7 +23,7 @@ export function resolveToneInstruction(
     }
     case 'neutral':
     case 'professional':
-    case 'villero':
+    case 'vulgar':
       return BUILTIN[config.tonePreset]
     default:
       return null

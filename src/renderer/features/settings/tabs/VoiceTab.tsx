@@ -96,7 +96,7 @@ export default function VoiceTab({
                 { value: 'none', label: 'None' },
                 { value: 'neutral', label: 'Neutral' },
                 { value: 'professional', label: 'Pro' },
-                { value: 'villero', label: 'Villero' },
+                { value: 'vulgar', label: 'Vulgar' },
                 { value: 'custom', label: 'Custom' }
               ]}
             />

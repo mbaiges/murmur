@@ -26,7 +26,7 @@ Settings tabs use `w-full max-w-5xl` so cards fill the main column at typical wi
 | `setup-wizard.png` | First-run wizard (empty key field) |
 | `settings-general.png` | General tab |
 | `settings-news.png` | News sources |
-| `settings-voice.png` | Voice & prompts |
+| `settings-voice.png` | Voice & prompts ( **Vulgar** tone selected for docs) |
 | `settings-style-moods.png` | Style / moods |
 | `settings-history.png` | History |
 | `hero-wallpaper.png` | Wallpaper overlay window after Zen Study + **Refresh Now** (E2E stub phrase; not a full-desktop photo) |

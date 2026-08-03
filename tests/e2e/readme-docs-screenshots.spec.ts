@@ -92,6 +92,8 @@ test.describe('README documentation screenshots', () => {
 
     await page.locator('button:has-text("Voice & prompts")').click()
     await page.waitForTimeout(400)
+    await page.getByRole('button', { name: 'Vulgar' }).click()
+    await page.waitForTimeout(200)
     await shotSettingsChrome(page, 'settings-voice.png')
 
     await page.locator('button:has-text("Style")').click()

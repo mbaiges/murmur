@@ -20,4 +20,9 @@ describe('resolveToneInstruction', () => {
   it('returns null for custom with empty text', () => {
     expect(resolveToneInstruction({ tonePreset: 'custom', customToneText: '   ' })).toBeNull()
   })
+
+  it('returns builtin vulgar text', () => {
+    const t = resolveToneInstruction({ tonePreset: 'vulgar', customToneText: '' })
+    expect(t).toMatch(/vulgar/i)
+  })
 })
