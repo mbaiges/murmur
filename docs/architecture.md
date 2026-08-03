@@ -233,9 +233,13 @@ Restructure delivery specs: [features/repo-restructure/](features/repo-restructu
 
 | Doc | Purpose |
 |-----|---------|
+| [README.md](../README.md) | User-facing landing page |
+| [docs/README.md](README.md) | Documentation map (user vs maintainer) |
+| [CONTRIBUTING.md](../CONTRIBUTING.md) | Dev setup and PR expectations |
 | [agent-skills-setup.md](agent-skills-setup.md) | Local open-agent-skills under `.agentic/` |
+| [screenshots.md](screenshots.md) | README screenshot capture |
 | [features/repo-restructure/](features/repo-restructure/) | Locked layout / AC for this restructure |
 | [features/structured-phrase-generation/](features/structured-phrase-generation/) | Structured JSON phrase AC |
-| [docs/scaffolding/](scaffolding/) | **Superseded** early drafts — see notices in those files |
+| [scaffolding/](scaffolding/) | **Superseded** early drafts — see notices in those files |
 
 Prefer **small diffs**, existing adapter patterns, and **renderer + canvas parity** for anything visible on the wallpaper.

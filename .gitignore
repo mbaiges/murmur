@@ -28,3 +28,5 @@ tests/e2e/fixtures/captured-phrase.json
 !src/renderer/public/logo-source.jpeg
 !src/renderer/public/favicon-32.png
 !resources/icon.png
+!assets/logo.png
+!assets/screenshots/*.png
