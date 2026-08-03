@@ -3,6 +3,7 @@ import { e2eScreenshotPath } from './helpers/screenshotPaths'
 import { validateScreenshotImage } from './helpers/validateScreenshot'
 import { getSettingsPage, getWallpaperWindow } from './helpers/electronSettingsPage'
 import { e2eElectronLaunchOptions } from './helpers/e2eLaunch'
+import { selectLayoutStyle } from './helpers/styleSettings'
 
 const STUB_PHRASE = 'stubbed surreal phrase'
 
@@ -41,11 +42,7 @@ test.describe.serial('Magazine layout styles E2E', () => {
   test('split-spread layout: DOM structure, text split, screenshot', async () => {
     test.setTimeout(60_000)
     const page = await getSettingsPage(electronApp)
-    await page.locator('button:has-text("Style")').click()
-    await page.waitForTimeout(400)
-
-    await page.locator('select').nth(4).selectOption('split-spread')
-    await page.waitForTimeout(2000)
+    await selectLayoutStyle(page, 'split-spread')
 
     const wallpaper = getWallpaperWindow(electronApp)
     await expect(wallpaper.getByTestId('layout-split-spread')).toBeVisible()
@@ -77,11 +74,7 @@ test.describe.serial('Magazine layout styles E2E', () => {
   test('tabloid-stack layout: headline + deck, screenshot', async () => {
     test.setTimeout(60_000)
     const page = await getSettingsPage(electronApp)
-    await page.locator('button:has-text("Style")').click()
-    await page.waitForTimeout(400)
-
-    await page.locator('select').nth(4).selectOption('tabloid-stack')
-    await page.waitForTimeout(2000)
+    await selectLayoutStyle(page, 'tabloid-stack')
 
     const wallpaper = getWallpaperWindow(electronApp)
     await expect(wallpaper.getByTestId('layout-tabloid-stack')).toBeVisible()
@@ -115,11 +108,7 @@ test.describe.serial('Magazine layout styles E2E', () => {
   test('pull-quote layout: blockquote rule, screenshot', async () => {
     test.setTimeout(60_000)
     const page = await getSettingsPage(electronApp)
-    await page.locator('button:has-text("Style")').click()
-    await page.waitForTimeout(400)
-
-    await page.locator('select').nth(4).selectOption('pull-quote')
-    await page.waitForTimeout(2000)
+    await selectLayoutStyle(page, 'pull-quote')
 
     const wallpaper = getWallpaperWindow(electronApp)
     await expect(wallpaper.getByTestId('layout-pull-quote')).toBeVisible()

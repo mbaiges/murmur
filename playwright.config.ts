@@ -9,8 +9,10 @@ export default defineConfig({
   expect: {
     timeout: 10_000
   },
-  reporter: [['html', { outputFolder: 'playwright-report' }]],
+  reporter: process.env.CI ? [['line']] : [['html', { outputFolder: 'playwright-report' }]],
   use: {
+    actionTimeout: 15_000,
+    navigationTimeout: 20_000,
     screenshot: 'on',
     video: 'retain-on-failure',
     trace: 'on-first-retry'

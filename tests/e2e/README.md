@@ -1,29 +1,46 @@
-# E2E tests
+# E2E (Playwright + Electron)
 
-Playwright specs live in this directory. See **[docs/architecture.md](../../docs/architecture.md)** for:
+## Why tests feel “stuck”
 
-- E2E stub mode (`MURMUR_E2E`)
-- Screenshot path convention: `artifacts/screenshots/{test-case-slug}/`
-- Helpers in `helpers/`
+1. **Missing locators** — Playwright waits up to **`actionTimeout`** (15s in `playwright.config.ts`) per click/fill/`selectOption`. Old specs used `select.nth(4)` after UI refactors; each miss cost ~30s before we lowered the timeout.
+2. **One worker** — `workers: 1` and `fullyParallel: false` run ~35 tests back-to-back (~4–6 min total). That is expected, not a hang.
+3. **`describe.serial`** — One failure skips later tests in the same file (“did not run”) but you still pay for timeouts in the failing test.
+4. **Live phrase capture** — `magazine-layouts-live-phrase` can call Gemini once if the fixture is missing (`ensureCapturedPhraseFixture`). Reuse `tests/e2e/fixtures/captured-phrase.json`; avoid `MURMUR_RECAPTURE_PHRASE=1` unless you mean it.
 
-Run (after build):
+Prefer **`data-testid`** helpers in `tests/e2e/helpers/styleSettings.ts` and `settingsFlow.ts` over `nth()` selectors.
 
-```bash
-env -u ELECTRON_RUN_AS_NODE npm run test:e2e
-```
+## Run only what you need
 
-### Live phrase for layout screenshots (one Gemini call)
-
-To screenshot magazine layouts with a **real** phrase from your feeds/API key:
+Full suite:
 
 ```bash
-npm run build
-env -u ELECTRON_RUN_AS_NODE npx playwright test tests/e2e/magazine-layouts-live-phrase.spec.ts
+npm run build && npm run test:e2e
 ```
 
-- First run (or `MURMUR_RECAPTURE_PHRASE=1`) launches the **real** app once, clicks **Refresh Now** (single Gemini generation), and saves `tests/e2e/fixtures/captured-phrase.json` (gitignored).
-- Subsequent layout tests use **E2E stubs** that return that fixed phrase; **`MURMUR_E2E_REUSE_CAPTURED_PHRASE=true`** skips re-generation when only `layoutStyle` changes.
+Feature / group scripts (see root `package.json`):
 
-Screenshots: `tests/e2e/artifacts/screenshots/magazine-layouts-live-phrase-*/wallpaper.png`
+```bash
+npm run test:e2e:app-auto-update
+npm run test:e2e:style-voice-settings-polish
+npm run test:e2e:magazine-layouts
+npm run test:e2e:presets
+npm run test:e2e:clickbait
+npm run test:e2e:layout-regression   # formerly flaky layout-related specs
+```
 
-Artifacts under `artifacts/` are gitignored.
+Single file or test:
+
+```bash
+npx playwright test tests/e2e/magazine-layouts-live-phrase.spec.ts
+npx playwright test tests/e2e/presets.spec.ts -g "Custom Apply"
+```
+
+UI mode (debug one test):
+
+```bash
+npm run test:e2e:ui
+```
+
+## Update feed (product note)
+
+In-app update checks use **`electron-updater`** + **`electron-builder`** GitHub publish config — not a custom URL in app code. At runtime the packaged app reads embedded **`app-update.yml`** (owner/repo from build). Checks call GitHub Releases for **`latest.yml`** / **`latest-mac.yml`** and compare semver to `app.getVersion()`. Periodic checks: **30s** after startup, then every **4 hours** via `setInterval` in `createAppUpdater.ts` (dev/E2E disabled).

@@ -1,4 +1,5 @@
 import type { MurmurConfig, MurmurState, ThemeName } from '@core/domain/types'
+import type { AppUpdateInfo } from '@shared/app-update'
 
 export interface MurmurWindowApi {
   platform: string
@@ -15,6 +16,12 @@ export interface MurmurWindowApi {
   onStateUpdated: (callback: (state: MurmurState) => void) => () => void
   onConfigUpdated: (callback: (config: MurmurConfig) => void) => () => void
   openExternal: (url: string) => Promise<void>
+  getUpdateInfo: () => Promise<AppUpdateInfo>
+  checkForUpdates: () => Promise<AppUpdateInfo>
+  quitAndInstallUpdate: () => Promise<void>
+  onUpdateStatus: (callback: (info: AppUpdateInfo) => void) => () => void
+  onSettingsOpenTab: (callback: (tab: 'general') => void) => () => void
+  e2eOpenSettingsTab?: (tab: 'general') => Promise<void>
 }
 
 declare global {

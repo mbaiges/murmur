@@ -5,6 +5,8 @@ import { e2eScreenshotPath } from './helpers/screenshotPaths'
 import { validateScreenshotImage } from './helpers/validateScreenshot'
 import { getSettingsPage, getWallpaperWindow } from './helpers/electronSettingsPage'
 import { e2eSemanticsDemoLaunchOptions } from './helpers/e2eLaunch'
+import { selectLayoutStyle } from './helpers/styleSettings'
+import { completeSetupWizardIfNeeded, waitForSettingsReady } from './helpers/settingsFlow'
 import { splitPlainPhraseHeadlineDeck } from '../../src/core/lib/phrase/phraseLayoutSplit'
 import { phraseToPlainText } from '../../src/core/lib/phrase/phrasePlainText'
 
@@ -45,10 +47,7 @@ async function completeWizardIfNeeded(page: Awaited<ReturnType<typeof getSetting
 }
 
 async function selectLayout(page: Awaited<ReturnType<typeof getSettingsPage>>, layout: string) {
-  await page.locator('button:has-text("Style")').click()
-  await page.waitForTimeout(400)
-  await page.locator('select').nth(4).selectOption(layout)
-  await page.waitForTimeout(2200)
+  await selectLayoutStyle(page, layout)
 }
 
 test.describe.serial('Structured layout semantics vs legacy heuristics', () => {
@@ -169,10 +168,9 @@ test.describe.serial('Structured layout semantics vs legacy heuristics', () => {
   test('05 — history raw JSON shows structured fields', async () => {
     test.setTimeout(60_000)
     const page = await getSettingsPage(electronApp)
-    await page.locator('button:has-text("Style")').click()
-    await page.waitForTimeout(300)
-    await page.locator('select').nth(4).selectOption('pull-quote')
-    await page.waitForTimeout(500)
+    await waitForSettingsReady(page)
+    await completeSetupWizardIfNeeded(page)
+    await selectLayoutStyle(page, 'pull-quote')
     await page.locator('button:has-text("Refresh Now")').click()
     await page.waitForTimeout(2500)
 

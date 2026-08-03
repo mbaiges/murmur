@@ -6,6 +6,7 @@ import type { MurmurService } from '@core/domain/MurmurService'
 import { IpcChannel } from '@shared/ipc'
 import { handleConfigSave, type ConfigSaveHandlerDeps } from './handlers/config-save'
 import { handleOpenExternal } from './handlers/open-external'
+import { getSettingsWindow, showSettingsWindow } from '../windows/settings-window'
 import { getE2eGenerationCallCount, resetE2eGenerationCallCount } from '../e2e/e2eGenerationCounter'
 import { isMurmurE2eMode } from '../bootstrap/e2e-overrides'
 
@@ -36,6 +37,10 @@ export function registerIpcHandlers(deps: RegisterIpcDeps): void {
     ipcMain.handle(IpcChannel.e2eGenerationCountGet, () => getE2eGenerationCallCount())
     ipcMain.handle(IpcChannel.e2eGenerationCountReset, () => {
       resetE2eGenerationCallCount()
+    })
+    ipcMain.handle(IpcChannel.e2eSettingsOpenTab, (_event, tab: 'general') => {
+      showSettingsWindow()
+      getSettingsWindow()?.webContents.send(IpcChannel.settingsOpenTab, tab)
     })
   }
   ipcMain.handle(IpcChannel.shellOpenExternal, (_event, url: string) => handleOpenExternal(url))

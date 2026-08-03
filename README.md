@@ -20,4 +20,4 @@ See the Technical Specification for details once approved.
 
 ## License
 
-MIT
+[BSD 3-Clause](LICENSE) — permissive use with attribution; names may not be used to endorse derived products without permission.

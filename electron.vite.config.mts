@@ -8,6 +8,7 @@ const corePorts = resolve('src/core/ports')
 const coreLib = resolve('src/core/lib')
 const mainRoot = resolve('src/main')
 const ipcContract = resolve('src/shared/ipc-contract.ts')
+const appUpdateShared = resolve('src/shared/app-update.ts')
 
 export default defineConfig({
   main: {
@@ -18,7 +19,8 @@ export default defineConfig({
         '@core/ports': corePorts,
         '@core/lib': coreLib,
         '@main': mainRoot,
-        '@shared/ipc': ipcContract
+        '@shared/ipc': ipcContract,
+        '@shared/app-update': appUpdateShared
       }
     }
   },
@@ -28,7 +30,8 @@ export default defineConfig({
       alias: {
         '@core/domain': coreDomain,
         '@core/lib': coreLib,
-        '@shared/ipc': ipcContract
+        '@shared/ipc': ipcContract,
+        '@shared/app-update': appUpdateShared
       }
     }
   },
@@ -39,7 +42,8 @@ export default defineConfig({
       alias: {
         '@core/domain': coreDomain,
         '@core/lib': coreLib,
-        '@shared/ipc': ipcContract
+        '@shared/ipc': ipcContract,
+        '@shared/app-update': appUpdateShared
       }
     }
   }

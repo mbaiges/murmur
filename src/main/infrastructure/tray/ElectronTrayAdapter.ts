@@ -113,4 +113,9 @@ export class ElectronTrayAdapter implements ISystemTray {
 
     this.tray.setContextMenu(contextMenu)
   }
+
+  /** For platform-specific update notifications (Windows tray balloon). */
+  public getNativeTray(): Tray | null {
+    return this.tray
+  }
 }

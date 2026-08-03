@@ -2,6 +2,12 @@ import { test, expect, _electron as electron, ElectronApplication } from '@playw
 import { e2eScreenshotPath } from './helpers/screenshotPaths'
 import { getSettingsPage, getWallpaperWindow } from './helpers/electronSettingsPage'
 import { e2eElectronLaunchOptions } from './helpers/e2eLaunch'
+import {
+  clickMoodCard,
+  expectAnimationChip,
+  goToStyleTab,
+  selectAnimationChip
+} from './helpers/styleSettings'
 
 test.describe.serial('Clickbait Press diagnostics', () => {
   let electronApp: ElectronApplication
@@ -27,14 +33,8 @@ test.describe.serial('Clickbait Press diagnostics', () => {
       await page.locator('aside').waitFor({ state: 'visible', timeout: 10_000 })
     }
 
-    await page.locator('button:has-text("Style")').click()
-    await page.waitForTimeout(500)
-
-    const clickbaitCard = page.getByTestId('mood-card-clickbait-press')
-    await clickbaitCard.click()
-    await page.waitForTimeout(2500)
-
-    expect(await page.locator('select').nth(2).inputValue()).toBe('Fade')
+    await clickMoodCard(page, 'mood-card-clickbait-press')
+    await expectAnimationChip(page, 'Fade')
 
     const wallpaper = getWallpaperWindow(electronApp)
     await wallpaper.waitForTimeout(1500)
@@ -51,11 +51,7 @@ test.describe.serial('Clickbait Press diagnostics', () => {
   test('Instant animation removes overlay (explains blank desktop if native paint fails)', async () => {
     test.setTimeout(90_000)
     const page = await getSettingsPage(electronApp)
-    await page.locator('button:has-text("Style")').click()
-    await page.waitForTimeout(300)
-
-    await page.locator('select').nth(2).selectOption('Instant')
-    await page.waitForTimeout(2500)
+    await selectAnimationChip(page, 'Instant')
 
     const wins = electronApp.windows().filter((w) => w.url().includes('view=wallpaper'))
     if (process.platform === 'darwin') {

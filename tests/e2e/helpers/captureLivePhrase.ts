@@ -59,15 +59,19 @@ export async function captureLivePhraseOnce(): Promise<string> {
     }
 
     await page.locator('button:has-text("Refresh Now")').click()
-    await page.waitForTimeout(45_000)
 
-    const state = await page.evaluate(async () => {
-      const api = (window as any).api
-      return api.getState()
-    })
-
-    const phrases = Object.values(state.lastPhrases || {}) as string[]
-    const phrase = phrases.find((p) => p && p.trim().length > 10)
+    const deadline = Date.now() + 60_000
+    let phrase: string | undefined
+    while (Date.now() < deadline) {
+      const state = await page.evaluate(async () => {
+        const api = (window as { api?: { getState: () => Promise<{ lastPhrases?: Record<string, string> }> } }).api
+        return api?.getState()
+      })
+      const phrases = Object.values(state?.lastPhrases || {}) as string[]
+      phrase = phrases.find((p) => p && p.trim().length > 10)
+      if (phrase) break
+      await page.waitForTimeout(500)
+    }
     if (!phrase) {
       throw new Error('Refresh finished but no phrase in state — check API key, feeds, and network.')
     }

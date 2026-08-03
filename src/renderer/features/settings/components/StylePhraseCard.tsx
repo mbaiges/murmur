@@ -51,6 +51,7 @@ export default function StylePhraseCard({ config, patchDraft }: StylePhraseCardP
       <div>
         <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Layout style</label>
         <SettingsSelect
+          data-testid="style-layout-select"
           value={config.layoutStyle}
           onChange={(e) => patchDraft({ layoutStyle: e.target.value as MonitorProfile['layoutStyle'] })}
         >

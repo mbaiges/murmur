@@ -12,6 +12,11 @@ import { ElectronTrayAdapter } from './infrastructure/tray/ElectronTrayAdapter'
 import { createBackgroundWindow } from './windows/background-windows'
 import { forEachBackgroundWindow } from './windows/background-windows'
 import { getSettingsWindow, showSettingsWindow } from './windows/settings-window'
+import { createAppUpdater } from './infrastructure/update/createAppUpdater'
+import { createUpdateReadyNotifier } from './infrastructure/update/createUpdateReadyNotifier'
+import { registerAppUpdateHandlers } from './ipc/handlers/app-update'
+import type { AppUpdateInfo } from '@shared/app-update'
+import { shouldEnableAppUpdate } from '@shared/app-update'
 
 configureAppBranding()
 
@@ -45,6 +50,29 @@ const scheduler = createRefreshScheduler(murmurService, {
   getLastPhrases: () => state.lastPhrases
 })
 
+function broadcastUpdateStatus(info: AppUpdateInfo) {
+  getSettingsWindow()?.webContents.send(IpcChannel.updateStatus, info)
+}
+
+function openSettingsGeneralTab(): void {
+  showSettingsWindow()
+  getSettingsWindow()?.webContents.send(IpcChannel.settingsOpenTab, 'general')
+}
+
+const updateReadyNotifier = createUpdateReadyNotifier({
+  enabled: shouldEnableAppUpdate(app.isPackaged, isMurmurE2eMode()),
+  getTray: () => (trayAdapter as ElectronTrayAdapter).getNativeTray()
+})
+updateReadyNotifier.setActivationHandler(() => {
+  openSettingsGeneralTab()
+})
+
+const appUpdater = createAppUpdater({
+  e2eMode: isMurmurE2eMode(),
+  broadcast: broadcastUpdateStatus,
+  notifier: updateReadyNotifier
+})
+
 function startClockScheduler() {
   // Disabled main process background clock ticker to eliminate the Win32 SetWallpaper screen blinks/flickers.
   // The React clock widget handles UI updates smoothly on screen in Chromium.
@@ -61,6 +89,7 @@ app.whenReady().then(async () => {
     getState: () => state,
     isQuitting: () => isQuitting
   })
+  registerAppUpdateHandlers(appUpdater)
 
   await wallpaperRenderer.backup()
 
@@ -147,6 +176,8 @@ app.whenReady().then(async () => {
 
   startClockScheduler()
 
+  appUpdater.start()
+
   if (!app.isPackaged || !config.geminiApiKey || isMurmurE2eMode()) {
     showSettingsWindow()
   }
@@ -179,7 +210,7 @@ app.on('before-quit', async (event) => {
     } catch (err) {
       console.error('Failed to restore wallpapers on quit:', err)
     } finally {
-      app.exit(0)
+      appUpdater.finishQuitAfterRestore()
     }
   }
 })

@@ -2,6 +2,8 @@ import { test, expect, _electron as electron, ElectronApplication } from '@playw
 import { e2eScreenshotPath } from './helpers/screenshotPaths'
 import { e2eElectronLaunchOptions } from './helpers/e2eLaunch'
 import { applyAestheticMood, AESTHETIC_MOOD_IDS, isAestheticMoodActive } from '../../src/core/lib/presets/aestheticMoods'
+import type { MonitorProfile } from '../../src/core/domain/types'
+import { primaryMonitorProfile } from './helpers/styleSettings'
 
 let electronApp: ElectronApplication
 
@@ -174,13 +176,17 @@ test('Mood-only Apply commits applyAestheticMood bundle', async () => {
   await expect
     .poll(async () => {
       const cfg = await page.evaluate(async () => window.api?.getConfig?.())
-      return cfg ? isAestheticMoodActive(cfg, moodId) : false
+      if (!cfg) return false
+      const profile = primaryMonitorProfile(cfg) as MonitorProfile
+      return isAestheticMoodActive(profile, moodId)
     })
     .toBe(true)
 
   const after = await page.evaluate(async () => window.api?.getConfig?.())
   expect(after).toBeTruthy()
-  for (const key of Object.keys(applyAestheticMood(moodId)) as (keyof typeof after)[]) {
-    expect(after![key]).toEqual(applyAestheticMood(moodId)[key as keyof ReturnType<typeof applyAestheticMood>])
+  const profile = primaryMonitorProfile(after!) as MonitorProfile
+  const moodPatch = applyAestheticMood(moodId)
+  for (const key of Object.keys(moodPatch) as (keyof MonitorProfile)[]) {
+    expect(profile[key]).toEqual(moodPatch[key])
   }
 })

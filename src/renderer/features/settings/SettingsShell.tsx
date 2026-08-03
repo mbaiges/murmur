@@ -67,9 +67,11 @@ export default function SettingsShell() {
 
   useEffect(() => {
     const api = getWindowApi()
-    if (!api) return
-    void api.getScreens().then((screens) => {
-      setScreenIds(screens.map((s) => s.id))
+    if (!api?.onSettingsOpenTab) return
+    return api.onSettingsOpenTab((tab) => {
+      if (tab === 'general') {
+        persistUi({ activeTab: 'general' })
+      }
     })
   }, [])
 

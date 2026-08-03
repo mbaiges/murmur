@@ -1,6 +1,8 @@
 import React from 'react'
 import type { MurmurConfig, MurmurState } from '@core/domain/types'
+import type { AppUpdateInfo } from '@shared/app-update'
 import SettingsSelect from '../components/SettingsSelect'
+import { useAppUpdate } from '../hooks/useAppUpdate'
 
 type GeneralTabProps = {
   config: MurmurConfig
@@ -8,7 +10,34 @@ type GeneralTabProps = {
   saveConfig: (partial: Partial<MurmurConfig>) => Promise<void>
 }
 
+function updateStatusLabel(info: AppUpdateInfo, checking: boolean): string {
+  if (checking || info.phase === 'checking') {
+    return 'Checking for updates…'
+  }
+  switch (info.phase) {
+    case 'disabled':
+      return 'Updates apply to installed builds only.'
+    case 'downloaded':
+      return `Version ${info.availableVersion ?? ''} is ready to install.`
+    case 'downloading':
+      return `Downloading… ${Math.round(info.downloadPercent ?? 0)}%`
+    case 'available':
+      return `Update ${info.availableVersion ?? ''} found; downloading…`
+    case 'not-available':
+      return 'You’re on the latest release.'
+    case 'error':
+      return info.errorMessage ?? 'Could not check for updates.'
+    case 'idle':
+    default:
+      return 'Automatic update checks run in the background.'
+  }
+}
+
 export default function GeneralTab({ config, state, saveConfig }: GeneralTabProps) {
+  const { updateInfo, checkForUpdates, quitAndInstallUpdate, checking } = useAppUpdate()
+  const canCheck = updateInfo?.phase !== 'disabled'
+  const canRestart = updateInfo?.phase === 'downloaded'
+
   return (
     <div className="max-w-2xl space-y-8">
       <div>
@@ -66,6 +95,51 @@ export default function GeneralTab({ config, state, saveConfig }: GeneralTabProp
           Last update:{' '}
           <span className="text-slate-400">{state?.lastRefreshTime ?? 'Idle'}</span>
         </p>
+      </div>
+
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4" data-testid="app-update-section">
+        <h3 className="text-sm font-bold text-white">App updates</h3>
+        <p className="text-xs text-slate-500">
+          Version{' '}
+          <span className="text-slate-300 font-medium" data-testid="app-update-version">
+            {updateInfo?.currentVersion ?? '…'}
+          </span>
+        </p>
+        {updateInfo ? (
+          <p className="text-xs text-slate-400" data-testid="app-update-status">
+            {updateStatusLabel(updateInfo, checking)}
+          </p>
+        ) : null}
+        <div className="flex flex-wrap items-center gap-3 pt-1">
+          {canRestart ? (
+            <button
+              type="button"
+              className="px-3 py-1.5 text-sm font-medium rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
+              onClick={() => void quitAndInstallUpdate()}
+            >
+              Restart to update
+            </button>
+          ) : null}
+          <button
+            type="button"
+            disabled={!canCheck || checking}
+            data-testid="app-update-check-btn"
+            className="px-3 py-1.5 text-sm font-medium rounded-lg border border-slate-700 text-slate-200 hover:bg-slate-800 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+            onClick={() => void checkForUpdates()}
+          >
+            Check for updates
+          </button>
+          <button
+            type="button"
+            className="text-xs text-indigo-400 hover:text-indigo-300"
+            onClick={() => {
+              const url = updateInfo?.releasesUrl ?? 'https://github.com/mbaiges/murmur/releases'
+              void window.api?.openExternal(url)
+            }}
+          >
+            Manual download
+          </button>
+        </div>
       </div>
 
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">

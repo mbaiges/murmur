@@ -3,6 +3,7 @@ import { readFileSync, existsSync } from 'fs'
 import { join } from 'path'
 import { e2eScreenshotPath } from './helpers/screenshotPaths'
 import { getSettingsPage, getWallpaperWindow } from './helpers/electronSettingsPage'
+import { applySettingsChanges, clickMoodCard, primaryMonitorProfile } from './helpers/styleSettings'
 
 /**
  * Uses real user config (no MURMUR_E2E stubs). Skipped in CI by default.
@@ -29,10 +30,7 @@ test('live app: Clickbait Press shows phrase on desktop overlay', async () => {
     }
     await expect(page.locator('aside')).toBeVisible({ timeout: 15_000 })
 
-    await page.locator('button:has-text("Style")').click()
-    await page.waitForTimeout(400)
-    await page.getByTestId('mood-card-clickbait-press').click()
-    await page.waitForTimeout(5000)
+    await clickMoodCard(page, 'mood-card-clickbait-press')
 
     const wallpaper = getWallpaperWindow(electronApp)
     const text = await wallpaper.evaluate(() => document.body.innerText.trim())
@@ -49,7 +47,8 @@ test('live app: Clickbait Press shows phrase on desktop overlay', async () => {
     const userData = join(process.env.HOME || '', 'Library/Application Support/Murmur/murmur.config.json')
     if (existsSync(userData)) {
       const cfg = JSON.parse(readFileSync(userData, 'utf8'))
-      expect(cfg.animation).toBe('Fade')
+      const profile = primaryMonitorProfile(cfg) as { animation?: string }
+      expect(profile.animation).toBe('Fade')
     }
   } finally {
     await electronApp.close()

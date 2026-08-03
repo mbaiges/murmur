@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { MurmurConfig, MurmurState, ThemeName } from '@core/domain/types'
 import { IpcChannel } from '@shared/ipc'
+import type { AppUpdateInfo } from '@shared/app-update'
 
 contextBridge.exposeInMainWorld('api', {
   platform: process.platform,
@@ -26,5 +27,20 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.on(IpcChannel.configUpdated, listener)
     return () => ipcRenderer.removeListener(IpcChannel.configUpdated, listener)
   },
-  openExternal: (url: string): Promise<void> => ipcRenderer.invoke(IpcChannel.shellOpenExternal, url)
+  openExternal: (url: string): Promise<void> => ipcRenderer.invoke(IpcChannel.shellOpenExternal, url),
+  getUpdateInfo: (): Promise<AppUpdateInfo> => ipcRenderer.invoke(IpcChannel.updateGet),
+  checkForUpdates: (): Promise<AppUpdateInfo> => ipcRenderer.invoke(IpcChannel.updateCheck),
+  quitAndInstallUpdate: (): Promise<void> => ipcRenderer.invoke(IpcChannel.updateQuitAndInstall),
+  onUpdateStatus: (callback: (info: AppUpdateInfo) => void) => {
+    const listener = (_event: unknown, info: AppUpdateInfo) => callback(info)
+    ipcRenderer.on(IpcChannel.updateStatus, listener)
+    return () => ipcRenderer.removeListener(IpcChannel.updateStatus, listener)
+  },
+  onSettingsOpenTab: (callback: (tab: 'general') => void) => {
+    const listener = (_event: unknown, tab: 'general') => callback(tab)
+    ipcRenderer.on(IpcChannel.settingsOpenTab, listener)
+    return () => ipcRenderer.removeListener(IpcChannel.settingsOpenTab, listener)
+  },
+  e2eOpenSettingsTab: (tab: 'general'): Promise<void> =>
+    ipcRenderer.invoke(IpcChannel.e2eSettingsOpenTab, tab)
 })

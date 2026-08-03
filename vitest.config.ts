@@ -13,7 +13,8 @@ export default defineConfig({
       '@core/ports': resolve('src/core/ports'),
       '@core/lib': resolve('src/core/lib'),
       '@main': resolve('src/main'),
-      '@shared/ipc': resolve('src/shared/ipc-contract.ts')
+      '@shared/ipc': resolve('src/shared/ipc-contract.ts'),
+      '@shared/app-update': resolve('src/shared/app-update.ts')
     }
   }
 })

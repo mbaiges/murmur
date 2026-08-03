@@ -23,9 +23,15 @@ export function buildE2eStructuredResult(
     payload = { ...demoPayload }
   } else {
     switch (contentSpec.layoutStyle) {
-      case 'split-spread':
-        payload = { left: 'stubbed surreal', right: 'phrase' }
+      case 'split-spread': {
+        const words = base.split(/\s+/).filter(Boolean)
+        const splitAt = Math.max(1, Math.ceil(words.length / 2))
+        payload = {
+          left: words.slice(0, splitAt).join(' '),
+          right: words.slice(splitAt).join(' ') || words[0] || base
+        }
         break
+      }
       case 'tabloid-stack':
         payload = { headline: 'STUBBED SURREAL', deck: 'phrase' }
         break

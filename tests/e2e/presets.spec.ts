@@ -1,6 +1,13 @@
 import { test, expect, _electron as electron, ElectronApplication } from '@playwright/test'
 import { e2eScreenshotPath } from './helpers/screenshotPaths'
 import { e2eElectronLaunchOptions } from './helpers/e2eLaunch'
+import {
+  applySettingsChanges,
+  expectAnimationChip,
+  expectFontFamily,
+  expectLayoutStyle,
+  expectThemeSwatch
+} from './helpers/styleSettings'
 
 test.describe.serial('AI System Prompt Presets and Aesthetic Moods E2E Suite', () => {
   let electronApp: ElectronApplication
@@ -90,9 +97,8 @@ test.describe.serial('AI System Prompt Presets and Aesthetic Moods E2E Suite', (
     const worstPromptVal = await textarea.inputValue()
     expect(worstPromptVal).toContain('You are a satirical copywriter')
 
-    // Verify the Apply button is NOT visible (presets apply instantly)
-    const applyBtn = page.locator('button:has-text("Apply")')
-    await expect(applyBtn).not.toBeVisible()
+    // Presets stage the draft — Apply bar appears until committed
+    await expect(page.getByTestId('settings-apply-bar')).toBeVisible()
 
     // 3. Edit prompt to become Custom
     const customText = `This is a custom test prompt guidelines ${Date.now()}.`
@@ -103,24 +109,17 @@ test.describe.serial('AI System Prompt Presets and Aesthetic Moods E2E Suite', (
     const dropdownVal = await dropdown.inputValue()
     expect(dropdownVal).toBe('Custom')
 
-    // Verify the Apply button is now visible
-    await expect(applyBtn).toBeVisible()
+    await expect(page.getByTestId('settings-apply-bar')).toBeVisible()
 
-    // 4. Click Apply and verify animated transition/feedback
-    await applyBtn.click()
+    // 4. Apply draft and verify feedback
+    await page.getByTestId('settings-apply-changes').click()
+    await page.waitForTimeout(1200)
 
-    // Wait for success indicator
-    await expect(page.locator('button:has-text("Applied!")')).toBeVisible()
-    
     const appliedShot = e2eScreenshotPath('presets-custom-prompt', 'applied-custom-prompt.png')
     await page.screenshot({ path: appliedShot })
     console.log('Screenshot:', appliedShot)
 
-    // Wait for success checkmark to fade out
-    await page.waitForTimeout(2000)
-    
-    // The apply button should disappear since the prompt matches the saved config
-    await expect(applyBtn).not.toBeVisible()
+    await expect(page.getByTestId('settings-apply-bar')).not.toBeVisible()
   })
 
   test('Aesthetic Mood Presets (Atmospheres) selector flow', async () => {
@@ -163,26 +162,17 @@ test.describe.serial('AI System Prompt Presets and Aesthetic Moods E2E Suite', (
 
     await expect(zenCard.getByText('Active', { exact: true })).toBeVisible()
 
-    // Customize block on Style (no mood dropdown): theme, font, animation, alignment, layout, noise, vignette
-    const themeSelect = page.locator('select').nth(0)
-    expect(await themeSelect.inputValue()).toBe('Parchment')
-
-    const fontSelect = page.locator('select').nth(1)
-    expect(await fontSelect.inputValue()).toBe('EB Garamond')
-
-    const animationSelect = page.locator('select').nth(2)
-    expect(await animationSelect.inputValue()).toBe('Fade')
-
-    const layoutSelect = page.locator('select').nth(4)
-    expect(await layoutSelect.inputValue()).toBe('book-cover')
-
-    const noiseSelect = page.locator('select').nth(5)
-    expect(await noiseSelect.inputValue()).toBe('subtle')
-
-    const vignetteSelect = page.locator('select').nth(6)
-    expect(await vignetteSelect.inputValue()).toBe('soft')
-
-
+    await expectThemeSwatch(page, 'Parchment')
+    await expectFontFamily(page, 'EB Garamond')
+    await expectAnimationChip(page, 'Fade')
+    await expectLayoutStyle(page, 'book-cover')
+    const bg = page.getByTestId('style-section-background')
+    await expect(bg.getByRole('group', { name: 'Grain intensity' }).getByRole('button', { name: 'Subtle' })).toHaveClass(
+      /border-indigo-500/
+    )
+    await expect(bg.getByRole('group', { name: 'Vignette style' }).getByRole('button', { name: 'Soft' })).toHaveClass(
+      /border-indigo-500/
+    )
 
     // Take screenshot of Zen Study wallpaper view
     const zenWallpaper = electronApp.windows().find(win => win.url().includes('view=wallpaper'))
@@ -219,9 +209,9 @@ test.describe.serial('AI System Prompt Presets and Aesthetic Moods E2E Suite', (
 
     await expect(gothicCard.getByText('Active', { exact: true })).toBeVisible()
 
-    expect(await themeSelect.inputValue()).toBe('Drift')
-    expect(await fontSelect.inputValue()).toBe('Playfair Display')
-    expect(await layoutSelect.inputValue()).toBe('asymmetrical')
+    await expectThemeSwatch(page, 'Drift')
+    await expectFontFamily(page, 'Playfair Display')
+    await expectLayoutStyle(page, 'asymmetrical')
 
     // Take screenshot of Gothic Novelist wallpaper view
     if (zenWallpaper) {
@@ -239,11 +229,12 @@ test.describe.serial('AI System Prompt Presets and Aesthetic Moods E2E Suite', (
 
     await expect(clickbaitCard.getByText('Active', { exact: true })).toBeVisible()
 
-    expect(await themeSelect.inputValue()).toBe('Crimson')
-    expect(await fontSelect.inputValue()).toBe('Outfit')
-    expect(await layoutSelect.inputValue()).toBe('centered')
-    expect(await animationSelect.inputValue()).toBe('Fade')
+    await expectThemeSwatch(page, 'Crimson')
+    await expectFontFamily(page, 'Outfit')
+    await expectLayoutStyle(page, 'centered')
+    await expectAnimationChip(page, 'Fade')
 
+    await applySettingsChanges(page)
     await page.waitForTimeout(1500)
 
     const activeWallpaperWin = electronApp.windows().find(win => win.url().includes('view=wallpaper'))

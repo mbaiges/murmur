@@ -6,8 +6,10 @@ import {
 } from './helpers/captureLivePhrase'
 import { e2eScreenshotPath } from './helpers/screenshotPaths'
 import { validateScreenshotImage } from './helpers/validateScreenshot'
-import { getSettingsPage, getWallpaperWindow } from './helpers/electronSettingsPage'
+import { getSettingsPage, expectWallpaperLayout, waitForWallpaperWindow } from './helpers/electronSettingsPage'
 import { e2eElectronLaunchOptions } from './helpers/e2eLaunch'
+import { selectLayoutStyle } from './helpers/styleSettings'
+import { completeSetupWizardIfNeeded, waitForSettingsReady } from './helpers/settingsFlow'
 
 test.describe.serial('Magazine layouts with one live-captured phrase', () => {
   let electronApp: ElectronApplication
@@ -41,17 +43,10 @@ test.describe.serial('Magazine layouts with one live-captured phrase', () => {
   test('hydrate wallpaper with fixture phrase (one stub refresh at startup)', async () => {
     test.setTimeout(90_000)
     const page = await getSettingsPage(electronApp)
-    await page.waitForLoadState('load')
-    await page.waitForSelector('.animate-spin', { state: 'detached', timeout: 15_000 }).catch(() => {})
+    await waitForSettingsReady(page)
+    await completeSetupWizardIfNeeded(page)
 
-    if (await page.locator('text=First-time Setup Wizard').isVisible().catch(() => false)) {
-      await page.locator('input[type="password"]').fill('test-api-key')
-      await page.locator('button:has-text("Start Murmur")').click()
-      await page.locator('aside').waitFor({ state: 'visible', timeout: 10_000 })
-    }
-
-    await page.waitForTimeout(5000)
-    const wallpaper = getWallpaperWindow(electronApp)
+    const wallpaper = await waitForWallpaperWindow(electronApp)
     const bodyPlain = phraseToPlainText(
       await wallpaper.evaluate(() => document.body.innerText)
     ).toLowerCase()
@@ -66,16 +61,16 @@ test.describe.serial('Magazine layouts with one live-captured phrase', () => {
   test('split-spread with live phrase', async () => {
     test.setTimeout(60_000)
     const page = await getSettingsPage(electronApp)
-    await page.locator('button:has-text("Style")').click()
-    await page.waitForTimeout(400)
-    await page.locator('select').nth(4).selectOption('split-spread')
-    await page.waitForTimeout(2000)
+    await waitForSettingsReady(page)
+    await completeSetupWizardIfNeeded(page)
+    await selectLayoutStyle(page, 'split-spread')
+    await page.locator('button:has-text("Refresh Now")').click()
+    await page.waitForTimeout(3500)
 
-    const wallpaper = getWallpaperWindow(electronApp)
-    const combined = phraseToPlainText(
-      await wallpaper.evaluate(() => document.body.innerText)
-    ).toLowerCase()
-    expect(combined.replace(/\s+/g, ' ')).toContain(fixturePlain.slice(0, 20).split(/\s+/)[0])
+    const wallpaper = await expectWallpaperLayout(electronApp, 'layout-split-spread')
+    const combined = phraseToPlainText(await wallpaper.evaluate(() => document.body.innerText)).toLowerCase()
+    const anchorWords = fixturePlain.split(/\s+/).filter((w) => w.replace(/[^\w]/g, '').length > 4)
+    expect(anchorWords.some((w) => combined.includes(w.replace(/[^\w]/g, '')))).toBe(true)
 
     const shot = e2eScreenshotPath('magazine-layouts-live-phrase-split-spread', 'wallpaper.png')
     await wallpaper.screenshot({ path: shot })
@@ -86,13 +81,9 @@ test.describe.serial('Magazine layouts with one live-captured phrase', () => {
   test('tabloid-stack with live phrase', async () => {
     test.setTimeout(60_000)
     const page = await getSettingsPage(electronApp)
-    await page.locator('button:has-text("Style")').click()
-    await page.waitForTimeout(400)
-    await page.locator('select').nth(4).selectOption('tabloid-stack')
-    await page.waitForTimeout(2000)
+    await selectLayoutStyle(page, 'tabloid-stack')
 
-    const wallpaper = getWallpaperWindow(electronApp)
-    await expect(wallpaper.getByTestId('layout-tabloid-headline')).toBeVisible()
+    const wallpaper = await expectWallpaperLayout(electronApp, 'layout-tabloid-stack')
 
     const shot = e2eScreenshotPath('magazine-layouts-live-phrase-tabloid-stack', 'wallpaper.png')
     await wallpaper.screenshot({ path: shot })
@@ -103,13 +94,9 @@ test.describe.serial('Magazine layouts with one live-captured phrase', () => {
   test('pull-quote with live phrase', async () => {
     test.setTimeout(60_000)
     const page = await getSettingsPage(electronApp)
-    await page.locator('button:has-text("Style")').click()
-    await page.waitForTimeout(400)
-    await page.locator('select').nth(4).selectOption('pull-quote')
-    await page.waitForTimeout(2000)
+    await selectLayoutStyle(page, 'pull-quote')
 
-    const wallpaper = getWallpaperWindow(electronApp)
-    await expect(wallpaper.getByTestId('layout-pull-quote')).toBeVisible()
+    const wallpaper = await expectWallpaperLayout(electronApp, 'layout-pull-quote')
 
     const shot = e2eScreenshotPath('magazine-layouts-live-phrase-pull-quote', 'wallpaper.png')
     await wallpaper.screenshot({ path: shot })

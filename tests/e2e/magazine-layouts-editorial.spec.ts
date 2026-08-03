@@ -3,6 +3,7 @@ import { e2eScreenshotPath } from './helpers/screenshotPaths'
 import { validateScreenshotImage } from './helpers/validateScreenshot'
 import { getSettingsPage, getWallpaperWindow } from './helpers/electronSettingsPage'
 import { e2eElectronLaunchOptions } from './helpers/e2eLaunch'
+import { selectLayoutStyle } from './helpers/styleSettings'
 
 const CASE = 'magazine-layouts-editorial'
 
@@ -32,10 +33,9 @@ test.describe.serial('Editorial structured layouts (feature opener, sidebar, byl
   }
 
   async function selectLayout(page: Awaited<ReturnType<typeof getSettingsPage>>, value: string) {
-    await page.locator('button:has-text("Style")').click()
-    await page.waitForTimeout(400)
-    await page.locator('select').nth(4).selectOption(value)
-    await page.waitForTimeout(2200)
+    await selectLayoutStyle(page, value)
+    await page.locator('button:has-text("Refresh Now")').click()
+    await page.waitForTimeout(2500)
   }
 
   test('feature-opener: section, headline, deck', async () => {
