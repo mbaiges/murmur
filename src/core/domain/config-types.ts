@@ -1,7 +1,7 @@
 export type ThemeName = 'Midnight' | 'Drift' | 'Parchment' | 'Blanc' | 'Static' | 'Forest' | 'Crimson' | 'Cyberpunk' | 'WarmGlow'
 export type AnimationName = 'Fade' | 'DriftIn' | 'Typewriter' | 'Morph' | 'Instant' | 'Glitch'
 
-export type TonePreset = 'none' | 'neutral' | 'professional' | 'vulgar' | 'custom'
+export type TonePreset = 'none' | 'neutral' | 'professional' | 'turro' | 'custom'
 
 export type LayoutStyleName =
   | 'centered'

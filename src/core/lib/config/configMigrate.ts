@@ -4,12 +4,12 @@ import { getDefaultMonitorProfile } from './defaultMonitorProfile'
 type LegacyRoot = Record<string, unknown>
 
 function normalizeTonePreset(value: unknown): MonitorProfile['tonePreset'] | undefined {
-  if (value === 'villero') return 'vulgar'
+  if (value === 'villero' || value === 'vulgar') return 'turro'
   if (
     value === 'none' ||
     value === 'neutral' ||
     value === 'professional' ||
-    value === 'vulgar' ||
+    value === 'turro' ||
     value === 'custom'
   ) {
     return value
@@ -60,8 +60,9 @@ function migrateMonitorRow(raw: Record<string, unknown>, legacyProfile: MonitorP
     profile.theme = themeOverride
   }
 
-  if ((profile.tonePreset as string) === 'villero') {
-    profile.tonePreset = 'vulgar'
+  const legacyTone = profile.tonePreset as string
+  if (legacyTone === 'villero' || legacyTone === 'vulgar') {
+    profile.tonePreset = 'turro'
   }
 
   return {

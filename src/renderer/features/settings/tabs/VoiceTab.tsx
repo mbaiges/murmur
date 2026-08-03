@@ -10,6 +10,7 @@ import type { TonePreset } from '@core/domain/types'
 import SettingsSelect from '../components/SettingsSelect'
 import SettingsChipGroup from '../components/SettingsChipGroup'
 import MarkupRulesChips from '../components/MarkupRulesChips'
+import { OUTPUT_LANGUAGE_OPTIONS } from '../constants/outputLanguages'
 
 type VoiceTabProps = {
   config: MonitorProfile
@@ -96,7 +97,7 @@ export default function VoiceTab({
                 { value: 'none', label: 'None' },
                 { value: 'neutral', label: 'Neutral' },
                 { value: 'professional', label: 'Pro' },
-                { value: 'vulgar', label: 'Vulgar' },
+                { value: 'turro', label: 'Turro' },
                 { value: 'custom', label: 'Custom' }
               ]}
             />
@@ -107,11 +108,11 @@ export default function VoiceTab({
               value={config.language}
               onChange={(e) => patchDraft({ language: e.target.value })}
             >
-              <option value="auto">Auto (Match headlines)</option>
-              <option value="English">English</option>
-              <option value="Spanish">Spanish</option>
-              <option value="French">French</option>
-              <option value="German">German</option>
+              {OUTPUT_LANGUAGE_OPTIONS.map(({ value, label }) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
             </SettingsSelect>
           </div>
         </div>

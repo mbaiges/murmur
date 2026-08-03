@@ -53,7 +53,7 @@ export const MonitorProfileSchema = z.object({
   enableNewlines: z.boolean().default(true),
   enableDifferentFonts: z.boolean().default(false),
   noiseIntensity: z.enum(['none', 'subtle', 'heavy']).default('none'),
-  tonePreset: z.enum(['none', 'neutral', 'professional', 'vulgar', 'custom']).default('none'),
+  tonePreset: z.enum(['none', 'neutral', 'professional', 'turro', 'custom']).default('none'),
   customToneText: z.string().default('')
 })
 
