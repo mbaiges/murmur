@@ -9,6 +9,10 @@ For maintainers publishing versions consumed by in-app auto-update. Product cont
 
 ## Publish a stable release
 
+**Shortcut:** `node scripts/release.mjs publish 0.2.0` (bumps `package.json`, commits if needed, tags, pushes). When CI finishes: `node scripts/release.mjs finalize v0.2.0`.
+
+Manual steps:
+
 1. Update `version` in `package.json` (semver, e.g. `0.2.0`).
 2. Commit on `main` (or your release branch).
 3. Create and push an annotated tag: `git tag v0.2.0 && git push origin v0.2.0`.
