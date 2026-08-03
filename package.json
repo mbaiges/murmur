@@ -80,7 +80,8 @@
     "publish": {
       "provider": "github",
       "owner": "mbaiges",
-      "repo": "murmur"
+      "repo": "murmur",
+      "releaseType": "release"
     },
     "win": {
       "target": "nsis",

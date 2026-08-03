@@ -61,6 +61,7 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
 
   release-windows:
+    needs: release-macos
     runs-on: windows-latest
     steps:
       - name: Checkout
