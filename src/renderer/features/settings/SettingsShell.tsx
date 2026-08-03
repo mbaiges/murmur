@@ -33,7 +33,8 @@ function loadUiState(): SettingsUiState {
 }
 
 export default function SettingsShell() {
-  const { config, state, setState, toast, showToast, saveConfig } = useMurmurConfig()
+  const { config, state, setState, toast, showToast, saveConfig, applyLocalConfig, getConfigSnapshot } =
+    useMurmurConfig()
   const [uiState, setUiState] = useState(loadUiState)
   const [screenIds, setScreenIds] = useState<string[]>([])
 
@@ -56,9 +57,19 @@ export default function SettingsShell() {
     applyDraft,
     resetDraft,
     handlePromptPresetChange
-  } = useSettingsDraft({ committed: config, monitorId: selectedMonitorId, showToast })
+  } = useSettingsDraft({
+    committed: config,
+    monitorId: selectedMonitorId,
+    getConfigSnapshot,
+    applyLocalConfig,
+    showToast
+  })
 
-  const { saveProfilePatch, saveSyncFlag } = useScopedMonitorSave(config, saveConfig)
+  const { saveProfilePatch, saveSyncFlag } = useScopedMonitorSave({
+    getConfigSnapshot,
+    applyLocalConfig,
+    saveConfig
+  })
   const displaySize = usePrimaryDisplaySize()
 
   const [isRefreshing, setIsRefreshing] = useState(false)

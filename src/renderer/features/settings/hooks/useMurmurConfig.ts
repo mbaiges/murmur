@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { MurmurConfig } from '@core/domain/types'
 import type { ToastState, SettingsUiState } from '../types'
 import { getWindowApi } from './getWindowApi'
@@ -7,8 +7,20 @@ const STORAGE_KEY = 'murmur.settingsUi.v1'
 
 export function useMurmurConfig() {
   const [config, setConfig] = useState<MurmurConfig | null>(null)
+  const configRef = useRef<MurmurConfig | null>(null)
   const [state, setState] = useState<import('@core/domain/types').MurmurState | null>(null)
   const [toast, setToast] = useState<ToastState>(null)
+
+  useEffect(() => {
+    configRef.current = config
+  }, [config])
+
+  const applyLocalConfig = useCallback((next: MurmurConfig) => {
+    configRef.current = next
+    setConfig(next)
+  }, [])
+
+  const getConfigSnapshot = useCallback((): MurmurConfig | null => configRef.current, [])
 
   const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type })
@@ -19,11 +31,20 @@ export function useMurmurConfig() {
     const api = getWindowApi()
     if (!api) return
 
-    api.getConfig().then(setConfig).catch(console.error)
+    api
+      .getConfig()
+      .then((c) => {
+        configRef.current = c
+        setConfig(c)
+      })
+      .catch(console.error)
     api.getState().then(setState).catch(console.error)
 
     const removeStateListener = api.onStateUpdated(setState)
-    const removeConfigListener = api.onConfigUpdated(setConfig)
+    const removeConfigListener = api.onConfigUpdated((c) => {
+      configRef.current = c
+      setConfig(c)
+    })
 
     return () => {
       removeStateListener()
@@ -40,12 +61,13 @@ export function useMurmurConfig() {
   }, [state?.lastGenerationError])
 
   const saveConfig = useCallback(
-    async (updatedConfig: Partial<MurmurConfig>) => {
+    async (updatedConfig: Partial<MurmurConfig>, options?: { silent?: boolean }) => {
       const api = getWindowApi()
-      if (!api || !config) return
+      const current = configRef.current
+      if (!api || !current) return
 
       if (updatedConfig.tonePreset === 'custom') {
-        const text = (updatedConfig.customToneText ?? config.customToneText).trim()
+        const text = (updatedConfig.customToneText ?? current.customToneText).trim()
         if (!text) {
           showToast('Enter custom tone text before saving', 'error')
           return
@@ -55,18 +77,22 @@ export function useMurmurConfig() {
       try {
         await api.saveConfig(updatedConfig)
         const fresh = await api.getConfig()
+        configRef.current = fresh
         setConfig(fresh)
-        showToast('Settings saved successfully')
+        if (!options?.silent) {
+          showToast('Settings saved successfully')
+        }
       } catch (err: unknown) {
         console.error(err)
         const message = err instanceof Error ? err.message : 'Failed to save settings'
         showToast(message, 'error')
+        throw err
       }
     },
-    [config, showToast]
+    [showToast]
   )
 
-  return { config, state, setState, toast, showToast, saveConfig }
+  return { config, state, setState, toast, showToast, saveConfig, applyLocalConfig, getConfigSnapshot }
 }
 
 export function readSettingsUiState(): SettingsUiState | null {

@@ -3,8 +3,13 @@ import type { MonitorConfig, MonitorProfile, MurmurConfig } from '@core/domain/t
 import { propagateProfilePatch, setSyncFlag, updateMonitorInConfig } from '@core/lib/config/monitorSync'
 import type { TabScope } from '@core/lib/config/monitorScopeFields'
 import { getMonitorEntry } from '@core/lib/config/monitorProfiles'
+import { getWindowApi } from './getWindowApi'
 
-type SaveMonitorsFn = (monitors: MonitorConfig[]) => Promise<void>
+type UseScopedMonitorSaveArgs = {
+  getConfigSnapshot: () => MurmurConfig | null
+  applyLocalConfig: (next: MurmurConfig) => void
+  saveConfig: (partial: Partial<MurmurConfig>, options?: { silent?: boolean }) => Promise<void>
+}
 
 export function applyMonitorProfileSave(
   config: MurmurConfig,
@@ -30,33 +35,54 @@ export function applySyncFlagSave(
   return setSyncFlag(config, monitorId, scope, enabled)
 }
 
-export function useScopedMonitorSave(
-  config: MurmurConfig | null,
-  saveConfig: (partial: Partial<MurmurConfig>) => Promise<void>
-) {
+export function useScopedMonitorSave({
+  getConfigSnapshot,
+  applyLocalConfig,
+  saveConfig
+}: UseScopedMonitorSaveArgs) {
   const saveMonitors = useCallback(
-    async (monitors: MonitorConfig[]) => {
-      await saveConfig({ monitors })
+    async (monitors: MonitorConfig[], options?: { silent?: boolean }) => {
+      await saveConfig({ monitors }, options)
     },
     [saveConfig]
   )
 
   const saveProfilePatch = useCallback(
     async (monitorId: string, scope: TabScope, patch: Partial<MonitorProfile>) => {
+      const config = getConfigSnapshot()
       if (!config) return
       const next = applyMonitorProfileSave(config, monitorId, scope, patch)
-      await saveMonitors(next.monitors)
+      applyLocalConfig(next)
+      try {
+        await saveMonitors(next.monitors, { silent: true })
+      } catch (err) {
+        const api = getWindowApi()
+        if (api) {
+          applyLocalConfig(await api.getConfig())
+        }
+        throw err
+      }
     },
-    [config, saveMonitors]
+    [applyLocalConfig, getConfigSnapshot, saveMonitors]
   )
 
   const saveSyncFlag = useCallback(
     async (monitorId: string, scope: TabScope | 'all', enabled: boolean) => {
+      const config = getConfigSnapshot()
       if (!config) return
       const next = applySyncFlagSave(config, monitorId, scope, enabled)
-      await saveMonitors(next.monitors)
+      applyLocalConfig(next)
+      try {
+        await saveMonitors(next.monitors, { silent: true })
+      } catch (err) {
+        const api = getWindowApi()
+        if (api) {
+          applyLocalConfig(await api.getConfig())
+        }
+        throw err
+      }
     },
-    [config, saveMonitors]
+    [applyLocalConfig, getConfigSnapshot, saveMonitors]
   )
 
   return { saveProfilePatch, saveSyncFlag, saveMonitors }

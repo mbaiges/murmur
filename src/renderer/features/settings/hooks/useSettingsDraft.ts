@@ -17,10 +17,18 @@ import { getWindowApi } from './getWindowApi'
 type UseSettingsDraftArgs = {
   committed: MurmurConfig | null
   monitorId: string
+  getConfigSnapshot: () => MurmurConfig | null
+  applyLocalConfig: (next: MurmurConfig) => void
   showToast: (message: string, type?: 'success' | 'error') => void
 }
 
-export function useSettingsDraft({ committed, monitorId, showToast }: UseSettingsDraftArgs) {
+export function useSettingsDraft({
+  committed,
+  monitorId,
+  getConfigSnapshot,
+  applyLocalConfig,
+  showToast
+}: UseSettingsDraftArgs) {
   const [draft, setDraft] = useState<MonitorProfile | null>(null)
   const [isApplying, setIsApplying] = useState(false)
   const committedProfileRef = useRef<MonitorProfile | null>(null)
@@ -70,8 +78,8 @@ export function useSettingsDraft({ committed, monitorId, showToast }: UseSetting
 
   const applyDraft = useCallback(async () => {
     const api = getWindowApi()
-    const baseConfig = committed
     const baseProfile = committedProfileRef.current
+    const baseConfig = getConfigSnapshot()
     if (!api || !baseConfig || !baseProfile || !draft || isApplying) return
 
     if (draft.tonePreset === 'custom' && !draft.customToneText.trim()) {
@@ -93,6 +101,7 @@ export function useSettingsDraft({ committed, monitorId, showToast }: UseSetting
         pickScopePatch('style', pickDraftFields(draft))
       )
       next = applyMonitorProfileSave(next, monitorId, 'voice', pickScopePatch('voice', pickDraftFields(draft)))
+      applyLocalConfig(next)
       await api.saveConfig({ monitors: next.monitors })
       clearDraftSession(monitorId)
       if (deltaKind === 'content') {
@@ -109,7 +118,7 @@ export function useSettingsDraft({ committed, monitorId, showToast }: UseSetting
     } finally {
       setIsApplying(false)
     }
-  }, [committed, draft, isApplying, monitorId, showToast])
+  }, [applyLocalConfig, draft, getConfigSnapshot, isApplying, monitorId, showToast])
 
   const handlePromptPresetChange = useCallback(
     (presetId: string) => {
