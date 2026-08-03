@@ -1,5 +1,6 @@
 import { app, screen } from 'electron'
 import { configureAppBranding } from './configureAppBranding'
+import { installFileLogger } from './lib/fileLogger'
 import { MurmurState } from '@core/domain/types'
 import { IpcChannel } from '@shared/ipc'
 import { parseHistoryEntry } from '@core/lib/layout/layoutContentParse'
@@ -79,6 +80,7 @@ function startClockScheduler() {
 }
 
 app.whenReady().then(async () => {
+  installFileLogger()
   registerIpcHandlers({
     configStore,
     historyStore,

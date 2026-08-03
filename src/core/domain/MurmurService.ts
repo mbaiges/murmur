@@ -195,8 +195,14 @@ export class MurmurService {
             sampled.map((item) => item.title),
             Array.from(new Set(sampled.map((i) => i.source)))
           )
-          const buffer = await this.painter.paint(staticOptions)
-          await this.renderer.set(screen.id, buffer)
+          try {
+            const buffer = await this.painter.paint(staticOptions)
+            await this.renderer.set(screen.id, buffer)
+          } catch (paintError) {
+            console.error(`MurmurService: Desktop paint/set failed for ${screen.id}`, paintError)
+            lastGenerationError =
+              'Phrase updated, but the desktop wallpaper could not be applied. Try restarting Murmur after reinstalling.'
+          }
         } catch (error) {
           console.error(`MurmurService: Generation failed for ${screen.id}`, error)
           lastGenerationError = 'Latest phrase generation failed. Showing your last successful content.'
@@ -282,8 +288,12 @@ export class MurmurService {
           state.lastSources?.[screen.id] || []
         )
 
-        const buffer = await this.painter.paint(staticOptions)
-        await this.renderer.set(screen.id, buffer)
+        try {
+          const buffer = await this.painter.paint(staticOptions)
+          await this.renderer.set(screen.id, buffer)
+        } catch (paintError) {
+          console.error(`MurmurService: Desktop paint/set failed for ${screen.id}`, paintError)
+        }
       }
     } catch (error) {
       console.error('MurmurService updateClockWallpapers failed:', error)

@@ -89,6 +89,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Build WallpaperHelper (Windows)
+        run: npm run build:wallpaper-helper
+
       - name: Build and publish (Windows, signed)
         if: steps.win_sign.outputs.mode == 'signed'
         run: npm run dist -- --publish always

@@ -14,6 +14,7 @@ Include:
 - Platform (Windows or macOS)
 - What you expected vs what happened
 - Whether refresh uses a valid Gemini API key and reachable RSS feeds
+- On Windows/macOS: attach or paste relevant lines from **`murmur.log`** in your user data folder (see [Getting started — Where data lives](docs/user/getting-started.md)); redact secrets
 
 Do **not** include your API key or full config file in public issues.
 

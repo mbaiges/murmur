@@ -80,6 +80,23 @@ namespace Murmur {
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
 
+        [DllImport("user32.dll")]
+        private static extern IntPtr MonitorFromRect(ref RECT lprc, uint dwFlags);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
+
+        private const uint MONITOR_DEFAULTTONEAREST = 2;
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct MONITORINFO {
+            public int cbSize;
+            public RECT rcMonitor;
+            public RECT rcWork;
+            public uint dwFlags;
+        }
+
         private const int GWL_STYLE = -16;
         private const int GWL_EXSTYLE = -20;
 
@@ -271,6 +288,16 @@ namespace Murmur {
 
                     int relativeX = childRect.Left - parentRect.Left;
                     int relativeY = childRect.Top - parentRect.Top;
+
+                    IntPtr hMonitor = MonitorFromRect(ref childRect, MONITOR_DEFAULTTONEAREST);
+                    MONITORINFO monitorInfo = new MONITORINFO();
+                    monitorInfo.cbSize = Marshal.SizeOf(typeof(MONITORINFO));
+                    if (GetMonitorInfo(hMonitor, ref monitorInfo)) {
+                        childWidth = monitorInfo.rcMonitor.Right - monitorInfo.rcMonitor.Left;
+                        childHeight = monitorInfo.rcMonitor.Bottom - monitorInfo.rcMonitor.Top;
+                        relativeX = monitorInfo.rcMonitor.Left - parentRect.Left;
+                        relativeY = monitorInfo.rcMonitor.Top - parentRect.Top;
+                    }
 
                     // 7. Transition target window style from POPUP to CHILD to become a nested control window
                     int style = GetWindowLong(childHwnd, GWL_STYLE);

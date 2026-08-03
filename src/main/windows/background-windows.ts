@@ -1,6 +1,7 @@
-import { BrowserWindow } from 'electron'
+import { BrowserWindow, screen } from 'electron'
 import { join } from 'path'
 import type { IWallpaperRenderer } from '../../core/ports/IWallpaperRenderer'
+import { logDisplayLayout, wallpaperWindowBounds } from '../lib/wallpaperDisplayBounds'
 
 const bgWindows = new Map<string, BrowserWindow>()
 
@@ -37,12 +38,20 @@ export function createBackgroundWindow(
   wallpaperRenderer: IWallpaperRenderer,
   isQuitting: () => boolean
 ): void {
+  const display = screen.getAllDisplays().find((d) => String(d.id) === screenInfo.id)
+  const rect = display
+    ? wallpaperWindowBounds(display)
+    : { x, y, width: screenInfo.width, height: screenInfo.height }
+  if (display) {
+    logDisplayLayout(display, 'createBackgroundWindow')
+  }
+
   const windowTitle = `Murmur Background - ${screenInfo.id}`
   const bgWindow = new BrowserWindow({
-    x,
-    y,
-    width: screenInfo.width,
-    height: screenInfo.height,
+    x: rect.x,
+    y: rect.y,
+    width: rect.width,
+    height: rect.height,
     frame: false,
     transparent: true,
     type: process.platform === 'darwin' ? 'desktop' : undefined,
@@ -88,6 +97,9 @@ export function createBackgroundWindow(
           `Injecting live window for display ${screenInfo.id} (HWND: ${hwndVal}) into WorkerW container...`
         )
         await (wallpaperRenderer as { inject: (h: string) => Promise<void> }).inject(hwndVal)
+        if (display) {
+          bgWindow.setBounds(wallpaperWindowBounds(display))
+        }
       }
     } catch (err) {
       console.error(`Failed to inject window for display ${screenInfo.id} into desktop`, err)

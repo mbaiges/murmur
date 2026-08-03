@@ -10,6 +10,7 @@
     "dev": "node scripts/run-dev.mjs",
     "build": "electron-vite build",
     "generate:brand": "node scripts/generate-brand-icons.mjs",
+    "build:wallpaper-helper": "node scripts/build-wallpaper-helper.mjs",
     "verify:brand": "node scripts/verify-brand-icons.mjs",
     "sync:renderer-public": "node scripts/sync-renderer-public.mjs",
     "postinstall": "electron-builder install-app-deps",
@@ -108,6 +109,18 @@
       "**/node_modules/sharp/**/*",
       "**/node_modules/@img/**/*",
       "**/node_modules/canvas/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/bin/",
+        "to": "bin",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "resources/fonts/",
+        "to": "resources/fonts",
+        "filter": ["**/*"]
+      }
     ]
   }
 }

@@ -47,12 +47,14 @@ Murmur stores configuration and history in the app user data folder:
 | Platform | Typical location |
 |----------|------------------|
 | **macOS** | `~/Library/Application Support/Murmur/` |
-| **Windows** | `%APPDATA%\Murmur\` |
+| **Windows** | `%APPDATA%\murmur\` |
 
 Files include:
 
 - `murmur.config.json` — settings and your Gemini API key
 - `murmur.history.json` — up to **10** recent phrases per display
+- `murmur.log` — main-process log (refresh, wallpaper apply, errors); rotates when large
+- `wallpapers/` — last painted PNG per display (check timestamps when debugging)
 
 Headlines are fetched from URLs you configure. **RSS item titles** (and related text sent in the generation prompt) are transmitted to the **Google Gemini API** using your key, subject to [Google’s terms](https://ai.google.dev/gemini-api/terms).
 
@@ -63,7 +65,7 @@ Murmur does not operate a Murmur-owned cloud service in v1; network use is RSS +
 | Symptom | Things to check |
 |---------|-----------------|
 | “Refresh failed” toast | API key valid, internet up, Gemini quota |
-| Empty or stale wallpaper | **Refresh Now** in Settings; at least one RSS feed on the selected display; network up |
+| Empty or stale wallpaper | **Refresh Now** in Settings; at least one RSS feed on the selected display; network up; on Windows, see `murmur.log` and confirm `resources\\bin\\WallpaperHelper.exe` exists under the install folder |
 | SmartScreen / Gatekeeper blocks install | Expected for unsigned builds; follow platform steps above |
 
 Report bugs via [GitHub Issues](https://github.com/mbaiges/murmur/issues). See also [SUPPORT.md](../../SUPPORT.md). Security concerns: [SECURITY.md](../../SECURITY.md).
