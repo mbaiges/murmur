@@ -12,7 +12,7 @@ type MonitorsTabProps = {
 
 export default function MonitorsTab({ config, state, saveConfig, onPreviewTheme }: MonitorsTabProps) {
   return (
-<div className="max-w-3xl space-y-8">
+<div className="w-full max-w-5xl space-y-8">
               <div>
                 <h2 className="text-2xl font-bold tracking-tight text-white mb-2">Monitors</h2>
                 <p className="text-slate-400 text-sm">Manage configuration settings and theme overrides individually per display.</p>

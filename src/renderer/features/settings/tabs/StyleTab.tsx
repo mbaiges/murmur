@@ -35,7 +35,7 @@ export default function StyleTab({
   showSyncChip = false
 }: StyleTabProps) {
   return (
-    <div className="max-w-4xl space-y-6 pb-16">
+    <div className="w-full max-w-5xl space-y-6 pb-16">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <h2 className="text-2xl font-bold tracking-tight text-white mb-2">Style</h2>
@@ -65,7 +65,7 @@ export default function StyleTab({
 
       <MoodGallery config={config} onMoodChange={onMoodChange} />
 
-      <div className="space-y-6 max-w-2xl">
+      <div className="w-full space-y-6">
         <StyleBackgroundCard config={config} patchDraft={patchDraft} />
         <StylePhraseCard config={config} patchDraft={patchDraft} />
         <StyleWidgetsCard config={config} patchDraft={patchDraft} />

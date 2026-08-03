@@ -3,6 +3,20 @@ import { getDefaultMonitorProfile } from './defaultMonitorProfile'
 
 type LegacyRoot = Record<string, unknown>
 
+function normalizeTonePreset(value: unknown): MonitorProfile['tonePreset'] | undefined {
+  if (value === 'villero' || value === 'turro') return 'vulgar'
+  if (
+    value === 'none' ||
+    value === 'neutral' ||
+    value === 'professional' ||
+    value === 'vulgar' ||
+    value === 'custom'
+  ) {
+    return value
+  }
+  return undefined
+}
+
 function legacyProfileFromRoot(parsed: LegacyRoot): MonitorProfile {
   const base = getDefaultMonitorProfile()
   const pick = <K extends keyof MonitorProfile>(key: K): MonitorProfile[K] | undefined =>
@@ -30,7 +44,7 @@ function legacyProfileFromRoot(parsed: LegacyRoot): MonitorProfile {
     enableDifferentFonts:
       typeof parsed.enableDifferentFonts === 'boolean' ? parsed.enableDifferentFonts : base.enableDifferentFonts,
     noiseIntensity: pick('noiseIntensity') ?? base.noiseIntensity,
-    tonePreset: pick('tonePreset') ?? base.tonePreset,
+    tonePreset: normalizeTonePreset(parsed.tonePreset) ?? pick('tonePreset') ?? base.tonePreset,
     customToneText: typeof parsed.customToneText === 'string' ? parsed.customToneText : base.customToneText
   }
 }
@@ -44,6 +58,11 @@ function migrateMonitorRow(raw: Record<string, unknown>, legacyProfile: MonitorP
 
   if (themeOverride) {
     profile.theme = themeOverride
+  }
+
+  const legacyTone = profile.tonePreset as string
+  if (legacyTone === 'villero' || legacyTone === 'turro') {
+    profile.tonePreset = 'vulgar'
   }
 
   return {

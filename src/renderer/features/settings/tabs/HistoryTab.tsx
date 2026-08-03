@@ -23,7 +23,7 @@ export default function HistoryTab({ config, selectedMonitorId }: HistoryTabProp
   }, [selectedMonitorId])
 
   return (
-    <div className="max-w-4xl space-y-6">
+    <div className="w-full max-w-5xl space-y-6">
       <div>
         <h2 className="text-2xl font-bold tracking-tight text-white mb-2">History</h2>
         <p className="text-slate-400 text-sm">Phrase history for the display selected in the sidebar.</p>

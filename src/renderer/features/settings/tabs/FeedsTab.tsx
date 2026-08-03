@@ -6,6 +6,7 @@ import {
   promptToPresetId
 } from '@core/lib/presets/promptPresets'
 import SettingsSelect from '../components/SettingsSelect'
+import { OUTPUT_LANGUAGE_OPTIONS } from '../constants/outputLanguages'
 
 type FeedsTabProps = {
   config: MurmurConfig
@@ -33,7 +34,7 @@ export default function FeedsTab({
   const [newFeed, setNewFeed] = useState('')
 
   return (
-<div className="max-w-2xl space-y-8">
+<div className="w-full max-w-5xl space-y-8">
               <div>
                 <h2 className="text-2xl font-bold tracking-tight text-white mb-2">Ingestion & Feeds</h2>
                 <p className="text-slate-400 text-sm">Configure Gemini keys, RSS sources, and customize the AI generation prompt.</p>
@@ -146,11 +147,11 @@ export default function FeedsTab({
                       value={config.language}
                       onChange={(e) => saveConfig({ language: e.target.value })}
                     >
-                      <option value="auto">Auto (Match headlines)</option>
-                      <option value="English">English</option>
-                      <option value="Spanish">Spanish</option>
-                      <option value="French">French</option>
-                      <option value="German">German</option>
+                      {OUTPUT_LANGUAGE_OPTIONS.map(({ value, label }) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
                     </SettingsSelect>
                   </div>
                 </div>

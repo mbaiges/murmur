@@ -1,6 +1,6 @@
 # Murmur — architecture & maintainer guide
 
-This document is the **source of truth** for how the Murmur desktop app is structured, how process boundaries work, and how to extend features safely. Product delivery specs live under `docs/features/<feature>/`.
+This document is the **source of truth** for how the Murmur desktop app is structured, how process boundaries work, and how to extend features safely. Product delivery specs live under `docs/features/<feature>/`. End-user docs: [docs/README.md](README.md).
 
 ## Product shape
 
@@ -197,6 +197,8 @@ tests/e2e/artifacts/screenshots/{test-case-slug}/{filename}.png
 
 Use `e2eScreenshotPath()` from `tests/e2e/helpers/screenshotPaths.ts`. The `artifacts/` tree is gitignored.
 
+**Committed README / user-doc captures:** `assets/screenshots/` via `npm run docs:screenshots` (see [screenshots.md](screenshots.md)).
+
 ## Build & dev
 
 - **Dev:** `npm run dev` → `scripts/run-dev.mjs` (unset `ELECTRON_RUN_AS_NODE` in embedded terminals when needed).
@@ -233,9 +235,13 @@ Restructure delivery specs: [features/repo-restructure/](features/repo-restructu
 
 | Doc | Purpose |
 |-----|---------|
+| [README.md](../README.md) | User-facing landing page |
+| [docs/README.md](README.md) | Documentation map (user vs maintainer) |
+| [CONTRIBUTING.md](../CONTRIBUTING.md) | Dev setup and PR expectations |
 | [agent-skills-setup.md](agent-skills-setup.md) | Local open-agent-skills under `.agentic/` |
+| [screenshots.md](screenshots.md) | README screenshot capture |
 | [features/repo-restructure/](features/repo-restructure/) | Locked layout / AC for this restructure |
 | [features/structured-phrase-generation/](features/structured-phrase-generation/) | Structured JSON phrase AC |
-| [docs/scaffolding/](scaffolding/) | **Superseded** early drafts — see notices in those files |
+| [scaffolding/](scaffolding/) | **Superseded** early drafts — see notices in those files |
 
 Prefer **small diffs**, existing adapter patterns, and **renderer + canvas parity** for anything visible on the wallpaper.

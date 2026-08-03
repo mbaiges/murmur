@@ -47,7 +47,7 @@ Same as the [release runbook](./release-runbook.md):
 2. First open: **right-click Murmur → Open** (or **System Settings → Privacy & Security → Open Anyway**).
 3. Updates: Settings → General **checks GitHub** and shows **Download from GitHub** when a newer release exists — install by replacing the app from the new `.dmg` (no in-app auto-install on Mac while builds are unsigned).
 
-Add a short **Installing** section to the README when you go public.
+User install steps live in the [README](../../../README.md) and [getting started](../../user/getting-started.md).
 
 ---
 
