@@ -24,15 +24,14 @@ describe('resolveToneInstruction', () => {
     expect(resolveToneInstruction({ tonePreset: 'custom', customToneText: '   ', language: 'auto' })).toBeNull()
   })
 
-  it('returns turro base text without Argentinian Spanish', () => {
-    const t = resolveToneInstruction({ tonePreset: 'turro', customToneText: '', language: 'Spanish' })
-    expect(t).toMatch(/rude/i)
-    expect(t).not.toMatch(/Rioplatense/i)
+  it('returns vulgar base text without Argentinian Spanish', () => {
+    const t = resolveToneInstruction({ tonePreset: 'vulgar', customToneText: '', language: 'Spanish' })
+    expect(t).toMatch(/turro-style/i)
   })
 
-  it('returns turro rioplatense text with Argentinian Spanish', () => {
+  it('returns turro rioplatense prompt with Argentinian Spanish', () => {
     const t = resolveToneInstruction({
-      tonePreset: 'turro',
+      tonePreset: 'vulgar',
       customToneText: '',
       language: ARGENTINIAN_SPANISH_LANGUAGE
     })
