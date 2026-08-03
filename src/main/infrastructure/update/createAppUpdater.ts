@@ -2,7 +2,11 @@ import { app } from 'electron'
 import { autoUpdater } from 'electron-updater'
 import {
   AppUpdateInfo,
+  AppUpdateMode,
+  MURMUR_LATEST_RELEASE_API,
   MURMUR_RELEASES_URL,
+  appUpdateModeForPlatform,
+  isNewerReleaseVersion,
   shouldEnableAppUpdate,
   shouldNotifyForVersion
 } from '@shared/app-update'
@@ -19,26 +23,92 @@ export type AppUpdater = {
   finishQuitAfterRestore: () => void
 }
 
-function baseInfo(currentVersion: string, phase: AppUpdateInfo['phase'] = 'idle'): AppUpdateInfo {
+function baseInfo(
+  currentVersion: string,
+  updateMode: AppUpdateMode,
+  phase: AppUpdateInfo['phase'] = 'idle'
+): AppUpdateInfo {
   return {
     phase,
     currentVersion,
-    releasesUrl: MURMUR_RELEASES_URL
+    releasesUrl: MURMUR_RELEASES_URL,
+    updateMode
   }
 }
 
-export function createAppUpdater(options: {
-  e2eMode: boolean
+async function fetchLatestGitHubReleaseVersion(currentVersion: string): Promise<string | null> {
+  const response = await fetch(MURMUR_LATEST_RELEASE_API, {
+    headers: {
+      Accept: 'application/vnd.github+json',
+      'User-Agent': `Murmur/${currentVersion}`
+    }
+  })
+  if (!response.ok) {
+    return null
+  }
+  const body = (await response.json()) as { tag_name?: string }
+  const tag = body.tag_name?.replace(/^v/i, '')
+  return tag || null
+}
+
+function createManualReleasesUpdater(options: {
+  currentVersion: string
+  broadcast: (info: AppUpdateInfo) => void
+}): AppUpdater {
+  let info: AppUpdateInfo = baseInfo(options.currentVersion, 'manual-releases', 'idle')
+  let periodicTimer: ReturnType<typeof setInterval> | undefined
+
+  const publish = (patch: Partial<AppUpdateInfo>) => {
+    info = { ...info, ...patch }
+    options.broadcast(info)
+  }
+
+  const runCheck = async (): Promise<AppUpdateInfo> => {
+    publish({ phase: 'checking', errorMessage: undefined })
+    try {
+      const latest = await fetchLatestGitHubReleaseVersion(options.currentVersion)
+      if (!latest) {
+        publish({
+          phase: 'error',
+          errorMessage: 'Could not load the latest release from GitHub.'
+        })
+        return info
+      }
+      if (isNewerReleaseVersion(latest, options.currentVersion)) {
+        publish({ phase: 'available', availableVersion: latest })
+      } else {
+        publish({ phase: 'not-available', availableVersion: undefined })
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      publish({ phase: 'error', errorMessage: message })
+    }
+    return info
+  }
+
+  return {
+    start: () => {
+      setTimeout(() => {
+        void runCheck()
+      }, INITIAL_CHECK_DELAY_MS)
+      periodicTimer = setInterval(() => {
+        void runCheck()
+      }, PERIODIC_CHECK_INTERVAL_MS)
+      periodicTimer.unref?.()
+    },
+    getInfo: () => info,
+    check: runCheck,
+    quitAndInstall: () => {},
+    finishQuitAfterRestore: () => app.exit(0)
+  }
+}
+
+function createInAppUpdater(options: {
+  currentVersion: string
   broadcast: (info: AppUpdateInfo) => void
   notifier?: IUpdateReadyNotifier
 }): AppUpdater {
-  const currentVersion = app.getVersion()
-  const enabled = shouldEnableAppUpdate(app.isPackaged, options.e2eMode)
-
-  let info: AppUpdateInfo = enabled
-    ? baseInfo(currentVersion, 'idle')
-    : baseInfo(currentVersion, 'disabled')
-
+  let info: AppUpdateInfo = baseInfo(options.currentVersion, 'in-app', 'idle')
   let quitForUpdate = false
   let periodicTimer: ReturnType<typeof setInterval> | undefined
   let lastNotifiedVersion: string | null = null
@@ -46,16 +116,6 @@ export function createAppUpdater(options: {
   const publish = (patch: Partial<AppUpdateInfo>) => {
     info = { ...info, ...patch }
     options.broadcast(info)
-  }
-
-  if (!enabled) {
-    return {
-      start: () => {},
-      getInfo: () => info,
-      check: async () => info,
-      quitAndInstall: () => {},
-      finishQuitAfterRestore: () => app.exit(0)
-    }
   }
 
   autoUpdater.autoDownload = true
@@ -133,4 +193,40 @@ export function createAppUpdater(options: {
       app.exit(0)
     }
   }
+}
+
+export function createAppUpdater(options: {
+  e2eMode: boolean
+  platform?: NodeJS.Platform
+  broadcast: (info: AppUpdateInfo) => void
+  notifier?: IUpdateReadyNotifier
+}): AppUpdater {
+  const currentVersion = app.getVersion()
+  const updateMode = appUpdateModeForPlatform(options.platform ?? process.platform)
+  const enabled = shouldEnableAppUpdate(app.isPackaged, options.e2eMode)
+
+  const disabledInfo = baseInfo(currentVersion, updateMode, 'disabled')
+
+  if (!enabled) {
+    return {
+      start: () => {},
+      getInfo: () => disabledInfo,
+      check: async () => disabledInfo,
+      quitAndInstall: () => {},
+      finishQuitAfterRestore: () => app.exit(0)
+    }
+  }
+
+  if (updateMode === 'manual-releases') {
+    return createManualReleasesUpdater({
+      currentVersion,
+      broadcast: options.broadcast
+    })
+  }
+
+  return createInAppUpdater({
+    currentVersion,
+    broadcast: options.broadcast,
+    notifier: options.notifier
+  })
 }

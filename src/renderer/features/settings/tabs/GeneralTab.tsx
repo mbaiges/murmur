@@ -14,6 +14,21 @@ function updateStatusLabel(info: AppUpdateInfo, checking: boolean): string {
   if (checking || info.phase === 'checking') {
     return 'Checking for updates…'
   }
+  if (info.updateMode === 'manual-releases') {
+    switch (info.phase) {
+      case 'disabled':
+        return 'Updates apply to installed builds only.'
+      case 'available':
+        return `Version ${info.availableVersion ?? ''} is on GitHub — download the .dmg and replace the app.`
+      case 'not-available':
+        return 'You’re on the latest release on GitHub.'
+      case 'error':
+        return info.errorMessage ?? 'Could not check GitHub Releases.'
+      case 'idle':
+      default:
+        return 'On macOS, new versions are installed from GitHub Releases (not in-app).'
+    }
+  }
   switch (info.phase) {
     case 'disabled':
       return 'Updates apply to installed builds only.'
@@ -36,7 +51,10 @@ function updateStatusLabel(info: AppUpdateInfo, checking: boolean): string {
 export default function GeneralTab({ config, state, saveConfig }: GeneralTabProps) {
   const { updateInfo, checkForUpdates, quitAndInstallUpdate, checking } = useAppUpdate()
   const canCheck = updateInfo?.phase !== 'disabled'
-  const canRestart = updateInfo?.phase === 'downloaded'
+  const canRestart =
+    updateInfo?.updateMode === 'in-app' && updateInfo?.phase === 'downloaded'
+  const showDownloadRelease =
+    updateInfo?.updateMode === 'manual-releases' && updateInfo?.phase === 'available'
 
   return (
     <div className="max-w-2xl space-y-8">
@@ -118,6 +136,18 @@ export default function GeneralTab({ config, state, saveConfig }: GeneralTabProp
               onClick={() => void quitAndInstallUpdate()}
             >
               Restart to update
+            </button>
+          ) : null}
+          {showDownloadRelease ? (
+            <button
+              type="button"
+              className="px-3 py-1.5 text-sm font-medium rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
+              onClick={() => {
+                const url = updateInfo?.releasesUrl ?? 'https://github.com/mbaiges/murmur/releases'
+                void window.api?.openExternal(url)
+              }}
+            >
+              Download from GitHub
             </button>
           ) : null}
           <button

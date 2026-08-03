@@ -9,16 +9,8 @@ permissions:
   contents: write
 
 jobs:
-  release:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: macos-latest
-            platform: mac
-          - os: windows-latest
-            platform: win
-    runs-on: ${{ matrix.os }}
+  release-macos:
+    runs-on: macos-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -29,16 +21,84 @@ jobs:
           node-version: 20
           cache: npm
 
+      - name: Resolve macOS signing mode
+        id: mac_sign
+        env:
+          MACOS_CERTIFICATE_BASE64: ${{ secrets.MACOS_CERTIFICATE_BASE64 }}
+        run: |
+          if [ -n "$MACOS_CERTIFICATE_BASE64" ]; then
+            echo "mode=signed" >> "$GITHUB_OUTPUT"
+          else
+            echo "mode=unsigned" >> "$GITHUB_OUTPUT"
+            echo "::warning::No MACOS_CERTIFICATE_BASE64 — building unsigned macOS. See docs/features/app-auto-update/unsigned-releases.md"
+          fi
+
       - name: Install dependencies
         run: npm ci
 
-      - name: Build and publish
-        run: npm run dist -- --publish always
+      - name: Build and publish (macOS, signed)
+        if: steps.mac_sign.outputs.mode == 'signed'
+        run: >-
+          npm run dist -- --publish always
+          --config.mac.hardenedRuntime=true
+          --config.mac.gatekeeperAssess=false
+          --config.mac.notarize=true
+          --config.mac.entitlements=build/entitlements.mac.plist
+          --config.mac.entitlementsInherit=build/entitlements.mac.plist
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Optional — set in repo secrets for signed/notarized installers (required for macOS auto-update).
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          CSC_LINK: ${{ secrets.MACOS_CERTIFICATE_BASE64 }}
+          CSC_KEY_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      - name: Build and publish (macOS, unsigned)
+        if: steps.mac_sign.outputs.mode == 'unsigned'
+        run: npm run dist -- --publish always --config.mac.identity=null --config.mac.notarize=false
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+  release-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Resolve Windows signing mode
+        id: win_sign
+        shell: bash
+        env:
+          WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+        run: |
+          if [ -n "$WINDOWS_CERTIFICATE_BASE64" ]; then
+            echo "mode=signed" >> "$GITHUB_OUTPUT"
+          else
+            echo "mode=unsigned" >> "$GITHUB_OUTPUT"
+            echo "::warning::No WINDOWS_CERTIFICATE_BASE64 — building unsigned Windows. See docs/features/app-auto-update/unsigned-releases.md"
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build and publish (Windows, signed)
+        if: steps.win_sign.outputs.mode == 'signed'
+        run: npm run dist -- --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_LINK: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+          CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+
+      - name: Build and publish (Windows, unsigned)
+        if: steps.win_sign.outputs.mode == 'unsigned'
+        run: npm run dist -- --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'

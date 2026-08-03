@@ -5,8 +5,7 @@ For maintainers publishing versions consumed by in-app auto-update. Product cont
 ## Prerequisites
 
 - `package.json` `version` matches the git tag (without `v` prefix).
-- Repo secrets configured for production builds (see below).
-- macOS builds must be **signed and notarized** for reliable auto-update on Mac.
+- **One-time signing setup (optional, paid):** [signing-setup.md](./signing-setup.md). **Free path:** [unsigned-releases.md](./unsigned-releases.md) — no secrets required.
 
 ## Publish a stable release
 
@@ -26,16 +25,12 @@ GH_TOKEN=<personal access token with repo scope> npm run dist -- --publish alway
 
 ## Signing secrets (GitHub Actions)
 
-| Secret | Purpose |
-|--------|---------|
-| `GH_TOKEN` | Provided automatically as `GITHUB_TOKEN` in workflow |
-| `CSC_LINK` | Base64-encoded certificate (Windows Authenticode; optional mac cert) |
-| `CSC_KEY_PASSWORD` | Certificate password |
-| `APPLE_ID` | Apple ID for notarization |
-| `APPLE_APP_SPECIFIC_PASSWORD` | App-specific password |
-| `APPLE_TEAM_ID` | Team ID |
+See **[signing-setup.md](./signing-setup.md)** for how to create certificates and set:
 
-Unsigned artifacts are useful for CI smoke tests; end-user auto-update on macOS requires notarized builds.
+- **macOS:** `MACOS_CERTIFICATE_BASE64`, `MACOS_CERTIFICATE_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`
+- **Windows:** `WINDOWS_CERTIFICATE_BASE64`, `WINDOWS_CERTIFICATE_PASSWORD`
+
+`GITHUB_TOKEN` is provided automatically for publishing to GitHub Releases.
 
 ## Verify auto-update (manual)
 
