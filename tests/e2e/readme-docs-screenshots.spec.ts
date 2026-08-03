@@ -5,7 +5,7 @@ import { e2eElectronLaunchOptions } from './helpers/e2eLaunch'
 import { applySettingsChanges } from './helpers/styleSettings'
 
 const DOCS_SCREENSHOTS_DIR = join(process.cwd(), 'assets', 'screenshots')
-/** Match common README embed width; capture at 2× for retina. */
+/** Window size for doc captures: sidebar (256) + main padding (80) + content ≈ 944px at this width. */
 const VIEWPORT = { width: 1280, height: 800 }
 
 function docScreenshot(filename: string): string {

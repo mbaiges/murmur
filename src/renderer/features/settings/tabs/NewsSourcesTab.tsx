@@ -20,7 +20,7 @@ export default function NewsSourcesTab({
   const [newFeed, setNewFeed] = useState('')
 
   return (
-    <div className="max-w-2xl space-y-8">
+    <div className="w-full max-w-5xl space-y-8">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <h2 className="text-2xl font-bold tracking-tight text-white mb-2">News sources</h2>

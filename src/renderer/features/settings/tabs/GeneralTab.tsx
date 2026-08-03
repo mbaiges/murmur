@@ -57,7 +57,7 @@ export default function GeneralTab({ config, state, saveConfig }: GeneralTabProp
     updateInfo?.updateMode === 'manual-releases' && updateInfo?.phase === 'available'
 
   return (
-    <div className="max-w-2xl space-y-8">
+    <div className="w-full max-w-5xl space-y-8">
       <div>
         <h2 className="text-2xl font-bold tracking-tight text-white mb-2">General</h2>
         <p className="text-slate-400 text-sm">Connect Gemini, set refresh schedule, and control startup behavior.</p>

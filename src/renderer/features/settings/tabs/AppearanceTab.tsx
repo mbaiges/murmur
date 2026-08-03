@@ -21,7 +21,7 @@ export default function AppearanceTab({
   showPageHeader = true
 }: AppearanceTabProps) {
   return (
-<div className="max-w-2xl space-y-8">
+<div className="w-full max-w-5xl space-y-8">
               {showPageHeader && (
               <div>
                 <h2 className="text-2xl font-bold tracking-tight text-white mb-2">Appearance</h2>

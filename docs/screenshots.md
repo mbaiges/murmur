@@ -19,6 +19,8 @@ The spec (1280×800 viewport, cropped wizard card, full settings chrome without 
 3. **`setup-wizard.png`** — wizard card only (no letterboxing)
 4. **`settings-*.png`** — entire settings window chrome (sidebar + content), not full-page document height
 
+Settings tabs use `w-full max-w-5xl` so cards fill the main column at typical window sizes (empty margin only on very wide displays).
+
 | File | Content |
 |------|---------|
 | `setup-wizard.png` | First-run wizard (empty key field) |

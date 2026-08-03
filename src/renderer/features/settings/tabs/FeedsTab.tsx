@@ -33,7 +33,7 @@ export default function FeedsTab({
   const [newFeed, setNewFeed] = useState('')
 
   return (
-<div className="max-w-2xl space-y-8">
+<div className="w-full max-w-5xl space-y-8">
               <div>
                 <h2 className="text-2xl font-bold tracking-tight text-white mb-2">Ingestion & Feeds</h2>
                 <p className="text-slate-400 text-sm">Configure Gemini keys, RSS sources, and customize the AI generation prompt.</p>
