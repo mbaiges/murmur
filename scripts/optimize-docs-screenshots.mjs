@@ -15,11 +15,11 @@ if (!existsSync(dir)) {
 const MAX_EDGE = {
   'hero-wallpaper.png': 1440,
   'setup-wizard.png': 640,
-  'settings-general.png': 1280,
-  'settings-news.png': 1280,
-  'settings-voice.png': 1280,
-  'settings-style-moods.png': 1280,
-  'settings-history.png': 1280
+  'settings-general.png': 900,
+  'settings-news.png': 900,
+  'settings-voice.png': 900,
+  'settings-style-moods.png': 900,
+  'settings-history.png': 900
 }
 
 if (process.platform !== 'darwin') {

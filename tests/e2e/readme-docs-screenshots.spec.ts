@@ -6,11 +6,25 @@ import { applySettingsChanges } from './helpers/styleSettings'
 
 const DOCS_SCREENSHOTS_DIR = join(process.cwd(), 'assets', 'screenshots')
 /** Match default Settings window (`settings-window.ts`: 900×700). */
-const VIEWPORT = { width: 900, height: 700 }
+const SETTINGS_WINDOW = { width: 900, height: 700 }
 
 function docScreenshot(filename: string): string {
   mkdirSync(DOCS_SCREENSHOTS_DIR, { recursive: true })
   return join(DOCS_SCREENSHOTS_DIR, filename)
+}
+
+/** Playwright viewport alone does not resize Electron BrowserWindow — match shipped defaults. */
+async function resizeSettingsBrowserWindow(app: ElectronApplication) {
+  await app.evaluate(
+    ({ BrowserWindow }, size: { width: number; height: number }) => {
+      for (const win of BrowserWindow.getAllWindows()) {
+        const url = win.webContents.getURL()
+        if (url.includes('view=wallpaper')) continue
+        win.setSize(size.width, size.height)
+      }
+    },
+    SETTINGS_WINDOW
+  )
 }
 
 async function shotSettingsChrome(page: import('@playwright/test').Page, filename: string) {
@@ -45,9 +59,10 @@ test.describe('README documentation screenshots', () => {
       await page.waitForTimeout(200)
     }
 
-    await page.setViewportSize(VIEWPORT)
+    await resizeSettingsBrowserWindow(electronApp)
     await page.waitForLoadState('load')
     await page.waitForSelector('.animate-spin', { state: 'detached', timeout: 15_000 })
+    await page.waitForTimeout(300)
 
     const wizardHeader = page.locator('text=First-time Setup Wizard')
     const sidebar = page.locator('aside')
@@ -62,6 +77,8 @@ test.describe('README documentation screenshots', () => {
       await page.locator('input[type="password"]').fill('test-api-key')
       await page.locator('button:has-text("Start Murmur")').click()
       await sidebar.waitFor({ state: 'visible', timeout: 10_000 })
+      await resizeSettingsBrowserWindow(electronApp)
+      await page.waitForTimeout(300)
     } else {
       throw new Error('Expected first-run setup wizard for setup-wizard.png (fresh E2E userData)')
     }
