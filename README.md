@@ -16,14 +16,14 @@
 
 </div>
 
-**Murmur** is a desktop app for **Windows and macOS** that reads RSS headlines from feeds you choose, synthesizes them with **Google Gemini**, and shows the result as living wallpaper—refreshed on a schedule, controlled from the system tray.
+**Murmur** is a desktop app for **Windows and macOS** that reads RSS headlines from feeds you choose, synthesizes them with **Google Gemini**, and shows the result as living wallpaper—refreshed on a schedule, controlled from the **menu bar / system tray**.
 
 ## What it does
 
 - Pulls titles from your RSS feeds on an interval you choose (15 minutes to 24 hours; default is hourly)
 - Generates a short phrase (plain or layout-aware “magazine” styles) via Gemini
 - Renders on one or more displays with moods, fonts, themes, and animations
-- Runs in the **tray** with a settings window for feeds, voice, style, and history
+- Runs in the **menu bar** (macOS) or **system tray** (Windows) with a settings window for feeds, voice, style, and history
 - Keeps phrase **history** locally per display
 
 ## Quick start (after install)
@@ -46,7 +46,7 @@
 
 Builds are **unsigned** (no paid Apple/Windows certificates). Details: [unsigned releases](docs/features/app-auto-update/unsigned-releases.md).
 
-**Requirements:** Windows or macOS, network access, and your own **Google Gemini API key** (stored locally on your machine).
+**Requirements:** **Windows or macOS** (Linux is not supported in v1), network access, and your own **Google Gemini API key** (stored locally on your machine).
 
 ## Configuration
 
@@ -74,6 +74,7 @@ See [Configuration guide](docs/user/configuration.md) and the screenshots below.
 - [Getting started](docs/user/getting-started.md) — install, first run, updates, privacy
 - [Configuration](docs/user/configuration.md) — tabs, displays, moods
 - [Architecture](docs/architecture.md) — for contributors (layout, tests, IPC)
+- [Support](SUPPORT.md) — help and bug reports
 
 Product and engineering specs live under [`docs/features/`](docs/features/) (spec-driven development).
 
@@ -88,7 +89,7 @@ npm ci
 npm run dev
 ```
 
-Run tests: `npm run lint`, `npm run test:unit`, and `env -u ELECTRON_RUN_AS_NODE npm run test:e2e`. See [CONTRIBUTING.md](CONTRIBUTING.md).
+Run tests: `npm run lint`, `npm run test:unit`, and `npm run build && env -u ELECTRON_RUN_AS_NODE npm run test:e2e`. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Refresh README screenshots: `npm run docs:screenshots`.
 

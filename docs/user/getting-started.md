@@ -27,7 +27,9 @@ Unsigned builds are expected. See [unsigned releases](../features/app-auto-updat
 3. Enter at least one RSS feed URL (a default BBC News feed is provided).
 4. Click **Start Murmur**. Settings stays open on **General** and shows a toast nudging you toward **Style**; Murmur is also available from the **menu bar** (macOS) or **system tray** (Windows).
 
-Open **Settings** anytime from that menu to change feeds, voice, appearance, or refresh interval.
+On **later launches** of an installed release (after your API key is saved), Murmur typically starts in the menu bar / tray only—open **Settings** from the menu when you need it. Closing the Settings window does **not** quit the app.
+
+When you **Quit** from the menu, Murmur restores your previous desktop wallpaper (release builds).
 
 ## Staying up to date
 
@@ -36,7 +38,7 @@ Open **Settings** anytime from that menu to change feeds, voice, appearance, or 
 | **Windows** | **Installed release builds** check GitHub in the background. **Settings → General → App updates** shows progress; use **Restart to update** when ready. Dev builds from source do not update in-app. |
 | **macOS** | **Installed release builds** can **Check for updates** under **App updates**. Use **Download from GitHub** when offered, then replace the app from the new `.dmg` (no silent in-app install while builds are unsigned). |
 
-Automatic checks run after startup (with a short delay) and periodically while the app runs.
+Automatic checks run after startup (with a short delay) and periodically while the app runs. Only **stable** tagged releases on GitHub are offered—not pre-releases.
 
 ## Where data lives
 
@@ -50,9 +52,9 @@ Murmur stores configuration and history in the app user data folder:
 Files include:
 
 - `murmur.config.json` — settings and your Gemini API key
-- `murmur.history.json` — recent phrases per display
+- `murmur.history.json` — up to **10** recent phrases per display
 
-Headlines are fetched from URLs you configure. Text sent to **Google Gemini** for generation is subject to [Google’s terms](https://ai.google.dev/gemini-api/terms) for your API key.
+Headlines are fetched from URLs you configure. **RSS item titles** (and related text sent in the generation prompt) are transmitted to the **Google Gemini API** using your key, subject to [Google’s terms](https://ai.google.dev/gemini-api/terms).
 
 Murmur does not operate a Murmur-owned cloud service in v1; network use is RSS + Gemini from your machine.
 
@@ -64,7 +66,7 @@ Murmur does not operate a Murmur-owned cloud service in v1; network use is RSS +
 | Empty or stale wallpaper | **Refresh Now** in Settings; at least one RSS feed on the selected display; network up |
 | SmartScreen / Gatekeeper blocks install | Expected for unsigned builds; follow platform steps above |
 
-Report bugs via [GitHub Issues](https://github.com/mbaiges/murmur/issues). Security concerns: [SECURITY.md](../../SECURITY.md).
+Report bugs via [GitHub Issues](https://github.com/mbaiges/murmur/issues). See also [SUPPORT.md](../../SUPPORT.md). Security concerns: [SECURITY.md](../../SECURITY.md).
 
 ## Build from source
 

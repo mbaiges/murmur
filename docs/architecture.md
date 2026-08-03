@@ -1,6 +1,6 @@
 # Murmur — architecture & maintainer guide
 
-This document is the **source of truth** for how the Murmur desktop app is structured, how process boundaries work, and how to extend features safely. Product delivery specs live under `docs/features/<feature>/`.
+This document is the **source of truth** for how the Murmur desktop app is structured, how process boundaries work, and how to extend features safely. Product delivery specs live under `docs/features/<feature>/`. End-user docs: [docs/README.md](README.md).
 
 ## Product shape
 
@@ -196,6 +196,8 @@ tests/e2e/artifacts/screenshots/{test-case-slug}/{filename}.png
 ```
 
 Use `e2eScreenshotPath()` from `tests/e2e/helpers/screenshotPaths.ts`. The `artifacts/` tree is gitignored.
+
+**Committed README / user-doc captures:** `assets/screenshots/` via `npm run docs:screenshots` (see [screenshots.md](screenshots.md)).
 
 ## Build & dev
 

@@ -69,6 +69,7 @@ See [docs/agent-skills-setup.md](docs/agent-skills-setup.md) for optional agent 
 2. Describe **what** and **why**; link issues if applicable.
 3. Note tests run in the PR description.
 4. Update user docs (`README.md`, `docs/user/`) when install or settings behavior changes.
+5. After visible Settings or wallpaper UI changes, run `npm run docs:screenshots` and commit updated files under `assets/screenshots/` if appropriate.
 
 ## Code of conduct
 

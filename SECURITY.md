@@ -17,7 +17,7 @@ We aim to acknowledge reports within a reasonable time and will coordinate discl
 
 ## Sensitive data in Murmur
 
-- **Gemini API keys** are stored in local config (`murmur.config.json` under the app user data directory). They are not sent to Murmur-operated servers in v1.
+- **Gemini API keys** are stored in local config (`murmur.config.json` under the app user data directory). They are not sent to Murmur-operated servers in v1. Typical paths are listed in [Getting started](docs/user/getting-started.md#where-data-lives).
 - Phrase **history** is stored locally.
 - RSS feeds are fetched from URLs you configure; headline text is sent to **Google Gemini** using your API key.
 

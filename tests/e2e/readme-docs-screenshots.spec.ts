@@ -52,6 +52,8 @@ test.describe('README documentation screenshots', () => {
       await page.locator('input[type="password"]').fill('test-api-key')
       await page.locator('button:has-text("Start Murmur")').click()
       await sidebar.waitFor({ state: 'visible', timeout: 10_000 })
+    } else {
+      throw new Error('Expected first-run setup wizard for setup-wizard.png (fresh E2E userData)')
     }
 
     await expect(page.locator('button:has-text("General")')).toBeVisible()

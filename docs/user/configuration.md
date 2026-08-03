@@ -49,7 +49,7 @@ Select a mood or tweak appearance, click **Apply changes**, then use **Refresh N
 
 ### History
 
-Recent generated phrases for the **selected display**, with preview or raw JSON for structured layouts.
+Recent generated phrases for the **selected display** (up to **10** stored locally), with preview or raw JSON for structured layouts.
 
 ![History tab](../../assets/screenshots/settings-history.png)
 
@@ -63,7 +63,9 @@ With **two or more displays**, each tab can show a **sync** icon to keep that ta
 
 ## Menu bar / tray
 
-From the menu bar (macOS) or system tray (Windows) you can open **Settings**, **Refresh Now**, or **Quit**. Wallpaper may render as a live overlay or a painted image depending on platform and animation settings (see [architecture.md](../architecture.md)).
+From the menu bar (macOS) or system tray (Windows) you can open **Settings**, **Refresh Now**, or **Quit**. On macOS, clicking the menu bar icon opens Settings; on Windows, **double-click** the tray icon to open Settings.
+
+Wallpaper may render as a live overlay or a painted image depending on platform and animation settings (see [architecture.md](../architecture.md)).
 
 ## Related
 
