@@ -19,13 +19,13 @@ Applies to the **whole app** (all displays):
 - **Launch at login** — start Murmur when you sign in
 - **App updates** — version, status, **Check for updates**, **Restart to update** (Windows release builds), **Download from GitHub** (macOS when a newer release exists), **Manual download** link
 
-![General tab](../../assets/screenshots/settings-general.png)
+<img src="../../assets/screenshots/settings-general.png" alt="Murmur Settings — General tab" width="720" />
 
 ### News sources
 
 RSS feed URLs Murmur fetches on each refresh. Failed feeds are skipped; generation uses whatever titles were retrieved.
 
-![News sources tab](../../assets/screenshots/settings-news.png)
+<img src="../../assets/screenshots/settings-news.png" alt="Murmur Settings — News sources tab" width="720" />
 
 ### Voice & prompts
 
@@ -37,7 +37,7 @@ Controls how Gemini writes from headline text:
 
 Per-display when multiple monitors are configured (see below).
 
-![Voice & prompts tab](../../assets/screenshots/settings-voice.png)
+<img src="../../assets/screenshots/settings-voice.png" alt="Murmur Settings — Voice and prompts tab" width="720" />
 
 ### Style
 
@@ -45,13 +45,13 @@ Per-display when multiple monitors are configured (see below).
 
 Select a mood or tweak appearance, click **Apply changes**, then use **Refresh Now** to regenerate the phrase with the new look.
 
-![Style tab](../../assets/screenshots/settings-style-moods.png)
+<img src="../../assets/screenshots/settings-style-moods.png" alt="Murmur Settings — Style tab with moods and preview" width="720" />
 
 ### History
 
 Recent generated phrases for the **selected display** (up to **10** stored locally), with preview or raw JSON for structured layouts.
 
-![History tab](../../assets/screenshots/settings-history.png)
+<img src="../../assets/screenshots/settings-history.png" alt="Murmur Settings — History tab" width="720" />
 
 ## Multiple displays
 

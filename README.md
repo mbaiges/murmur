@@ -10,9 +10,15 @@
 [![Release](https://img.shields.io/github/v/release/mbaiges/murmur?style=flat-square)](https://github.com/mbaiges/murmur/releases)
 [![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20macOS-lightgrey?style=flat-square)](#download)
 
-<br />
+<p>
+  <a href="#quick-start-after-install">Quick start</a> ·
+  <a href="#download">Download</a> ·
+  <a href="#documentation">Documentation</a>
+</p>
 
 <img src="assets/screenshots/hero-wallpaper.png" alt="Murmur wallpaper overlay showing a generated phrase (Zen Study mood)" width="720" />
+
+<sub>Example wallpaper output from an automated capture (sample phrase).</sub>
 
 </div>
 
@@ -34,7 +40,7 @@
 4. Pick a look under **Style**, click **Apply changes** if prompted, then **Refresh Now** in the sidebar to generate your first phrase.
 
 <p align="center">
-  <img src="assets/screenshots/setup-wizard.png" alt="First-time setup wizard for API key and RSS feed" width="420" />
+  <img src="assets/screenshots/setup-wizard.png" alt="First-time setup wizard for API key and RSS feed" width="400" />
 </p>
 
 ## Download
@@ -60,12 +66,11 @@ Settings are grouped by task:
 | **Style** | Aesthetic moods and appearance |
 | **History** | Past phrases per display |
 
-See [Configuration guide](docs/user/configuration.md) and the screenshots below.
+See [Configuration guide](docs/user/configuration.md) for all tabs with screenshots.
 
 <p align="center">
-  <img src="assets/screenshots/settings-general.png" alt="Murmur Settings — General tab" width="640" />
-  &nbsp;
-  <img src="assets/screenshots/settings-style-moods.png" alt="Murmur Settings — Style moods" width="640" />
+  <img src="assets/screenshots/settings-general.png" alt="Murmur Settings — General tab" width="720" /><br /><br />
+  <img src="assets/screenshots/settings-style-moods.png" alt="Murmur Settings — Style tab with mood presets and live preview" width="720" />
 </p>
 
 ## Documentation
