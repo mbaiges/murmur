@@ -10,7 +10,16 @@ From a clean build:
 npm run docs:screenshots
 ```
 
-This runs Playwright spec [`tests/e2e/readme-docs-screenshots.spec.ts`](../tests/e2e/readme-docs-screenshots.spec.ts), then [`scripts/optimize-docs-screenshots.mjs`](../scripts/optimize-docs-screenshots.mjs) (macOS: scales `hero-wallpaper.png` to max 1440px; no-op on other platforms—resize manually if needed).
+Live README hero only (real RSS + Gemini, all widgets, English absurd proverb):
+
+```bash
+export GEMINI_API_KEY='…'
+npm run docs:screenshots:hero-live
+```
+
+On macOS, if `GEMINI_API_KEY` is unset, the live hero spec reads the key from your normal Murmur config (local only; never committed).
+
+This runs Playwright spec [`tests/e2e/readme-docs-screenshots.spec.ts`](../tests/e2e/readme-docs-screenshots.spec.ts), then [`scripts/optimize-docs-screenshots.mjs`](../scripts/optimize-docs-screenshots.mjs) (macOS: scales `hero-wallpaper.png` to max 1440px; no-op on other platforms—resize manually if needed). Live hero: [`tests/e2e/readme-docs-hero-live.spec.ts`](../tests/e2e/readme-docs-hero-live.spec.ts).
 
 The spec (**900×700** BrowserWindow — same as default Settings — cropped wizard card, full settings chrome without scroll padding):
 
@@ -29,7 +38,7 @@ Settings tabs use `w-full max-w-5xl` so cards fill the main column at typical wi
 | `settings-voice.png` | Voice & prompts (**Vulgar** tone + **Argentinian Spanish** selected for docs) |
 | `settings-style-moods.png` | Style / moods |
 | `settings-history.png` | History |
-| `hero-wallpaper.png` | Wallpaper overlay window after Zen Study + **Refresh Now** (E2E stub phrase; not a full-desktop photo) |
+| `hero-wallpaper.png` | Wallpaper overlay: **Zen Study**, **all widgets**, English **Absurd Proverb** voice. Default `docs:screenshots` uses E2E stub text; for a **live Gemini** hero run `docs:screenshots:hero-live` with `GEMINI_API_KEY` set (skipped in CI). |
 
 Logo for the README header: [`assets/logo.png`](../assets/logo.png) (from `resources/icon.png` when refreshed manually).
 

@@ -18,7 +18,7 @@
 
 <img src="assets/screenshots/hero-wallpaper.png" alt="Murmur wallpaper overlay showing a generated phrase (Zen Study mood)" width="720" />
 
-<sub>Example wallpaper output from an automated capture (sample phrase).</sub>
+<sub>Example wallpaper output (Zen Study, all widgets). Regenerate with live Gemini via <code>npm run docs:screenshots:hero-live</code> (<code>GEMINI_API_KEY</code> required).</sub>
 
 </div>
 

@@ -37,7 +37,8 @@
     "test:e2e:clickbait": "playwright test tests/e2e/clickbait-diagnostics.spec.ts",
     "test:e2e:layout-regression": "playwright test tests/e2e/clickbait-diagnostics.spec.ts tests/e2e/magazine-layouts.spec.ts tests/e2e/magazine-layouts-editorial.spec.ts tests/e2e/magazine-layouts-live-phrase.spec.ts tests/e2e/presets.spec.ts tests/e2e/structured-layout-semantics.spec.ts tests/e2e/style-voice-settings-polish.spec.ts",
     "test:e2e:readme-docs-screenshots": "playwright test tests/e2e/readme-docs-screenshots.spec.ts",
-    "docs:screenshots": "npm run build && env -u ELECTRON_RUN_AS_NODE npm run test:e2e:readme-docs-screenshots && node scripts/optimize-docs-screenshots.mjs"
+    "docs:screenshots": "npm run build && env -u ELECTRON_RUN_AS_NODE npm run test:e2e:readme-docs-screenshots && node scripts/optimize-docs-screenshots.mjs",
+    "docs:screenshots:hero-live": "npm run build && env -u ELECTRON_RUN_AS_NODE playwright test tests/e2e/readme-docs-hero-live.spec.ts && node scripts/optimize-docs-screenshots.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

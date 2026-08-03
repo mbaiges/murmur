@@ -2,7 +2,7 @@ import { mkdirSync } from 'fs'
 import { join } from 'path'
 import { test, expect, _electron as electron, ElectronApplication } from '@playwright/test'
 import { e2eElectronLaunchOptions } from './helpers/e2eLaunch'
-import { applySettingsChanges } from './helpers/styleSettings'
+import { applyDocsHeroStyle, captureDocsHeroScreenshot } from './helpers/docsHeroSetup'
 
 const DOCS_SCREENSHOTS_DIR = join(process.cwd(), 'assets', 'screenshots')
 /** Match default Settings window (`settings-window.ts`: 900×700). */
@@ -108,23 +108,15 @@ test.describe('README documentation screenshots', () => {
     await page.waitForTimeout(400)
     await shotSettingsChrome(page, 'settings-history.png')
 
-    await page.locator('button:has-text("Style")').click()
-    await page.waitForTimeout(400)
-    const zenCard = page.getByTestId('mood-card-zen-study')
-    if (await zenCard.isVisible()) {
-      await zenCard.click()
-      await page.waitForTimeout(500)
-      await applySettingsChanges(page)
-      await page.waitForTimeout(800)
-    }
+    await applyDocsHeroStyle(page)
 
     await page.locator('button:has-text("Refresh Now")').click()
     await page.waitForTimeout(3000)
 
-    const wallpaperWin = electronApp.windows().find((w) => w.url().includes('view=wallpaper'))
-    expect(wallpaperWin, 'wallpaper overlay window for hero capture').toBeDefined()
-    if (wallpaperWin) {
-      await wallpaperWin.screenshot({ path: docScreenshot('hero-wallpaper.png') })
-    }
+    expect(
+      electronApp.windows().some((w) => w.url().includes('view=wallpaper')),
+      'wallpaper overlay window for hero capture'
+    ).toBeTruthy()
+    await captureDocsHeroScreenshot(electronApp)
   })
 })
