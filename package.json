@@ -1,6 +1,6 @@
 {
   "name": "murmur",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Desktop wallpaper app that distills RSS headlines into a quiet hourly phrase.",
   "author": "Matias S. Baiges <matiasbaiges@gmail.com>",
   "license": "BSD-3-Clause",
@@ -114,12 +114,16 @@
       {
         "from": "resources/bin/",
         "to": "bin",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       },
       {
         "from": "resources/fonts/",
         "to": "resources/fonts",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       }
     ]
   }
