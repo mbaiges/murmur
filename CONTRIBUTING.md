@@ -43,7 +43,7 @@ Other feature groups are listed in `package.json` under `test:e2e:*`. Full suite
 env -u ELECTRON_RUN_AS_NODE npm run test:e2e
 ```
 
-E2E uses isolated user data and `MURMUR_E2E` stubs unless a spec explicitly tests live Gemini.
+E2E uses isolated user data and `MURMUR_E2E` stubs unless a spec explicitly tests live Gemini. In-app auto-update is disabled for unpackaged and E2E runs (`shouldEnableAppUpdate` in `@shared/app-update`).
 
 ## Architecture expectations
 

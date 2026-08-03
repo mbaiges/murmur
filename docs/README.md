@@ -18,6 +18,7 @@ The [project README](../README.md) is the GitHub landing page (quick start + scr
 | [architecture.md](architecture.md) | Source layout, process boundaries, IPC, wallpaper paths, testing, build |
 | [CONTRIBUTING.md](../CONTRIBUTING.md) | Dev setup, quality gates, pull requests |
 | [SECURITY.md](../SECURITY.md) | API key handling and vulnerability reporting |
+| [CODE_OF_CONDUCT.md](../CODE_OF_CONDUCT.md) | Community standards |
 | [agent-skills-setup.md](agent-skills-setup.md) | Local agent skills under `.agentic/` |
 
 ## Releases & updates

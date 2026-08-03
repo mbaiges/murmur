@@ -23,7 +23,7 @@ This runs Playwright spec [`tests/e2e/readme-docs-screenshots.spec.ts`](../tests
 | `settings-voice.png` | Voice & prompts |
 | `settings-style-moods.png` | Style / moods |
 | `settings-history.png` | History |
-| `hero-wallpaper.png` | Wallpaper overlay after Zen Study + refresh (stub phrase) |
+| `hero-wallpaper.png` | Wallpaper overlay window after Zen Study + **Refresh Now** (E2E stub phrase; not a full-desktop photo) |
 
 Logo for the README header: [`assets/logo.png`](../assets/logo.png) (from `resources/icon.png` when refreshed manually).
 
@@ -36,7 +36,7 @@ Logo for the README header: [`assets/logo.png`](../assets/logo.png) (from `resou
 ## Guidelines
 
 - Do not commit real API keys (E2E uses `test-api-key`)
-- Prefer PNG for UI; keep hero wallpaper reasonable size (&lt; ~500 KB if re-exporting)
+- Prefer PNG for UI; re-export or compress large hero captures when possible (README loads faster under ~500 KB)
 - Use descriptive alt text in Markdown when adding new images
 - In-loop E2E screenshots for features remain under `tests/e2e/artifacts/` (gitignored); only promote curated shots here
 

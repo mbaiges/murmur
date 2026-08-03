@@ -25,20 +25,29 @@ Unsigned builds are expected. See [unsigned releases](../features/app-auto-updat
 1. Murmur opens the **setup wizard** when no API key is stored yet.
 2. Create a key in [Google AI Studio](https://aistudio.google.com/apikey) and paste it into **Gemini API Key** (stored only on your computer).
 3. Enter at least one RSS feed URL (a default BBC News feed is provided).
-4. Click **Start Murmur**. The settings window may show a short hint to explore **Style**; the app also appears in the **system tray**.
+4. Click **Start Murmur**. Settings stays open on **General** and shows a toast nudging you toward **Style**; Murmur is also available from the **menu bar** (macOS) or **system tray** (Windows).
 
-Open **Settings** anytime from the tray menu to change feeds, voice, appearance, or refresh interval.
+Open **Settings** anytime from that menu to change feeds, voice, appearance, or refresh interval.
 
 ## Staying up to date
 
 | Platform | Behavior |
 |----------|----------|
-| **Windows** | **Settings → General** checks GitHub for stable releases. When an update is downloaded, restart when prompted. |
-| **macOS** | **Settings → General** checks for newer releases. Download the new `.dmg` from the link or Releases page and replace the app (no silent in-app install while builds are unsigned). |
+| **Windows** | **Installed release builds** check GitHub in the background. **Settings → General → App updates** shows progress; use **Restart to update** when ready. Dev builds from source do not update in-app. |
+| **macOS** | **Installed release builds** can **Check for updates** under **App updates**. Use **Download from GitHub** when offered, then replace the app from the new `.dmg` (no silent in-app install while builds are unsigned). |
+
+Automatic checks run after startup (with a short delay) and periodically while the app runs.
 
 ## Where data lives
 
-Murmur stores configuration and history under the app’s user data directory (Electron `userData`), including:
+Murmur stores configuration and history in the app user data folder:
+
+| Platform | Typical location |
+|----------|------------------|
+| **macOS** | `~/Library/Application Support/Murmur/` |
+| **Windows** | `%APPDATA%\Murmur\` |
+
+Files include:
 
 - `murmur.config.json` — settings and your Gemini API key
 - `murmur.history.json` — recent phrases per display
@@ -52,7 +61,7 @@ Murmur does not operate a Murmur-owned cloud service in v1; network use is RSS +
 | Symptom | Things to check |
 |---------|-----------------|
 | “Refresh failed” toast | API key valid, internet up, Gemini quota |
-| Empty or stale wallpaper | **Refresh Now** in Settings; feeds reachable; display enabled in config |
+| Empty or stale wallpaper | **Refresh Now** in Settings; at least one RSS feed on the selected display; network up |
 | SmartScreen / Gatekeeper blocks install | Expected for unsigned builds; follow platform steps above |
 
 Report bugs via [GitHub Issues](https://github.com/mbaiges/murmur/issues). Security concerns: [SECURITY.md](../../SECURITY.md).
