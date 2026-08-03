@@ -12,7 +12,7 @@ npm run docs:screenshots
 
 This runs Playwright spec [`tests/e2e/readme-docs-screenshots.spec.ts`](../tests/e2e/readme-docs-screenshots.spec.ts), then [`scripts/optimize-docs-screenshots.mjs`](../scripts/optimize-docs-screenshots.mjs) (macOS: scales `hero-wallpaper.png` to max 1440px; no-op on other platforms—resize manually if needed).
 
-The spec (1280×800 viewport, cropped wizard card, full settings chrome without scroll padding):
+The spec ( **900×700** viewport — same as the default Settings window — cropped wizard card, full settings chrome without scroll padding):
 
 1. Uses `MURMUR_E2E` stubs (no live Gemini or RSS)
 2. Writes PNGs directly into `assets/screenshots/`

@@ -5,8 +5,8 @@ import { e2eElectronLaunchOptions } from './helpers/e2eLaunch'
 import { applySettingsChanges } from './helpers/styleSettings'
 
 const DOCS_SCREENSHOTS_DIR = join(process.cwd(), 'assets', 'screenshots')
-/** Window size for doc captures: sidebar (256) + main padding (80) + content ≈ 944px at this width. */
-const VIEWPORT = { width: 1280, height: 800 }
+/** Match default Settings window (`settings-window.ts`: 900×700). */
+const VIEWPORT = { width: 900, height: 700 }
 
 function docScreenshot(filename: string): string {
   mkdirSync(DOCS_SCREENSHOTS_DIR, { recursive: true })
