@@ -4,6 +4,6 @@ export interface BackgroundImageGenerateRequest {
   height: number
 }
 
-export interface IBackgroundImageProvider {
+export interface IBackgroundImageRepository {
   generate(request: BackgroundImageGenerateRequest): Promise<Buffer>
 }

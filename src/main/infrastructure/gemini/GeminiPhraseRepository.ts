@@ -1,8 +1,12 @@
 import { GoogleGenAI } from '@google/genai'
-import { IPhraseGenerator, PhraseGenerationRequest, PhraseGenerationResult } from '../../../core/ports/IPhraseGenerator'
+import {
+  IPhraseRepository,
+  PhraseGenerationRequest,
+  PhraseGenerationResult
+} from '../../../core/ports/IPhraseRepository'
+import { ILlmRepository, LlmTextRequest } from '../../../core/ports/ILlmRepository'
 import { IConfigStore } from '../../../core/ports/IConfigStore'
 import { phraseToPlainText } from '../../../core/lib/phrase/phrasePlainText'
-import { buildPhraseFormattingRules } from '../../../core/lib/generation/geminiFormattingRules'
 import { buildStructuredPhrasePrompt } from '../../../core/lib/generation/StructuredPhrasePromptBuilder'
 import { validateLayoutPayload } from '../../../core/lib/layout/layoutSpecToZod'
 import { isValidPoemSyntax, validateMarkdownFields } from '../../../core/lib/phrase/phraseSyntaxValidation'
@@ -11,13 +15,13 @@ import { getLayoutContentSpec } from '../../../core/lib/layout/layoutContentSpec
 import { envelopeToRawJson } from '../../../core/lib/layout/layoutContentParse'
 import { LayoutContentEnvelope } from '../../../core/domain/types'
 
-export class GeminiPhraseGeneratorAdapter implements IPhraseGenerator {
+export class GeminiPhraseRepository implements IPhraseRepository, ILlmRepository {
   constructor(private readonly configStore: IConfigStore) {}
 
   private async getClient(): Promise<GoogleGenAI> {
     const config = await this.configStore.get()
     if (!config.geminiApiKey) {
-      throw new Error('GeminiPhraseGeneratorAdapter: API key is not configured')
+      throw new Error('GeminiPhraseRepository: API key is not configured')
     }
     return new GoogleGenAI({
       apiKey: config.geminiApiKey,
@@ -68,7 +72,7 @@ export class GeminiPhraseGeneratorAdapter implements IPhraseGenerator {
 
         const jsonText = extractJsonObject(text)
         if (!jsonText) {
-          console.warn(`GeminiPhraseGeneratorAdapter: Attempt ${attempt} missing JSON object`)
+          console.warn(`GeminiPhraseRepository: Attempt ${attempt} missing JSON object`)
           continue
         }
 
@@ -76,13 +80,13 @@ export class GeminiPhraseGeneratorAdapter implements IPhraseGenerator {
         try {
           parsed = JSON.parse(jsonText)
         } catch {
-          console.warn(`GeminiPhraseGeneratorAdapter: Attempt ${attempt} invalid JSON`)
+          console.warn(`GeminiPhraseRepository: Attempt ${attempt} invalid JSON`)
           continue
         }
 
         const validated = validateLayoutPayload(request.contentSpec, parsed)
         if (!validated.success) {
-          console.warn(`GeminiPhraseGeneratorAdapter: Attempt ${attempt} schema fail: ${validated.error}`)
+          console.warn(`GeminiPhraseRepository: Attempt ${attempt} schema fail: ${validated.error}`)
           continue
         }
 
@@ -93,7 +97,7 @@ export class GeminiPhraseGeneratorAdapter implements IPhraseGenerator {
         )
 
         if (!validateMarkdownFields(request.contentSpec, normalizedPayload)) {
-          console.warn(`GeminiPhraseGeneratorAdapter: Attempt ${attempt} invalid markdown in payload`)
+          console.warn(`GeminiPhraseRepository: Attempt ${attempt} invalid markdown in payload`)
           continue
         }
 
@@ -110,7 +114,7 @@ export class GeminiPhraseGeneratorAdapter implements IPhraseGenerator {
           payload: normalizedPayload
         }
       } catch (error) {
-        console.error(`GeminiPhraseGeneratorAdapter: Attempt ${attempt} generation failed:`, error)
+        console.error(`GeminiPhraseRepository: Attempt ${attempt} generation failed:`, error)
         if (attempt === maxAttempts) {
           throw error
         }
@@ -118,8 +122,21 @@ export class GeminiPhraseGeneratorAdapter implements IPhraseGenerator {
     }
 
     throw new Error(
-      `GeminiPhraseGeneratorAdapter: Could not produce valid structured content after ${maxAttempts} attempts. Last: ${phraseToPlainText(lastResponseText).slice(0, 80)}`
+      `GeminiPhraseRepository: Could not produce valid structured content after ${maxAttempts} attempts. Last: ${phraseToPlainText(lastResponseText).slice(0, 80)}`
     )
+  }
+
+  public async completeText(request: LlmTextRequest): Promise<string> {
+    const ai = await this.getClient()
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.1-flash-lite',
+      contents: request.userMessage
+    })
+    const text = response.text?.trim() ?? ''
+    if (!text) {
+      throw new Error('GeminiPhraseRepository: empty LLM text response')
+    }
+    return text.slice(0, 2048)
   }
 }
 

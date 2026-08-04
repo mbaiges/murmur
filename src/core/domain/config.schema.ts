@@ -21,9 +21,10 @@ export const MonitorProfileSchema = z.object({
     .object({
       dateTime: z.boolean().default(true),
       sourceCredit: z.boolean().default(false),
-      inspiringHeadlines: z.boolean().default(false)
+      inspiringHeadlines: z.boolean().default(false),
+      phraseWidget: z.boolean().default(false)
     })
-    .default({ dateTime: true, sourceCredit: false, inspiringHeadlines: false }),
+    .default({ dateTime: true, sourceCredit: false, inspiringHeadlines: false, phraseWidget: false }),
   headlineSampleSize: z.number().int().min(5).max(50).default(15),
   fontFamily: z
     .enum(['EB Garamond', 'Playfair Display', 'Outfit', 'Garamond Bold', 'Monospace'])
@@ -61,6 +62,7 @@ export const MonitorProfileSchema = z.object({
       'Abstract mood',
       'Editorial paper',
       'Warm film grain',
+      'Absurd connections',
       'Cyberpunk neon haze',
       'Zen mist',
       'Gothic violet fog',
@@ -69,7 +71,22 @@ export const MonitorProfileSchema = z.object({
     ])
     .default('Abstract mood'),
   customBackgroundPrompt: z.string().max(2048).default(''),
-  backgroundPhotoRelPath: z.string().default('')
+  backgroundPhotoRelPath: z.string().default(''),
+  aiPhraseInImage: z.boolean().default(false),
+  aiPhraseInImagePreset: z
+    .enum([
+      'word-art',
+      'poem',
+      'book-quote',
+      'match-prompt-tone',
+      'neon-sign',
+      'newspaper-headline',
+      'graffiti-tag',
+      'minimalist-caption',
+      'cinematic-subtitle'
+    ])
+    .default('poem'),
+  showHeroPhrase: z.boolean().default(true)
 })
 
 export const MonitorConfigSchema = z.object({

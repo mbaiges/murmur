@@ -8,7 +8,7 @@ export function getDefaultMonitorProfile(overrides?: Partial<MonitorProfile>): M
     language: 'auto',
     theme: 'Midnight',
     animation: 'Fade',
-    overlays: { dateTime: true, sourceCredit: false, inspiringHeadlines: false },
+    overlays: { dateTime: true, sourceCredit: false, inspiringHeadlines: false, phraseWidget: false },
     headlineSampleSize: 15,
     fontFamily: 'EB Garamond',
     textAlignment: 'center',
@@ -27,6 +27,9 @@ export function getDefaultMonitorProfile(overrides?: Partial<MonitorProfile>): M
     backgroundPresetId: 'Abstract mood',
     customBackgroundPrompt: '',
     backgroundPhotoRelPath: '',
+    aiPhraseInImage: false,
+    aiPhraseInImagePreset: 'poem',
+    showHeroPhrase: true,
     ...overrides
   }
 }

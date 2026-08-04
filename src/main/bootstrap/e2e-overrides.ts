@@ -1,13 +1,25 @@
 import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
-import { IPhraseGenerator } from '../../core/ports/IPhraseGenerator'
-import { IRssFetcher } from '../../core/ports/IRssFetcher'
+import { IPhraseRepository } from '../../core/ports/IPhraseRepository'
+import { ILlmRepository } from '../../core/ports/ILlmRepository'
+import { IRssRepository } from '../../core/ports/IRssRepository'
 import { IWallpaperRenderer } from '../../core/ports/IWallpaperRenderer'
+import { IBackgroundImageRepository } from '../../core/ports/IBackgroundImageRepository'
 import {
   buildE2eStructuredResult,
   E2eStructuredDemoFixtures
 } from '../e2e/e2eStructuredPhraseStub'
-import { incrementE2eGenerationCallCount } from '../e2e/e2eGenerationCounter'
+import {
+  incrementE2eBackgroundProviderCallCount,
+  incrementE2eGenerationCallCount,
+  incrementE2eImagePromptCallCount
+} from '../e2e/e2eGenerationCounter'
+
+/** Minimal valid JPEG for E2E background provider stub. */
+const E2E_STUB_JPEG = Buffer.from(
+  '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDABALDA4MChAODQ4SERATGCgaGBYWGDEjJR0oOjM9PDkzODdASFxOQERXRTc4UG1RV19iZ2hnPk1xeXBkeFxlZ2P/2wBDAQUFBQcGBw4ICAcPFg0UFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAr/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCwAA8A/9k=',
+  'base64'
+)
 
 export function isMurmurE2eMode(): boolean {
   return process.env.MURMUR_E2E === 'true' || process.argv.includes('--murmur-e2e')
@@ -52,9 +64,11 @@ export function loadE2eSemanticsDemo(): E2eStructuredDemoFixtures | null {
 }
 
 export function createE2eRuntimeAdapters(): {
-  rssFetcher: IRssFetcher
-  phraseGenerator: IPhraseGenerator
+  rssRepository: IRssRepository
+  phraseRepository: IPhraseRepository
+  llmRepository: ILlmRepository
   wallpaperRenderer: IWallpaperRenderer
+  backgroundImageRepository: IBackgroundImageRepository
 } {
   const fixturePhrase = loadE2eFixturePhrase()
   const semanticsDemo = loadE2eSemanticsDemo()
@@ -66,13 +80,13 @@ export function createE2eRuntimeAdapters(): {
         : 'MURMUR: Running in Playwright E2E Mode with stubs'
   )
   return {
-    rssFetcher: {
+    rssRepository: {
       fetchAll: async () => [
         { title: 'Stub Headline 1', source: 'Stub Source', feedUrl: 'http://stub.com' },
         { title: 'Stub Headline 2', source: 'Stub Source', feedUrl: 'http://stub.com' }
       ]
     },
-    phraseGenerator: {
+    phraseRepository: {
       generate: async () => {
         incrementE2eGenerationCallCount()
         return fixturePhrase || 'stubbed surreal phrase'
@@ -82,11 +96,23 @@ export function createE2eRuntimeAdapters(): {
         return buildE2eStructuredResult(request, fixturePhrase, semanticsDemo ?? undefined)
       }
     },
+    llmRepository: {
+      completeText: async () => {
+        incrementE2eImagePromptCallCount()
+        return 'E2E abstract wallpaper, no text, soft gradients'
+      }
+    },
     wallpaperRenderer: {
       getScreens: async () => [{ id: 'stub-monitor', width: 800, height: 600 }],
       set: async () => {},
       backup: async () => {},
       restore: async () => {}
+    },
+    backgroundImageRepository: {
+      generate: async () => {
+        incrementE2eBackgroundProviderCallCount()
+        return E2E_STUB_JPEG
+      }
     }
   }
 }

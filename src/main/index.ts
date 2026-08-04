@@ -1,4 +1,4 @@
-import { app, screen } from 'electron'
+import { app, screen, protocol } from 'electron'
 import { configureAppBranding } from './configureAppBranding'
 import { installFileLogger } from './lib/fileLogger'
 import { MurmurState } from '@core/domain/types'
@@ -19,6 +19,16 @@ import { registerAppUpdateHandlers } from './ipc/handlers/app-update'
 import type { AppUpdateInfo } from '@shared/app-update'
 import { shouldEnableAppUpdate } from '@shared/app-update'
 
+import { registerBackgroundProtocol } from './protocol/registerBackgroundProtocol'
+import { notifySettingsToast } from './lib/notifySettingsToast'
+
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'murmur-background',
+    privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true }
+  }
+])
+
 configureAppBranding()
 
 app.disableHardwareAcceleration()
@@ -30,7 +40,8 @@ const {
   trayAdapter,
   startupAdapter,
   wallpaperRenderer,
-  murmurService
+  murmurService,
+  backgroundAssetStore
 } = ctx
 
 let isQuitting = false
@@ -81,6 +92,7 @@ function startClockScheduler() {
 
 app.whenReady().then(async () => {
   installFileLogger()
+  registerBackgroundProtocol(configStore, backgroundAssetStore)
   registerIpcHandlers({
     configStore,
     historyStore,
@@ -88,6 +100,7 @@ app.whenReady().then(async () => {
     scheduler,
     wallpaperRenderer,
     murmurService,
+    backgroundAssetStore,
     getState: () => state,
     isQuitting: () => isQuitting
   })
@@ -144,12 +157,17 @@ app.whenReady().then(async () => {
   const tray = trayAdapter as ElectronTrayAdapter
   const customTrayAdapterUpdate = tray.updateState.bind(tray)
   tray.updateState = (newState: MurmurState) => {
+    const prevError = state.lastGenerationError
     state = { ...state, ...newState }
     customTrayAdapterUpdate(state)
     getSettingsWindow()?.webContents.send(IpcChannel.stateUpdated, state)
     forEachBackgroundWindow((win) => {
       win.webContents.send(IpcChannel.stateUpdated, state)
     })
+    const err = state.lastGenerationError
+    if (err && err !== prevError) {
+      notifySettingsToast(err, 'error')
+    }
   }
 
   tray.init(

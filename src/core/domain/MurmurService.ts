@@ -1,16 +1,26 @@
-import { IRssFetcher } from '../ports/IRssFetcher'
-import { IPhraseGenerator } from '../ports/IPhraseGenerator'
+import { IRssRepository } from '../ports/IRssRepository'
+import { IPhraseRepository } from '../ports/IPhraseRepository'
+import { ILlmRepository } from '../ports/ILlmRepository'
 import { IWallpaperPainter } from '../ports/IWallpaperPainter'
 import { IWallpaperRenderer } from '../ports/IWallpaperRenderer'
 import { IConfigStore } from '../ports/IConfigStore'
 import { IHistoryStore } from '../ports/IHistoryStore'
 import { ISystemTray } from '../ports/ISystemTray'
+import { IBackgroundImageRepository } from '../ports/IBackgroundImageRepository'
+import { IBackgroundAssetStore } from '../ports/IBackgroundAssetStore'
 import { sampleHeadlines } from './HeadlineSampler'
 import { LayoutContentEnvelope, MonitorProfile, MurmurState, ThemeName } from './types'
 import { getLayoutContentSpec } from '../lib/layout/layoutContentSpecs'
 import { payloadToPlainSummary } from '../lib/phrase/payloadToPlainSummary'
 import { resolveToneInstruction } from '../lib/generation/toneInstructions'
 import { buildEffectiveSystemPrompt } from '../lib/generation/buildEffectiveSystemPrompt'
+import { buildImagePromptComposeUserMessage } from '../lib/generation/buildImagePromptComposerRequest'
+import { finalizeIntegratedImagePrompt } from '../lib/generation/finalizeIntegratedImagePrompt'
+import { isAiPhraseIntegrated } from '../lib/presets/aiPhraseInImagePresets'
+import type { BackgroundPaintInput } from '../lib/background/resolveBackgroundBase'
+import { resolveMonitorBackgroundPaint } from '../lib/background/resolveMonitorBackgroundPaint'
+import { formatAiBackgroundError } from '../lib/background/backgroundErrors'
+import { shouldPaintPhraseOverlay, shouldShowPhraseWidget } from '../lib/presets/aiPhraseInImagePresets'
 import {
   collectUnionFeedUrls,
   ensureMonitorsForScreens,
@@ -28,17 +38,26 @@ function paintOptionsFromProfile(
   phrase: string,
   isStaticMode: boolean,
   headlines?: string[],
-  sources?: string[]
+  sources?: string[],
+  background?: BackgroundPaintInput
 ) {
+  const bg =
+    background ??
+    ({ backgroundMode: 'gradient' as const, theme: profile.theme } satisfies BackgroundPaintInput)
+  const paintHero = isStaticMode && shouldPaintPhraseOverlay(profile)
+  const phraseForPaint = paintHero || (isStaticMode && shouldShowPhraseWidget(profile)) ? phrase : ''
   return {
-    phrase: isStaticMode ? phrase : '',
-    layoutContent: envelope,
-    theme,
+    phrase: phraseForPaint,
+    paintHeroPhrase: paintHero,
+    layoutContent: paintHero ? envelope : undefined,
+    theme: bg.theme,
+    backgroundMode: bg.backgroundMode,
+    baseImagePath: bg.baseImagePath,
     fontFamily: profile.fontFamily,
     animation: 'Instant' as const,
     overlays: isStaticMode
       ? profile.overlays
-      : { dateTime: false, sourceCredit: false, inspiringHeadlines: false },
+      : { dateTime: false, sourceCredit: false, inspiringHeadlines: false, phraseWidget: false },
     resolution: { width: screen.width, height: screen.height },
     textAlignment: profile.textAlignment,
     layoutStyle: profile.layoutStyle,
@@ -58,14 +77,54 @@ export class MurmurService {
   private isRefreshing = false
 
   constructor(
-    private readonly rss: IRssFetcher,
-    private readonly ai: IPhraseGenerator,
+    private readonly rssRepository: IRssRepository,
+    private readonly phraseRepository: IPhraseRepository,
+    private readonly llmRepository: ILlmRepository,
     private readonly painter: IWallpaperPainter,
     private readonly renderer: IWallpaperRenderer,
     private readonly configStore: IConfigStore,
     private readonly historyStore: IHistoryStore,
-    private readonly tray: ISystemTray
+    private readonly tray: ISystemTray,
+    private readonly backgroundImageRepository: IBackgroundImageRepository,
+    private readonly backgroundAssets: IBackgroundAssetStore
   ) {}
+
+  private async resolveBackgroundForPaint(
+    monitorId: string,
+    profile: MonitorProfile,
+    screen: { width: number; height: number },
+    headlineTitles: string[] | undefined,
+    phrase: string | undefined,
+    regenerateAi: boolean
+  ): Promise<{ paint: BackgroundPaintInput; aiError?: string }> {
+    if (profile.backgroundMode === 'ai' && regenerateAi && headlineTitles) {
+      try {
+        const userMessage = buildImagePromptComposeUserMessage(profile, {
+          sampleTitles: headlineTitles,
+          phrase: phrase ?? ''
+        })
+        let prompt = await this.llmRepository.completeText({ userMessage })
+        if (isAiPhraseIntegrated(profile)) {
+          prompt = finalizeIntegratedImagePrompt(prompt, phrase ?? '')
+        }
+        const imageBuffer = await this.backgroundImageRepository.generate({
+          prompt,
+          width: screen.width,
+          height: screen.height
+        })
+        await this.backgroundAssets.saveGeneratedImage(monitorId, imageBuffer)
+      } catch (error) {
+        console.warn(`MurmurService: AI background skipped for ${monitorId}`, error)
+        return {
+          paint: resolveMonitorBackgroundPaint(profile, monitorId, this.backgroundAssets),
+          aiError: formatAiBackgroundError(error)
+        }
+      }
+    }
+    return {
+      paint: resolveMonitorBackgroundPaint(profile, monitorId, this.backgroundAssets)
+    }
+  }
 
   private async loadConfigWithMonitors() {
     let config = await this.configStore.get()
@@ -90,6 +149,7 @@ export class MurmurService {
     const lastPhrases: Record<string, string> = { ...prevPhrases }
     const lastContent: Record<string, LayoutContentEnvelope> = { ...prevContent }
     let lastGenerationError: string | undefined
+    let lastBackgroundError: string | undefined
     let anySuccess = false
 
     try {
@@ -114,7 +174,7 @@ export class MurmurService {
         return
       }
 
-      const rssItems = await this.rss.fetchAll(feedUrls)
+      const rssItems = await this.rssRepository.fetchAll(feedUrls)
       if (rssItems.length === 0) {
         console.warn('MurmurService: No RSS items found.')
         return
@@ -152,7 +212,7 @@ export class MurmurService {
         try {
           const toneInstruction = resolveToneInstruction(profile)
           const effectiveSystemPrompt = buildEffectiveSystemPrompt(profile.systemPrompt, toneInstruction)
-          const result = await this.ai.generateStructured({
+          const result = await this.phraseRepository.generateStructured({
             headlines: generatorInputs,
             language: profile.language,
             systemPrompt: effectiveSystemPrompt,
@@ -185,6 +245,19 @@ export class MurmurService {
           // (Fade/Typewriter/etc.) draw on top when present; Instant relies on this PNG.
           // On macOS the desktop overlay is unreliable, so the PNG must carry the content.
           const phraseForPaint = result.payload.phrase ?? summary
+          const headlineTitles = sampled.map((item) => item.title)
+          const backgroundResolved = await this.resolveBackgroundForPaint(
+            screen.id,
+            profile,
+            screen,
+            headlineTitles,
+            phraseForPaint,
+            true
+          )
+          if (backgroundResolved.aiError) {
+            lastBackgroundError = backgroundResolved.aiError
+          }
+          const backgroundPaint = backgroundResolved.paint
           const staticOptions = paintOptionsFromProfile(
             profile,
             profile.theme,
@@ -192,8 +265,9 @@ export class MurmurService {
             envelope,
             phraseForPaint,
             true,
-            sampled.map((item) => item.title),
-            Array.from(new Set(sampled.map((i) => i.source)))
+            headlineTitles,
+            Array.from(new Set(sampled.map((i) => i.source))),
+            backgroundPaint
           )
           try {
             const buffer = await this.painter.paint(staticOptions)
@@ -218,7 +292,9 @@ export class MurmurService {
         lastContent,
         lastHeadlines,
         lastSources,
-        lastGenerationError: anySuccess ? undefined : lastGenerationError
+        lastGenerationError: anySuccess
+          ? lastBackgroundError
+          : lastGenerationError ?? lastBackgroundError
       })
     } catch (error) {
       console.error('MurmurService refresh failed:', error)
@@ -243,7 +319,26 @@ export class MurmurService {
       }
 
       const profile = getMonitorProfile(config, monitorId)
-      const staticOptions = paintOptionsFromProfile(profile, theme, targetScreen, undefined, '', true)
+      const backgroundResolved = await this.resolveBackgroundForPaint(
+        monitorId,
+        profile,
+        targetScreen,
+        undefined,
+        undefined,
+        false
+      )
+      const backgroundPaint = backgroundResolved.paint
+      const staticOptions = paintOptionsFromProfile(
+        profile,
+        theme,
+        targetScreen,
+        undefined,
+        '',
+        true,
+        undefined,
+        undefined,
+        backgroundPaint
+      )
       const buffer = await this.painter.paint(staticOptions)
       await this.renderer.set(monitorId, buffer)
     } catch (error) {
@@ -254,6 +349,95 @@ export class MurmurService {
   /** Re-render desktop from cached phrase/content without RSS or Gemini. */
   public async reRenderWallpapers(state: MurmurState): Promise<void> {
     return this.updateClockWallpapers(state)
+  }
+
+  /** Generate FLUX backgrounds for AI mode using cached headlines/phrases (e.g. after Style Apply). */
+  public async regenerateAiBackgrounds(state: MurmurState): Promise<string | undefined> {
+    const config = await this.configStore.get()
+    if (!config.cloudflareAccountId?.trim() || !config.cloudflareApiToken?.trim()) {
+      return 'AI background needs Cloudflare Account ID and API token in General settings.'
+    }
+
+    const { config: withMonitors, activeScreens } = await this.loadConfigWithMonitors()
+    let lastError: string | undefined
+    let paintedAny = false
+
+    for (const screen of activeScreens) {
+      const monitorConf = getMonitorEntry(withMonitors, screen.id)
+      if (monitorConf && !monitorConf.enabled) continue
+
+      const profile = getMonitorProfile(withMonitors, screen.id)
+      if (profile.backgroundMode !== 'ai') continue
+
+      const envelope = state.lastContent?.[screen.id]
+      const phrase = envelope?.payload?.phrase ?? state.lastPhrases?.[screen.id] ?? ''
+      const headlines = state.lastHeadlines?.[screen.id]
+      if (!headlines?.length) {
+        lastError =
+          'Press Refresh Now to sample headlines before Murmur can generate an AI background.'
+        continue
+      }
+
+      const backgroundResolved = await this.resolveBackgroundForPaint(
+        screen.id,
+        profile,
+        screen,
+        headlines,
+        phrase,
+        true
+      )
+      if (backgroundResolved.aiError) {
+        lastError = backgroundResolved.aiError
+        continue
+      }
+
+      const staticOptions = paintOptionsFromProfile(
+        profile,
+        profile.theme,
+        screen,
+        envelope,
+        phrase,
+        true,
+        headlines,
+        state.lastSources?.[screen.id] || [],
+        backgroundResolved.paint
+      )
+      try {
+        const buffer = await this.painter.paint(staticOptions)
+        await this.renderer.set(screen.id, buffer)
+        paintedAny = true
+      } catch (paintError) {
+        console.error(`MurmurService: Desktop paint/set failed for ${screen.id}`, paintError)
+        lastError =
+          'AI background was generated but could not be applied to the desktop. Try restarting Murmur.'
+      }
+    }
+
+    if (paintedAny) {
+      this.tray.updateState({
+        isPaused: state.isPaused ?? false,
+        lastRefreshTime: new Date().toLocaleTimeString(),
+        lastPhrases: state.lastPhrases ?? {},
+        lastContent: state.lastContent ?? {},
+        lastHeadlines: state.lastHeadlines,
+        lastSources: state.lastSources,
+        lastGenerationError: lastError
+      })
+    }
+
+    return lastError
+  }
+
+  public reportUserError(state: MurmurState, message: string): void {
+    this.tray.updateState({
+      isPaused: state.isPaused ?? false,
+      lastRefreshTime: state.lastRefreshTime,
+      lastPhrases: state.lastPhrases ?? {},
+      lastContent: state.lastContent ?? {},
+      lastHeadlines: state.lastHeadlines,
+      lastSources: state.lastSources,
+      lastGenerationError: message
+    })
   }
 
   public async updateClockWallpapers(state: MurmurState): Promise<void> {
@@ -277,6 +461,14 @@ export class MurmurService {
           continue
         }
 
+        const backgroundResolved = await this.resolveBackgroundForPaint(
+            screen.id,
+            profile,
+            screen,
+            state.lastHeadlines?.[screen.id],
+            phrase,
+            false
+          )
         const staticOptions = paintOptionsFromProfile(
           profile,
           profile.theme,
@@ -285,7 +477,8 @@ export class MurmurService {
           phrase,
           true,
           state.lastHeadlines?.[screen.id] || [],
-          state.lastSources?.[screen.id] || []
+          state.lastSources?.[screen.id] || [],
+          backgroundResolved.paint
         )
 
         try {

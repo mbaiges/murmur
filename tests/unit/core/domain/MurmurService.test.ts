@@ -1,23 +1,29 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { MurmurService } from '../../../../src/core/domain/MurmurService'
-import { IRssFetcher } from '../../../../src/core/ports/IRssFetcher'
-import { IPhraseGenerator, PhraseGenerationResult } from '../../../../src/core/ports/IPhraseGenerator'
+import { IRssRepository } from '../../../../src/core/ports/IRssRepository'
+import { IPhraseRepository, PhraseGenerationResult } from '../../../../src/core/ports/IPhraseRepository'
+import { ILlmRepository } from '../../../../src/core/ports/ILlmRepository'
+import { IBackgroundImageRepository } from '../../../../src/core/ports/IBackgroundImageRepository'
 import { IWallpaperPainter } from '../../../../src/core/ports/IWallpaperPainter'
 import { IWallpaperRenderer } from '../../../../src/core/ports/IWallpaperRenderer'
 import { IConfigStore } from '../../../../src/core/ports/IConfigStore'
 import { IHistoryStore } from '../../../../src/core/ports/IHistoryStore'
 import { ISystemTray } from '../../../../src/core/ports/ISystemTray'
+import { IBackgroundAssetStore } from '../../../../src/core/ports/IBackgroundAssetStore'
 import { MurmurConfig, RssItem } from '../../../../src/core/domain/types'
 import { testMonitorConfigV2 } from '../../helpers/testMonitorConfigV2'
 
 describe('MurmurService', () => {
-  let rssMock: IRssFetcher
-  let aiMock: IPhraseGenerator
+  let rssMock: IRssRepository
+  let phraseMock: IPhraseRepository
+  let llmMock: ILlmRepository
   let painterMock: IWallpaperPainter
   let rendererMock: IWallpaperRenderer
   let configStoreMock: IConfigStore
   let historyStoreMock: IHistoryStore
   let trayMock: ISystemTray
+  let backgroundImageMock: IBackgroundImageRepository
+  let backgroundAssetsMock: IBackgroundAssetStore
   let service: MurmurService
 
   const mockConfig: MurmurConfig = testMonitorConfigV2()
@@ -36,10 +42,11 @@ describe('MurmurService', () => {
 
   beforeEach(() => {
     rssMock = { fetchAll: vi.fn().mockResolvedValue(mockRssItems) }
-    aiMock = {
+    phraseMock = {
       generate: vi.fn().mockResolvedValue('surreal phrase'),
       generateStructured: vi.fn().mockResolvedValue(structuredResult)
     }
+    llmMock = { completeText: vi.fn().mockResolvedValue('image prompt') }
     painterMock = { paint: vi.fn().mockResolvedValue(Buffer.from('png-data')) }
     rendererMock = {
       getScreens: vi.fn().mockResolvedValue([
@@ -64,15 +71,27 @@ describe('MurmurService', () => {
       setTooltip: vi.fn(),
       updateState: vi.fn()
     }
+    backgroundImageMock = {
+      generate: vi.fn().mockResolvedValue(Buffer.from('jpeg'))
+    }
+    backgroundAssetsMock = {
+      importPersonalPhoto: vi.fn(),
+      saveGeneratedImage: vi.fn().mockResolvedValue('screen-1/ai-latest.jpg'),
+      resolveAbsolutePath: vi.fn().mockReturnValue(null),
+      latestAiRelPath: vi.fn().mockReturnValue('screen-1/ai-latest.jpg')
+    }
 
     service = new MurmurService(
       rssMock,
-      aiMock,
+      phraseMock,
+      llmMock,
       painterMock,
       rendererMock,
       configStoreMock,
       historyStoreMock,
-      trayMock
+      trayMock,
+      backgroundImageMock,
+      backgroundAssetsMock
     )
   })
 
@@ -82,7 +101,7 @@ describe('MurmurService', () => {
     expect(rssMock.fetchAll).toHaveBeenCalledWith(['https://feeds.com/rss'])
     expect(rendererMock.getScreens).toHaveBeenCalled()
 
-    expect(aiMock.generateStructured).toHaveBeenCalledTimes(1)
+    expect(phraseMock.generateStructured).toHaveBeenCalledTimes(1)
     expect(painterMock.paint).toHaveBeenCalledTimes(1)
     expect(rendererMock.set).toHaveBeenCalledWith('screen-1', expect.any(Buffer))
     expect(rendererMock.set).not.toHaveBeenCalledWith('screen-2', expect.any(Buffer))
@@ -102,7 +121,7 @@ describe('MurmurService', () => {
   })
 
   it('preserves prior content when structured generation fails', async () => {
-    aiMock.generateStructured = vi.fn().mockRejectedValue(new Error('invalid'))
+    phraseMock.generateStructured = vi.fn().mockRejectedValue(new Error('invalid'))
     const previous = {
       lastPhrases: { 'screen-1': 'kept phrase' },
       lastContent: {
@@ -134,7 +153,7 @@ describe('MurmurService', () => {
     await service.refresh()
 
     expect(rssMock.fetchAll).not.toHaveBeenCalled()
-    expect(aiMock.generateStructured).not.toHaveBeenCalled()
+    expect(phraseMock.generateStructured).not.toHaveBeenCalled()
     expect(trayMock.updateState).toHaveBeenCalledWith({
       isPaused: false,
       lastRefreshTime: expect.any(String),
@@ -149,6 +168,61 @@ describe('MurmurService', () => {
     await service.refresh()
 
     expect(rssMock.fetchAll).toHaveBeenCalled()
-    expect(aiMock.generateStructured).not.toHaveBeenCalled()
+    expect(phraseMock.generateStructured).not.toHaveBeenCalled()
+  })
+
+  it('runs AI background pipeline when profile backgroundMode is ai', async () => {
+    const aiProfile = {
+      ...mockConfig.monitors[0]!.profile,
+      backgroundMode: 'ai' as const,
+      backgroundPresetId: 'Abstract mood' as const
+    }
+    configStoreMock.get = vi.fn().mockResolvedValue({
+      ...mockConfig,
+      monitors: [{ ...mockConfig.monitors[0]!, profile: aiProfile }, mockConfig.monitors[1]!]
+    })
+    backgroundAssetsMock.resolveAbsolutePath = vi.fn().mockReturnValue('/tmp/ai-latest.jpg')
+
+    await service.refresh()
+
+    expect(llmMock.completeText).toHaveBeenCalledTimes(1)
+    expect(llmMock.completeText).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userMessage: expect.stringContaining('surreal phrase')
+      })
+    )
+    expect(backgroundImageMock.generate).toHaveBeenCalledTimes(1)
+    expect(backgroundAssetsMock.saveGeneratedImage).toHaveBeenCalledWith('screen-1', expect.any(Buffer))
+    expect(painterMock.paint).toHaveBeenCalledWith(
+      expect.objectContaining({
+        backgroundMode: 'ai',
+        baseImagePath: '/tmp/ai-latest.jpg'
+      })
+    )
+  })
+
+  it('skips AI background when image prompt fails but keeps phrase refresh', async () => {
+    const aiProfile = {
+      ...mockConfig.monitors[0]!.profile,
+      backgroundMode: 'ai' as const
+    }
+    configStoreMock.get = vi.fn().mockResolvedValue({
+      ...mockConfig,
+      monitors: [{ ...mockConfig.monitors[0]!, profile: aiProfile }, mockConfig.monitors[1]!]
+    })
+    llmMock.completeText = vi.fn().mockRejectedValue(new Error('prompt fail'))
+
+    await service.refresh()
+
+    expect(backgroundImageMock.generate).not.toHaveBeenCalled()
+    expect(painterMock.paint).toHaveBeenCalledWith(
+      expect.objectContaining({ backgroundMode: 'gradient' })
+    )
+    expect(trayMock.updateState).toHaveBeenCalledWith(
+      expect.objectContaining({
+        lastPhrases: { 'screen-1': 'surreal phrase' },
+        lastGenerationError: expect.stringContaining('AI background')
+      })
+    )
   })
 })

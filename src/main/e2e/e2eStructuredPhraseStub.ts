@@ -1,4 +1,4 @@
-import type { PhraseGenerationRequest, PhraseGenerationResult } from '../../core/ports/IPhraseGenerator'
+import type { PhraseGenerationRequest, PhraseGenerationResult } from '../../core/ports/IPhraseRepository'
 import { envelopeToRawJson } from '../../core/lib/layout/layoutContentParse'
 import type { LayoutStyleName } from '../../core/domain/types'
 

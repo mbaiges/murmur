@@ -1,4 +1,4 @@
-import { registerFont, createCanvas, CanvasRenderingContext2D } from 'canvas'
+import { registerFont, createCanvas, CanvasRenderingContext2D, loadImage } from 'canvas'
 import { join } from 'path'
 import { existsSync } from 'fs'
 import { IWallpaperPainter } from '../../../core/ports/IWallpaperPainter'
@@ -7,6 +7,11 @@ import { PhraseFormatFlags, splitPhraseLines } from '../../../core/lib/phrase/ph
 import { prepareMarkupForCompile } from '../../../core/lib/phrase/convertSentencePeriodsToNewlines'
 import { splitFlatCharsAtWordMidpoint, splitPlainPhraseHeadlineDeck } from '../../../core/lib/phrase/phraseLayoutSplit'
 import { phraseToPlainText } from '../../../core/lib/phrase/phrasePlainText'
+import {
+  measurePhraseWidgetFontSize,
+  phraseWidgetLayoutMetrics,
+  plainPhraseForWidget
+} from '../../../core/lib/wallpaper/drawPhraseWidgetCanvas'
 
 interface CanvasStyledChar {
   char: string
@@ -83,8 +88,8 @@ export class NodeCanvasWallpaperPainterAdapter implements IWallpaperPainter {
     const canvas = createCanvas(width, height)
     const ctx = canvas.getContext('2d')
 
-    // 1. Draw Theme Background
-    this.drawBackground(ctx, width, height, options.theme)
+    // 1. Draw Theme Background or photo/AI base
+    await this.drawBackgroundLayer(ctx, width, height, options)
 
     // 2. Apply Custom Noise / Grain
     this.applyNoise(ctx, width, height, options.noiseIntensity)
@@ -102,12 +107,44 @@ export class NodeCanvasWallpaperPainterAdapter implements IWallpaperPainter {
     }
 
     // 5. Draw Main Poetic Phrase (with layouts & animations)
-    this.drawPhrase(ctx, width, height, options, textColor)
+    if (options.paintHeroPhrase !== false) {
+      this.drawPhrase(ctx, width, height, options, textColor)
+    }
 
     return canvas.toBuffer('image/png')
   }
 
-  private drawBackground(
+  private async drawBackgroundLayer(
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number,
+    options: PaintOptions
+  ): Promise<void> {
+    const useBaseImage =
+      options.baseImagePath &&
+      (options.backgroundMode === 'photo' || options.backgroundMode === 'ai')
+    if (useBaseImage) {
+      try {
+        const img = await loadImage(options.baseImagePath!)
+        const scale = Math.max(width / img.width, height / img.height)
+        const sw = width / scale
+        const sh = height / scale
+        const sx = (img.width - sw) / 2
+        const sy = (img.height - sh) / 2
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, width, height)
+        return
+      } catch (err) {
+        console.warn(
+          'NodeCanvasWallpaperPainterAdapter: base image load failed',
+          options.baseImagePath,
+          err
+        )
+      }
+    }
+    this.drawThemeGradientBackground(ctx, width, height, options.theme)
+  }
+
+  private drawThemeGradientBackground(
     ctx: CanvasRenderingContext2D,
     width: number,
     height: number,
@@ -258,6 +295,44 @@ export class NodeCanvasWallpaperPainterAdapter implements IWallpaperPainter {
       
       const sourceStr = `Sources: ${options.sources.join(', ')}`
       ctx.fillText(sourceStr, width - padX, height - padY)
+    }
+
+    this.drawPhraseWidget(ctx, width, height, options, mutedColor)
+  }
+
+  private drawPhraseWidget(
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number,
+    options: PaintOptions,
+    mutedColor: string
+  ): void {
+    if (!options.overlays.phraseWidget) return
+    const plain = plainPhraseForWidget(options.phrase)
+    if (!plain) return
+
+    const { centerWidth, centerX, bottomY } = phraseWidgetLayoutMetrics(width, height, options.overlays)
+    const labelY = bottomY - 8
+    const maxBodyHeight = height * 0.08
+
+    ctx.fillStyle = mutedColor
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'bottom'
+    ctx.font = 'bold 10px "Outfit", sans-serif'
+    ctx.fillText('CURRENT PHRASE', centerX, labelY)
+
+    const { fontSize, lines } = measurePhraseWidgetFontSize(
+      ctx,
+      plain,
+      centerWidth * 0.95,
+      maxBodyHeight
+    )
+    ctx.font = `italic ${fontSize}px "Outfit", sans-serif`
+    const lineHeight = fontSize * 1.35
+    let y = labelY - 14 - (lines.length - 1) * lineHeight
+    for (const line of lines) {
+      ctx.fillText(line, centerX, y)
+      y += lineHeight
     }
   }
 
@@ -576,6 +651,12 @@ export class NodeCanvasWallpaperPainterAdapter implements IWallpaperPainter {
     options: PaintOptions,
     textColor: string
   ): void {
+    const hasLayout =
+      options.layoutContent?.payload && Object.keys(options.layoutContent.payload).length > 0
+    if (!options.phrase?.trim() && !hasLayout) {
+      return
+    }
+
     const progress = options.transitionProgress !== undefined ? options.transitionProgress : 1.0
     const textAlpha = progress
 

@@ -5,14 +5,14 @@
 | Status | **Locked** (2026-08-04) |
 | Author | Murmur product |
 | Created | 2026-08-04 |
-| Updated | 2026-08-04 (locked; open items resolved in technical spec) |
+| Updated | 2026-08-04 (phrase visibility, bottom widget, Absurd connections, verbatim in-image phrase) |
 | Feature folder | `docs/features/background-image/` |
 | Follow-up | [technical-spec.md](./technical-spec.md) |
 | Related | [style-voice-settings-polish](../style-voice-settings-polish/functional-spec.md), [per-monitor-settings](../per-monitor-settings/functional-spec.md), [architecture](../../architecture.md) |
 
 ## Summary
 
-Today Murmur paints wallpapers with **fixed gradient themes** (Style → Background). This feature adds **three background sources per display profile**: keep **gradient themes** (current behavior), use a **personal photo**, or **AI-generated art** via a swappable image provider (v1: **Cloudflare Workers AI / FLUX Schnell**). AI backgrounds use **preset image prompts** (Voice-style preset picker + custom text) and a **Gemini text step** that turns sampled headlines + preset instructions into a short image prompt on each **phrase refresh**. Cloudflare credentials live in **General** (global, like the Gemini API key). Style edits stay in the **unified draft + Apply** model; **new AI images are not generated on Apply alone**—they run on the same refresh cycle as phrase generation.
+Today Murmur paints wallpapers with **fixed gradient themes** (Style → Background). This feature adds **three background sources per display profile**: keep **gradient themes** (current behavior), use a **personal photo**, or **AI-generated art** via a swappable image provider (v1: **Cloudflare Workers AI / FLUX Schnell**). AI backgrounds use **preset image prompts** (Voice-style preset picker + custom text) and a **Gemini text step** that turns sampled headlines + preset instructions into a short image prompt on each **phrase refresh**. When the background is **AI generated**, users may optionally render the **headline inside the FLUX image** (Style → Phrase) instead of Murmur’s overlay typography. Cloudflare credentials live in **General** (global, like the Gemini API key). Style edits stay in the **unified draft + Apply** model; **new AI images on phrase refresh** remain the primary path, but **changing AI background or in-image phrase settings on Apply** also triggers an **AI regeneration attempt** when Cloudflare is configured and headlines are already cached.
 
 ## Goals
 
@@ -24,11 +24,16 @@ Today Murmur paints wallpapers with **fixed gradient themes** (Style → Backgro
 6. **Swappable provider** — Product treats image generation as an optional capability behind a clear contract (v1 implementation: Cloudflare + FLUX; details in technical spec).
 7. **Per-display profiles** — Background mode, photo, and AI preset fields follow **display profile** + **Style tab sync mesh** rules from [per-monitor-settings](../per-monitor-settings/functional-spec.md).
 8. **Graceful degradation** — Missing keys, quota errors, or provider failures must not blank the desktop; user sees actionable feedback in Settings.
+9. **Optional phrase in AI image** — When background mode is **AI generated**, user can choose **Murmur overlay** (default) or **Inside AI image**: FLUX is instructed to render the current phrase as readable text; Murmur **does not** draw the overlay headline (font/layout/motion controls are disabled in Settings while in-image mode is on).
+10. **In-image phrase presets** — Nine style presets (Word Art, Poem, Book Quote, Match Prompt + Tone, Neon Sign, News Headline, Graffiti, Minimal Caption, Film Subtitle) shape how Gemini/FLUX treat typography in the bitmap; composed FLUX prompt includes a **mandatory verbatim phrase block** so long phrases are not summarized away.
+11. **Phrase visibility (AI)** — Style → Phrase offers **Murmur overlay**, **Inside AI image**, or **Hidden** (AI bitmap only, no Murmur headline).
+12. **Phrase caption widget** — Style → Widgets → **Phrase caption**: bottom-center line (like source credits), auto-shrinks to avoid overlapping bottom-left/right widgets.
+13. **Absurd connections preset** — Standalone AI background preset that extracts concepts from the phrase and asks for surreal, absurd visual juxtapositions (no readable text unless in-image phrase mode is on).
 
 ## Non-goals (v1)
 
 - Google **Imagen / Gemini image API** or billing tied to **Google AI Pro** subscription.
-- Generating backgrounds **on every Style control tweak** or on **Apply** when only visual fields change (AI images only on **phrase refresh** in AI mode).
+- Generating backgrounds **on every Style control tweak** (unrelated visual fields still re-render only).
 - In-app **image editing** (crop, filters, inpainting).
 - **Multiple photos** per display or photo albums / slideshow.
 - **Cloud sync** of photos or generated images.
@@ -48,12 +53,15 @@ Users want wallpapers that feel personal or tied to the news cycle, not only fla
 | Background mode | One of **gradient**, **photo**, or **ai** for a display profile. |
 | Gradient mode | Current behavior: `theme` selects a built-in gradient (Midnight, Drift, …). |
 | Personal photo | User-selected image file; app keeps a durable reference under app data (technical spec). |
-| AI background preset | Named template instructing how headlines should influence visual mood (parallel to **prompt preset**, not phrase **system prompt**). |
-| Custom background prompt | User-edited instructions used when preset is **Custom**. |
-| Image prompt | Short text sent to the image provider after Gemini composes it from headlines + preset. |
+| AI background preset | Named **template** for image-prompt composition; may include `{{samples}}` and/or `{{phrase}}` placeholders. Each preset declares which variables it uses (one, both, or neither). |
+| Custom background prompt | User-edited **template** when preset is **Custom** (same placeholders allowed). |
+| Image prompt | Short text sent to the image provider after **`ILlmRepository.completeText`** refines the resolved template (`GeminiPhraseRepository`). |
 | Phrase refresh | One Murmur cycle: sample headlines → generate phrase (and in AI mode, image prompt + image fetch) → update wallpaper. |
 | Image provider | External text-to-image service (v1: Cloudflare Workers AI). |
 | Base layer | Bottom of the painted/overlay stack: gradient, photo, or AI bitmap. |
+| Phrase delivery (AI) | **Murmur overlay**, **Inside AI image**, or **Hidden** (no Murmur headline; optional **Phrase caption** widget). |
+| Phrase caption widget | Bottom-center **Current phrase** overlay (and static paint), styled like source credits; font scales down only if needed to stay clear of corner widgets. |
+| `showHeroPhrase` | Profile flag: center headline on for gradient/photo; AI **Hidden** sets this false. |
 | Committed config / pending draft | Same as style-voice-settings-polish. |
 
 ## Actors
@@ -91,8 +99,23 @@ Users want wallpapers that feel personal or tied to the news cycle, not only fla
 | **Background source** | Segmented or radio group: **Gradient** \| **Personal photo** \| **AI generated** | Updates **draft** only |
 | **Gradient** (when selected) | Existing **theme swatches** (unchanged set) | Draft |
 | **Personal photo** (when selected) | Choose file button, filename/thumbnail preview, clear/remove | Draft; import on Apply (technical spec) |
-| **AI generated** (when selected) | Preset dropdown (mood-linked group + standalone group + Custom), textarea for preset/custom instructions | Draft; mirrors Voice preset UX patterns |
+| **AI generated** (when selected) | Preset dropdown (mood-linked + standalone + Custom), read-only **template** preview for presets (shows `{{samples}}` / `{{phrase}}` where used), editable textarea for **Custom** | Draft |
 | **Shared** | Grain + vignette chips (unchanged) | Draft |
+
+### Style tab → Phrase
+
+| Block | Contents | Interaction |
+|-------|----------|-------------|
+| **Phrase on wallpaper (AI)** | When background is **AI generated**: chips **Murmur overlay** \| **Inside AI image** \| **Hidden** | Draft |
+| **In-image phrase style** | Preset chips (nine styles) | Draft; only when **Inside AI image** |
+| **Center headline** | Checkbox | Gradient/photo only; off hides hero (use **Phrase caption** widget if needed) |
+| **Overlay typography** | Font, alignment, layout, motion | Active only when center headline is shown (**Murmur overlay** on AI, or hero on for gradient/photo) |
+
+### Style tab → Widgets
+
+| Widget | Placement | Notes |
+|--------|-----------|--------|
+| **Phrase caption** | Bottom center | Plain-text phrase; does not overlap **Concepts sampled** (left) or **Source credits** (right) |
 
 Mini preview (Style sticky preview) reflects draft **mode** and, where possible, last committed/cached photo or AI image for that display; fidelity limits in technical spec.
 
@@ -112,18 +135,19 @@ No new blocks in v1. Phrase **system prompt** and **background AI preset** remai
 
 - Persist background fields with the rest of the Style/Voice draft in **one save**.
 - **Gradient / photo** Apply: re-render wallpaper with existing phrase content using new base layer (no new Gemini phrase unless other content-affecting fields changed—existing [config delta](../style-voice-settings-polish/functional-spec.md) rules).
-- **AI preset/mode** Apply alone: **does not** require an immediate Cloudflare request; committed settings take effect on the **next phrase refresh**.
-- If Apply bundle includes **content-affecting** voice/style fields, **one** phrase regeneration runs as today; if display is in **AI mode**, that same refresh also runs **one** image-prompt Gemini call + **one** image generation.
+- **AI background settings** (mode, preset, custom prompt, **phrase delivery**, **in-image preset**) Apply: committed settings persist; if Cloudflare is configured and the display already has **cached headlines** from a prior refresh, app **attempts one FLUX generation per AI display** without re-running phrase generation; then re-renders. If headlines are missing, user is prompted to **Refresh Now** first.
+- If Apply bundle includes **content-affecting** voice/style fields, **one** phrase regeneration runs as today; if display is in **AI mode**, that same refresh also runs **one** image-prompt Gemini call + **one** image generation (including integrated phrase rules when enabled).
 
 ### On each **phrase refresh** (AI mode)
 
 1. Sample headlines for the display (existing).
-2. Gemini: structured phrase (existing).
-3. Gemini: **image prompt** from sampled headlines + committed background preset/custom instructions.
-4. Image provider: generate image bytes.
-5. Composite base layer + grain/vignette + phrase + widgets; update overlay and/or static wallpaper per platform.
+2. **`IPhraseRepository`**: structured phrase (existing).
+3. Resolve committed background **template** (preset or custom): substitute **`{{samples}}`** with sampled headline titles and **`{{phrase}}`** with the generated phrase **only when that preset’s variable list includes them** (custom: any placeholder present in the text).
+4. **`ILlmRepository.completeText`**: single-turn LLM call turns the resolved template (plus **in-image phrase instructions** when enabled) into a concise FLUX-ready image prompt (`GeminiPhraseRepository`). Integrated phrase mode **requires readable text** in the image; overlay mode keeps **no readable text** rules on the background.
+5. Image provider: generate image bytes.
+6. Composite base layer + grain/vignette + phrase overlay (when **Murmur overlay**) + widgets; update overlay and/or static wallpaper per platform.
 
-**Locked:** AI background updates **with phrase refresh**, not on a separate timer and not on every Apply.
+**Locked:** AI background updates **with phrase refresh** (primary). **Apply** may additionally regenerate AI when **AI background / in-image phrase** settings change and prerequisites are met (see above).
 
 ## User Journeys
 
@@ -164,6 +188,18 @@ No new blocks in v1. Phrase **system prompt** and **background AI preset** remai
 1. Two displays; Style tab sync **off** for display B.
 2. Display A uses AI preset X; display B uses Gradient **Parchment**—each refresh uses its own profile.
 
+### Journey H — Phrase inside AI image
+
+1. User sets Background to **AI generated**, Phrase delivery to **Inside AI image**, preset **Poem**, Apply (after at least one headline refresh).
+2. Next refresh or Apply-time regen: FLUX image includes readable poem-style phrase text; live overlay and canvas **omit** Murmur headline layer.
+3. User switches back to **Murmur overlay** → overlay font/layout/motion apply again; FLUX prompt returns to **no text in image** for the background step.
+
+### Journey I — AI image only + bottom caption
+
+1. User sets Background **AI generated**, Phrase **Hidden**, Widgets **Phrase caption** on, Apply.
+2. Wallpaper shows AI art with no center headline; phrase appears in the bottom-center caption after refresh.
+3. Corner widgets (sources, concepts) remain readable; caption text shrinks only if necessary.
+
 ## Edge Cases
 
 | Case | Expected behavior |
@@ -180,6 +216,8 @@ No new blocks in v1. Phrase **system prompt** and **background AI preset** remai
 | Daily Cloudflare quota exhausted | Clear error; fallback; no charge (Workers Free) |
 | User revokes API token | Auth error on refresh; fallback |
 | E2E mode | Stub image provider; no real Cloudflare |
+| In-image phrase + phrase refresh fails | Retain prior phrase/background; no partial wallpaper |
+| Settings minimized / closed | Background errors may still log; **toast** only when Settings window is visible and not minimized |
 
 ## Sync / privacy
 
@@ -203,7 +241,7 @@ No new blocks in v1. Phrase **system prompt** and **background AI preset** remai
 | 1 | Feature slug | `background-image` |
 | 2 | Background sources | **Gradient**, **Personal photo**, **AI generated** (per display) |
 | 3 | Scope | **Per display profile**; Style tab sync mesh applies to new fields |
-| 4 | AI refresh timing | **On each phrase refresh** when mode is AI (not on Apply alone) |
+| 4 | AI refresh timing | **On each phrase refresh** when mode is AI; **also on Apply** when AI background or in-image phrase settings change (if Cloudflare + cached headlines) |
 | 5 | Image prompt construction | **Gemini text** from sampled headlines + preset/custom background instructions |
 | 6 | Photo layering | **Full Style stack** on photo (grain, vignette, phrase, widgets); gradient replaced by photo |
 | 7 | AI layering | Same as photo: AI bitmap replaces gradient; grain/vignette/widgets on top |
@@ -220,6 +258,13 @@ No new blocks in v1. Phrase **system prompt** and **background AI preset** remai
 | 18 | Manual refresh | **Yes** — tray/menu **Refresh** runs full cycle including AI background when mode is AI |
 | 19 | Custom prompt max | **2048 characters** (aligned with image provider prompt limit) |
 | 20 | Preset catalog | Defined in code (`backgroundPromptPresets.ts`); mood-linked + standalone + Custom (see technical spec) |
+| 21 | Phrase in AI image | Optional per display; **Inside AI image** hides Murmur overlay phrase; nine in-image presets in `aiPhraseInImagePresets.ts` |
+| 22 | Settings errors | Actionable **toasts** for background failures when Settings is open and not minimized; Apply/Refresh surfaces `lastGenerationError` when generation fails |
+| 23 | History tab | Refetches phrase history when **`lastRefreshTime`** updates (sidebar refresh / tray refresh) |
+| 24 | AI phrase hidden | **Hidden** delivery: no Murmur headline; FLUX prompt has no in-image phrase unless user chose **Inside AI image** |
+| 25 | Phrase caption | Optional widget; bottom row layout reserves left/right for other widgets |
+| 26 | Long in-image phrase | Composer + **`finalizeIntegratedImagePrompt`** append full phrase text to FLUX prompt (no summarization to a name fragment) |
+| 27 | Absurd connections | Background preset **`Absurd connections`**: concept extraction from phrase + absurd surreal scene (visual only by default) |
 
 ## Acceptance Criteria
 
@@ -236,6 +281,14 @@ No new blocks in v1. Phrase **system prompt** and **background AI preset** remai
 11. Style tab **sync mesh**: when Style sync is on, background fields propagate like other Style draft fields (same semantics as per-monitor-settings).
 12. E2E can run with **stubbed image provider** without network.
 13. No **Google image API** requirement for v1.
+14. With **AI generated** background, Style → Phrase offers **Murmur overlay** vs **Inside AI image** using the same **chip group** pattern as Background mode; in-image presets match product list (nine presets).
+15. **Inside AI image**: overlay headline hidden in **WallpaperScene** and static painter skips phrase draw when overlay disabled; FLUX composer user message includes preset-specific phrase rendering instructions.
+16. Apply after changing AI background or in-image phrase settings attempts **regenerate AI backgrounds** when Cloudflare credentials exist and headlines are cached; otherwise clear guidance to refresh headlines first.
+17. Photo/AI bitmaps visible in overlay dev and production via **`background:dataUrl`** IPC fallback when custom protocol is unreliable (e.g. Vite dev).
+18. AI Phrase chips include **Hidden**; gradient/photo use **Center headline** checkbox for the same intent.
+19. **Phrase caption** widget renders bottom-center on overlay and static wallpaper without overlapping source/concepts widgets.
+20. **Absurd connections** appears in Background AI preset list and uses `{{phrase}}` + `{{samples}}` in its template.
+21. In-image phrase mode sends the **complete** generated phrase to FLUX (verbatim suffix after Gemini compose).
 
 ## Out-of-Scope Follow-ups (post-v1)
 
@@ -248,4 +301,4 @@ No new blocks in v1. Phrase **system prompt** and **background AI preset** remai
 
 ## Resolved at lock (2026-08-04)
 
-See product decisions **#15–#20** and [technical-spec.md](./technical-spec.md) for preset list and overlay implementation.
+See product decisions **#15–#27** and [technical-spec.md](./technical-spec.md) for preset list, overlay implementation, IPC data URLs, Apply-time AI regen, phrase visibility, and widgets.

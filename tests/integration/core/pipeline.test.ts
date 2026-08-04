@@ -1,6 +1,6 @@
 import { createServer, Server } from 'http'
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { FastXmlRssFetcherAdapter } from '../../../src/main/infrastructure/rss/FastXmlRssFetcherAdapter'
+import { FastXmlRssRepository } from '../../../src/main/infrastructure/rss/FastXmlRssRepository'
 import { NodeCanvasWallpaperPainterAdapter } from '../../../src/main/infrastructure/canvas/NodeCanvasWallpaperPainterAdapter'
 
 describe('Pipeline Integration', () => {
@@ -45,7 +45,7 @@ describe('Pipeline Integration', () => {
   })
 
   it('successfully fetches feeds and paints wallpaper', async () => {
-    const fetcher = new FastXmlRssFetcherAdapter()
+    const fetcher = new FastXmlRssRepository()
     const feeds = [`http://127.0.0.1:${port}/feed.xml`]
     
     const items = await fetcher.fetchAll(feeds)

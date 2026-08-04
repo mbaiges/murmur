@@ -12,6 +12,8 @@ type StyleMiniPreviewProps = {
   displayHeight: number
   committedLayoutEnvelope?: LayoutContentEnvelope | null
   scrollContainerRef?: React.RefObject<HTMLElement | null>
+  monitorId?: string
+  backgroundCacheKey?: string
 }
 
 function PreviewFrame({
@@ -23,7 +25,9 @@ function PreviewFrame({
   displayWidth,
   displayHeight,
   committedLayoutEnvelope,
-  testId
+  testId,
+  monitorId,
+  backgroundCacheKey
 }: {
   frameWidth: number
   frameHeight: number
@@ -34,6 +38,8 @@ function PreviewFrame({
   displayHeight: number
   committedLayoutEnvelope?: LayoutContentEnvelope | null
   testId?: string
+  monitorId?: string
+  backgroundCacheKey?: string
 }) {
   const frameRef = useRef<HTMLDivElement>(null)
   const [paintedWidth, setPaintedWidth] = useState(frameWidth)
@@ -66,6 +72,8 @@ function PreviewFrame({
         displayWidthPx={displayWidth}
         displayHeightPx={displayHeight}
         committedLayoutEnvelope={committedLayoutEnvelope}
+        monitorId={monitorId}
+        backgroundCacheKey={backgroundCacheKey}
       />
     </div>
   )
@@ -77,7 +85,9 @@ export default function StyleMiniPreview({
   displayWidth,
   displayHeight,
   committedLayoutEnvelope,
-  scrollContainerRef
+  scrollContainerRef,
+  monitorId,
+  backgroundCacheKey
 }: StyleMiniPreviewProps) {
   const { width, height, aspectRatio } = stylePreviewDimensions(displayWidth, displayHeight)
   const ratioLabel = displayAspectRatioLabel(displayWidth, displayHeight)
@@ -115,6 +125,8 @@ export default function StyleMiniPreview({
       displayHeight={displayHeight}
       committedLayoutEnvelope={committedLayoutEnvelope}
       testId={testId}
+      monitorId={monitorId}
+      backgroundCacheKey={backgroundCacheKey}
     />
   )
 

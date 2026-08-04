@@ -11,6 +11,14 @@ export function getSettingsWindow(): BrowserWindow | null {
   return settingsWindow
 }
 
+/** Show in-app toasts only when Settings is open and not minimized (tray-only / minimized → log only). */
+export function shouldShowSettingsToasts(): boolean {
+  const win = getSettingsWindow()
+  if (!win || win.isDestroyed()) return false
+  if (win.isMinimized()) return false
+  return win.isVisible()
+}
+
 export function showSettingsWindow(): void {
   const win = getSettingsWindow()
   if (win) {

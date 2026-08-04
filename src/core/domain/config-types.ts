@@ -7,11 +7,23 @@ export type BackgroundPresetId =
   | 'Abstract mood'
   | 'Editorial paper'
   | 'Warm film grain'
+  | 'Absurd connections'
   | 'Cyberpunk neon haze'
   | 'Zen mist'
   | 'Gothic violet fog'
   | 'Tabloid flash'
   | 'Custom'
+
+export type AiPhraseInImagePreset =
+  | 'word-art'
+  | 'poem'
+  | 'book-quote'
+  | 'match-prompt-tone'
+  | 'neon-sign'
+  | 'newspaper-headline'
+  | 'graffiti-tag'
+  | 'minimalist-caption'
+  | 'cinematic-subtitle'
 
 export type TonePreset = 'none' | 'neutral' | 'professional' | 'vulgar' | 'custom'
 
@@ -33,6 +45,7 @@ export interface OverlayConfig {
   dateTime: boolean
   sourceCredit: boolean
   inspiringHeadlines: boolean
+  phraseWidget: boolean
 }
 
 export interface MonitorProfile {
@@ -59,6 +72,10 @@ export interface MonitorProfile {
   backgroundPresetId: BackgroundPresetId
   customBackgroundPrompt: string
   backgroundPhotoRelPath: string
+  aiPhraseInImage: boolean
+  aiPhraseInImagePreset: AiPhraseInImagePreset
+  /** When false, Murmur does not draw the large center headline (AI art-only layouts). */
+  showHeroPhrase: boolean
 }
 
 export interface MonitorConfig {
@@ -104,6 +121,8 @@ export interface PaintOptions {
   resolution: { width: number; height: number }
   headlines?: string[]
   sources?: string[]
+  /** When false, skip center headline layout (phrase may still show in bottom widget). */
+  paintHeroPhrase?: boolean
   textAlignment: 'center' | 'left' | 'right'
   layoutStyle: LayoutStyleName
   vignetteStyle: 'none' | 'soft' | 'medium' | 'dramatic'

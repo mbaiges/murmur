@@ -6,6 +6,8 @@ import { splitFlatCharsAtWordMidpoint, splitPlainPhraseHeadlineDeck } from '@cor
 import { phraseToPlainText } from '@core/lib/phrase/phrasePlainText'
 import { playTypewriterBlip } from './typewriterBlipSound'
 import { wallpaperFontClamp } from './wallpaperFontSize'
+import { shouldPaintPhraseOverlay, shouldShowPhraseWidget } from '@core/lib/presets/aiPhraseInImagePresets'
+import BottomPhraseWidget from './BottomPhraseWidget'
 
 const createSeededRandom = (seedStr: string) => {
   let h = 1779033703 ^ seedStr.length
@@ -325,6 +327,7 @@ export type WallpaperSceneProps = {
   staticFrame?: boolean
   isFadingOut?: boolean
   className?: string
+  monitorId?: string
 }
 
 export default function WallpaperScene({
@@ -337,10 +340,43 @@ export default function WallpaperScene({
   layoutWidthPx,
   staticFrame = false,
   isFadingOut = false,
-  className = ''
+  className = '',
+  monitorId
 }: WallpaperSceneProps) {
   const [phraseLines, setPhraseLines] = useState<StyledChar[][]>([])
   const [visibleCount, setVisibleCount] = useState<number>(0)
+  const paintPhraseOverlay = shouldPaintPhraseOverlay(profile)
+  const showPhraseWidget = shouldShowPhraseWidget(profile)
+
+  const backgroundKind: 'personal' | 'ai' | null =
+    profile.backgroundMode === 'photo'
+      ? 'personal'
+      : profile.backgroundMode === 'ai'
+        ? 'ai'
+        : null
+  const [customBgDataUrl, setCustomBgDataUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    const api = window.api
+    if (!monitorId || !backgroundKind || !api?.getBackgroundDataUrl) {
+      setCustomBgDataUrl(null)
+      return
+    }
+    let cancelled = false
+    void api.getBackgroundDataUrl(monitorId, backgroundKind).then((url) => {
+      if (!cancelled) setCustomBgDataUrl(url)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [
+    monitorId,
+    backgroundKind,
+    profile.backgroundPhotoRelPath,
+    profile.backgroundMode,
+    profile.backgroundPresetId,
+    lastRefreshTime
+  ])
 
   // Compile phrase and drive Typewriter reveals (skipped when staticFrame)
   useEffect(() => {
@@ -896,6 +932,8 @@ export default function WallpaperScene({
   else if (theme === 'Blanc') bgThemeClass = 'bg-[#f8f9fa]'
   else bgThemeClass = 'bg-slate-950'
 
+  const wantsCustomBackground = backgroundKind !== null
+
   // Vignette Class Mapping
   let vignetteClass = ''
   if (profile.vignetteStyle === 'soft') vignetteClass = 'bg-vignette-soft'
@@ -903,7 +941,19 @@ export default function WallpaperScene({
   else if (profile.vignetteStyle === 'dramatic') vignetteClass = 'bg-vignette-dramatic'
 
   return (
-    <div className={`w-full h-full flex items-center justify-center relative overflow-hidden select-none ${bgThemeClass} ${className}`.trim()}>
+    <div
+      className={`w-full h-full flex items-center justify-center relative overflow-hidden select-none ${
+        wantsCustomBackground ? 'bg-transparent' : bgThemeClass
+      } ${className}`.trim()}
+    >
+      {customBgDataUrl && (
+        <img
+          src={customBgDataUrl}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover pointer-events-none"
+          aria-hidden
+        />
+      )}
 
       {/* 1. Grain/Noise Overlay */}
       {profile.noiseIntensity !== 'none' && (
@@ -924,39 +974,55 @@ export default function WallpaperScene({
         </div>
       )}
 
-      {/* 4. Concepts Sampled (Bottom Left) */}
-      {profile.overlays.inspiringHeadlines && lastRefreshTime && (
-        <div className={`absolute bottom-12 left-12 space-y-1.5 ${mutedColor} max-w-sm font-sans select-none animate-fade-in`}>
-          <p className="text-[10px] font-bold tracking-widest uppercase">Concepts Sampled</p>
-          <div className="text-xs space-y-1">
-            {lastHeadlines && lastHeadlines.length > 0 ? (
-              lastHeadlines.map((headline, idx) => (
-                <p key={idx}>• {headline}</p>
-              ))
-            ) : (
-              <>
-                <p>• Quantum fluctuations in regulatory bounds</p>
-                <p>• Artificial gravity drifts in local news</p>
-                <p>• Micro-aggregations of poetry feeds</p>
-              </>
+      {/* Bottom row: concepts (left), phrase caption (center), sources (right) */}
+      {(profile.overlays.inspiringHeadlines ||
+        profile.overlays.sourceCredit ||
+        (showPhraseWidget && lastRefreshTime)) && (
+        <div className="absolute bottom-12 left-12 right-12 flex items-end gap-4 pointer-events-none">
+          <div className="w-[min(20rem,28vw)] shrink-0">
+            {profile.overlays.inspiringHeadlines && lastRefreshTime && (
+              <div className={`space-y-1.5 ${mutedColor} font-sans select-none animate-fade-in`}>
+                <p className="text-[10px] font-bold tracking-widest uppercase">Concepts Sampled</p>
+                <div className="text-xs space-y-1">
+                  {lastHeadlines && lastHeadlines.length > 0 ? (
+                    lastHeadlines.map((headline, idx) => (
+                      <p key={idx}>• {headline}</p>
+                    ))
+                  ) : (
+                    <>
+                      <p>• Quantum fluctuations in regulatory bounds</p>
+                      <p>• Artificial gravity drifts in local news</p>
+                      <p>• Micro-aggregations of poetry feeds</p>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex-1 min-w-0 flex justify-center self-end px-2">
+            {showPhraseWidget && lastRefreshTime && phrase.trim() && (
+              <BottomPhraseWidget phrase={phrase} mutedColorClass={mutedColor} />
+            )}
+          </div>
+
+          <div className="w-[min(16rem,26vw)] shrink-0 text-right">
+            {profile.overlays.sourceCredit && lastRefreshTime && (
+              <div className={`${mutedColor} font-sans text-xs select-none animate-fade-in`}>
+                <p className="text-[10px] font-bold tracking-widest uppercase mb-1">Sources Contributed</p>
+                <p className="italic">
+                  {lastSources && lastSources.length > 0
+                    ? lastSources.join(', ')
+                    : 'BBC News, NYT Science'}
+                </p>
+              </div>
             )}
           </div>
         </div>
       )}
 
-      {/* 5. Source Credits (Bottom Right) */}
-      {profile.overlays.sourceCredit && lastRefreshTime && (
-        <div className={`absolute bottom-12 right-12 text-right ${mutedColor} font-sans text-xs select-none animate-fade-in`}>
-          <p className="text-[10px] font-bold tracking-widest uppercase mb-1">Sources Contributed</p>
-          <p className="italic">
-            {lastSources && lastSources.length > 0
-              ? lastSources.join(', ')
-              : 'BBC News, NYT Science'}
-          </p>
-        </div>
-      )}
-
-      {/* 6. Main Poetic Phrase Container */}
+      {/* Main Poetic Phrase Container */}
+      {paintPhraseOverlay && (
       <div className={`flex flex-col items-center select-none transition-opacity duration-500 ease-in-out ${isFadingOut ? 'opacity-0' : 'opacity-100'} ${layoutClass}`}>
         {profile.layoutStyle === 'scattered' ? (
           renderScatteredLayout()
@@ -980,6 +1046,7 @@ export default function WallpaperScene({
           renderClassicLayout()
         )}
       </div>
+      )}
     </div>
   )
 }

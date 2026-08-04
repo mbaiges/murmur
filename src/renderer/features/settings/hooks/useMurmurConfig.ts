@@ -24,7 +24,7 @@ export function useMurmurConfig() {
 
   const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type })
-    setTimeout(() => setToast(null), 3000)
+    setTimeout(() => setToast(null), type === 'error' ? 6000 : 3000)
   }, [])
 
   useEffect(() => {
@@ -46,19 +46,16 @@ export function useMurmurConfig() {
       setConfig(c)
     })
 
+    const removeSettingsToast = api.onSettingsToast?.(({ message, type }) => {
+      showToast(message, type)
+    })
+
     return () => {
       removeStateListener()
       removeConfigListener()
+      removeSettingsToast?.()
     }
-  }, [])
-
-  useEffect(() => {
-    if (state?.lastGenerationError) {
-      setToast({ message: state.lastGenerationError, type: 'error' })
-      const timer = setTimeout(() => setToast(null), 6000)
-      return () => clearTimeout(timer)
-    }
-  }, [state?.lastGenerationError])
+  }, [showToast])
 
   const saveConfig = useCallback(
     async (updatedConfig: Partial<MurmurConfig>, options?: { silent?: boolean }) => {

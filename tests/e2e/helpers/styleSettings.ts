@@ -81,7 +81,15 @@ export async function clickMoodCard(page: Page, moodTestId: string, apply = true
   await expect(card).toBeVisible({ timeout: 10_000 })
   await card.click()
   if (apply) {
-    await applySettingsChanges(page, { required: true })
+    const bar = page.getByTestId('settings-apply-bar')
+    const appeared = await bar
+      .waitFor({ state: 'visible', timeout: 5000 })
+      .then(() => true)
+      .catch(() => false)
+    if (appeared) {
+      await page.getByTestId('settings-apply-changes').click()
+      await expect(bar).toBeHidden({ timeout: 20_000 })
+    }
   }
 }
 

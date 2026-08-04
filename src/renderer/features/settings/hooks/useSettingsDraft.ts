@@ -31,6 +31,7 @@ export function useSettingsDraft({
 }: UseSettingsDraftArgs) {
   const [draft, setDraft] = useState<MonitorProfile | null>(null)
   const [isApplying, setIsApplying] = useState(false)
+  const [pendingPhotoSourcePath, setPendingPhotoSourcePath] = useState<string | null>(null)
   const committedProfileRef = useRef<MonitorProfile | null>(null)
 
   const committedProfile = committed ? getMonitorProfile(committed, monitorId) : null
@@ -40,6 +41,7 @@ export function useSettingsDraft({
     if (!committedProfile) return
     const stored = readDraftSession(monitorId, committedProfile)
     setDraft(stored ?? { ...committedProfile, overlays: { ...committedProfile.overlays } })
+    setPendingPhotoSourcePath(null)
   }, [committedProfile, monitorId])
 
   useEffect(() => {
@@ -74,6 +76,7 @@ export function useSettingsDraft({
     const p = committedProfileRef.current
     setDraft({ ...p, overlays: { ...p.overlays } })
     clearDraftSession(monitorId)
+    setPendingPhotoSourcePath(null)
   }, [monitorId])
 
   const applyDraft = useCallback(async () => {
@@ -87,9 +90,42 @@ export function useSettingsDraft({
       return
     }
 
+    if (
+      draft.backgroundMode === 'ai' &&
+      draft.backgroundPresetId === 'Custom' &&
+      !draft.customBackgroundPrompt.trim()
+    ) {
+      showToast('Enter a custom background prompt before applying', 'error')
+      return
+    }
+
+    if (draft.customBackgroundPrompt.length > 2048) {
+      showToast('Custom background prompt must be 2048 characters or less', 'error')
+      return
+    }
+
+    let profileToApply = draft
+    if (pendingPhotoSourcePath && api.importBackgroundPhoto) {
+      try {
+        const { relPath } = await api.importBackgroundPhoto(monitorId, pendingPhotoSourcePath)
+        profileToApply = {
+          ...draft,
+          backgroundMode: 'photo',
+          backgroundPhotoRelPath: relPath
+        }
+        setPendingPhotoSourcePath(null)
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Failed to import photo'
+        showToast(message, 'error')
+        return
+      }
+    }
+
     const deltaKind = classifyConfigDelta(baseConfig, {
       ...baseConfig,
-      monitors: baseConfig.monitors.map((m) => (m.id === monitorId ? { ...m, profile: draft } : m))
+      monitors: baseConfig.monitors.map((m) =>
+        m.id === monitorId ? { ...m, profile: profileToApply } : m
+      )
     })
 
     setIsApplying(true)
@@ -98,13 +134,17 @@ export function useSettingsDraft({
         baseConfig,
         monitorId,
         'style',
-        pickScopePatch('style', pickDraftFields(draft))
+        pickScopePatch('style', pickDraftFields(profileToApply))
       )
-      next = applyMonitorProfileSave(next, monitorId, 'voice', pickScopePatch('voice', pickDraftFields(draft)))
+      next = applyMonitorProfileSave(next, monitorId, 'voice', pickScopePatch('voice', pickDraftFields(profileToApply)))
       applyLocalConfig(next)
       await api.saveConfig({ monitors: next.monitors })
+      const freshState = await api.getState()
+      setDraft({ ...profileToApply, overlays: { ...profileToApply.overlays } })
       clearDraftSession(monitorId)
-      if (deltaKind === 'content') {
+      if (freshState.lastGenerationError) {
+        showToast(freshState.lastGenerationError, 'error')
+      } else if (deltaKind === 'content') {
         showToast('Phrase regenerated for your new settings.')
       } else if (deltaKind === 'visual') {
         showToast('Look updated.')
@@ -118,7 +158,7 @@ export function useSettingsDraft({
     } finally {
       setIsApplying(false)
     }
-  }, [applyLocalConfig, draft, getConfigSnapshot, isApplying, monitorId, showToast])
+  }, [applyLocalConfig, draft, getConfigSnapshot, isApplying, monitorId, pendingPhotoSourcePath, showToast])
 
   const handlePromptPresetChange = useCallback(
     (presetId: string) => {
@@ -135,7 +175,9 @@ export function useSettingsDraft({
     [applyMoodToDraft, patchDraft]
   )
 
-  const isDirty = committedProfile && draft ? isDraftDirty(committedProfile, draft) : false
+  const isDirty =
+    (committedProfile && draft ? isDraftDirty(committedProfile, draft) : false) ||
+    pendingPhotoSourcePath != null
 
   return {
     draft,
@@ -145,6 +187,8 @@ export function useSettingsDraft({
     applyMoodToDraft,
     applyDraft,
     resetDraft,
-    handlePromptPresetChange
+    handlePromptPresetChange,
+    pendingPhotoSourcePath,
+    setPendingPhotoSourcePath
   }
 }

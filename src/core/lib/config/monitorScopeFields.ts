@@ -27,7 +27,10 @@ const STYLE_KEYS = [
   'backgroundMode',
   'backgroundPhotoRelPath',
   'backgroundPresetId',
-  'customBackgroundPrompt'
+  'customBackgroundPrompt',
+  'aiPhraseInImage',
+  'aiPhraseInImagePreset',
+  'showHeroPhrase'
 ] as const satisfies readonly (keyof MonitorProfile)[]
 
 export function scopeFieldKeys(scope: TabScope): readonly (keyof MonitorProfile)[] {

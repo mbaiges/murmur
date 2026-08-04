@@ -13,12 +13,18 @@ export const IpcChannel = {
   screensGet: 'screens:get',
   e2eGenerationCountGet: 'e2e:generationCount',
   e2eGenerationCountReset: 'e2e:generationCount:reset',
+  e2eBackgroundPipelineCountsGet: 'e2e:backgroundPipelineCounts',
+  e2eBackgroundPipelineCountsReset: 'e2e:backgroundPipelineCounts:reset',
+  backgroundPickPhoto: 'background:pickPhoto',
+  backgroundImportPhoto: 'background:importPhoto',
+  backgroundDataUrlGet: 'background:dataUrl',
   shellOpenExternal: 'shell:open-external',
   updateGet: 'update:get',
   updateCheck: 'update:check',
   updateQuitAndInstall: 'update:quit-and-install',
   updateStatus: 'update:status',
   settingsOpenTab: 'settings:open-tab',
+  settingsToast: 'settings:toast',
   e2eSettingsOpenTab: 'e2e:settings-open-tab'
 } as const
 

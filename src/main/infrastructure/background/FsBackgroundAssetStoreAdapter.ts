@@ -1,6 +1,7 @@
 import { copyFileSync, existsSync, mkdirSync, unlinkSync, writeFileSync } from 'fs'
 import { dirname, extname, join, resolve } from 'path'
 import type { IBackgroundAssetStore } from '../../../core/ports/IBackgroundAssetStore'
+import { aiImageFileName } from '../../../core/lib/background/resolveLatestAiAsset'
 
 const PERSONAL_BASenames = ['personal.jpg', 'personal.png'] as const
 
@@ -12,7 +13,7 @@ export class FsBackgroundAssetStoreAdapter implements IBackgroundAssetStore {
   }
 
   latestAiRelPath(monitorId: string): string {
-    return `${monitorId}/ai-latest.jpg`
+    return `${monitorId}/ai-latest.png`
   }
 
   resolveAbsolutePath(relPath: string): string | null {
@@ -48,11 +49,23 @@ export class FsBackgroundAssetStoreAdapter implements IBackgroundAssetStore {
     return Promise.resolve(relPath)
   }
 
-  saveGeneratedImage(monitorId: string, jpegBuffer: Buffer): Promise<string> {
+  saveGeneratedImage(monitorId: string, imageBuffer: Buffer): Promise<string> {
     const dir = this.monitorDir(monitorId)
     mkdirSync(dir, { recursive: true })
-    const relPath = this.latestAiRelPath(monitorId)
-    writeFileSync(join(this.rootDir, relPath), jpegBuffer)
+    const fileName = aiImageFileName(imageBuffer)
+    for (const stale of ['ai-latest.png', 'ai-latest.jpg'] as const) {
+      if (stale === fileName) continue
+      const p = join(dir, stale)
+      if (existsSync(p)) {
+        try {
+          unlinkSync(p)
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+    const relPath = `${monitorId}/${fileName}`
+    writeFileSync(join(this.rootDir, relPath), imageBuffer)
     return Promise.resolve(relPath)
   }
 }
