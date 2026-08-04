@@ -81,6 +81,9 @@ namespace Murmur {
         private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
 
         [DllImport("user32.dll")]
+        private static extern int GetSystemMetrics(int nIndex);
+
+        [DllImport("user32.dll")]
         private static extern IntPtr MonitorFromRect(ref RECT lprc, uint dwFlags);
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
@@ -112,6 +115,104 @@ namespace Murmur {
         private const int WS_EX_TRANSPARENT = 0x20;
         private const int WS_EX_NOACTIVATE = 0x08000000;
         private const int WS_EX_LAYERED = 0x80000;
+        private const int WS_EX_TOOLWINDOW = 0x00000080;
+
+        private const int SW_HIDE = 0;
+        private const int SW_SHOWNOACTIVATE = 4;
+
+        private static readonly IntPtr HWND_BOTTOM = new IntPtr(1);
+
+        private const int SM_XVIRTUALSCREEN = 76;
+        private const int SM_YVIRTUALSCREEN = 77;
+        private const int SM_CXVIRTUALSCREEN = 78;
+        private const int SM_CYVIRTUALSCREEN = 79;
+
+        private static bool IsWorkerWWithoutShellView(IntPtr hwnd) {
+            StringBuilder className = new StringBuilder(256);
+            GetClassName(hwnd, className, className.Capacity);
+            if (className.ToString() != "WorkerW") {
+                return false;
+            }
+            return FindWindowEx(hwnd, IntPtr.Zero, "SHELLDLL_DefView", null) == IntPtr.Zero;
+        }
+
+        /// <summary>
+        /// Locates the empty WorkerW layer behind desktop icons. Optionally sends Progman 0x052C once to create it.
+        /// </summary>
+        private static bool TryResolveDesktopWorkerW(bool spawnLayer, out IntPtr shellWorkerW, out IntPtr desktopWorkerW) {
+            shellWorkerW = IntPtr.Zero;
+            desktopWorkerW = IntPtr.Zero;
+
+            if (spawnLayer) {
+                IntPtr progman = FindWindow("Progman", null);
+                if (progman == IntPtr.Zero) {
+                    return false;
+                }
+                IntPtr result = IntPtr.Zero;
+                SendMessageTimeout(progman, 0x052C, IntPtr.Zero, IntPtr.Zero, 0, 1000, out result);
+            }
+
+            for (int attempt = 0; attempt < 10; attempt++) {
+                shellWorkerW = IntPtr.Zero;
+                desktopWorkerW = IntPtr.Zero;
+
+                EnumWindows(new EnumWindowsProc((tophwnd, lparam) => {
+                    StringBuilder className = new StringBuilder(256);
+                    GetClassName(tophwnd, className, className.Capacity);
+                    if (className.ToString() == "WorkerW") {
+                        IntPtr shellDll = FindWindowEx(tophwnd, IntPtr.Zero, "SHELLDLL_DefView", null);
+                        if (shellDll != IntPtr.Zero) {
+                            shellWorkerW = tophwnd;
+                        } else {
+                            desktopWorkerW = tophwnd;
+                        }
+                    }
+                    return true;
+                }), IntPtr.Zero);
+
+                if (spawnLayer) {
+                    if (shellWorkerW != IntPtr.Zero && desktopWorkerW != IntPtr.Zero) {
+                        return true;
+                    }
+                } else if (desktopWorkerW != IntPtr.Zero) {
+                    return true;
+                }
+                if (!spawnLayer) {
+                    break;
+                }
+                System.Threading.Thread.Sleep(50);
+            }
+
+            return desktopWorkerW != IntPtr.Zero;
+        }
+
+        /// <summary>
+        /// Hides stale empty WorkerW hosts Explorer creates when 0x052C runs more than once.
+        /// </summary>
+        private static void HideOrphanDesktopWorkerW(IntPtr keepWorkerW) {
+            EnumWindows(new EnumWindowsProc((tophwnd, lparam) => {
+                if (tophwnd == keepWorkerW) {
+                    return true;
+                }
+                if (IsWorkerWWithoutShellView(tophwnd)) {
+                    ShowWindow(tophwnd, SW_HIDE);
+                }
+                return true;
+            }), IntPtr.Zero);
+        }
+
+        private static void ExpandWorkerWToVirtualScreen(IntPtr workerW) {
+            if (workerW == IntPtr.Zero) {
+                return;
+            }
+            int x = GetSystemMetrics(SM_XVIRTUALSCREEN);
+            int y = GetSystemMetrics(SM_YVIRTUALSCREEN);
+            int width = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+            int height = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+            // SWP_NOACTIVATE | SWP_SHOWWINDOW — size the host layer without stealing focus or showing a frame.
+            SetWindowPos(workerW, HWND_BOTTOM, x, y, width, height, 0x0010 | 0x0040);
+            ShowWindow(workerW, SW_SHOWNOACTIVATE);
+        }
 
         static void Main(string[] args) {
             if (args.Length == 0) {
@@ -219,50 +320,30 @@ namespace Murmur {
                     return;
                 }
                 string title = args[1];
+                bool reuseDesktopLayer = args.Length >= 3 && args[2].Equals("reuse", StringComparison.OrdinalIgnoreCase);
                 
                 try {
-                    // 1. Send 0x052C message to Progman to spawn WorkerW
-                    IntPtr progman = FindWindow("Progman", null);
-                    IntPtr result = IntPtr.Zero;
-                    SendMessageTimeout(progman, 0x052C, IntPtr.Zero, IntPtr.Zero, 0, 1000, out result);
-
-                    // 2. Scan and classify all WorkerW windows with a retry loop (wait up to 500ms total for Explorer thread split)
-                    IntPtr shellWorkerW = IntPtr.Zero;
-                    IntPtr workerwToUse = IntPtr.Zero;
-
-                    for (int attempt = 0; attempt < 10; attempt++) {
-                        shellWorkerW = IntPtr.Zero;
-                        workerwToUse = IntPtr.Zero;
-
-                        EnumWindows(new EnumWindowsProc((tophwnd, lparam) => {
-                            StringBuilder className = new StringBuilder(256);
-                            GetClassName(tophwnd, className, className.Capacity);
-                            if (className.ToString() == "WorkerW") {
-                                IntPtr shellDll = FindWindowEx(tophwnd, IntPtr.Zero, "SHELLDLL_DefView", null);
-                                if (shellDll != IntPtr.Zero) {
-                                    shellWorkerW = tophwnd;
-                                } else {
-                                    workerwToUse = tophwnd;
-                                }
-                            }
-                            return true;
-                        }), IntPtr.Zero);
-
-                        if (shellWorkerW != IntPtr.Zero && workerwToUse != IntPtr.Zero) {
-                            break; // Successfully found both sibling WorkerW windows
+                    IntPtr shellWorkerW;
+                    IntPtr workerwToUse;
+                    bool spawnLayer = !reuseDesktopLayer;
+                    if (!TryResolveDesktopWorkerW(spawnLayer, out shellWorkerW, out workerwToUse)) {
+                        if (!spawnLayer && TryResolveDesktopWorkerW(true, out shellWorkerW, out workerwToUse)) {
+                            // Reuse requested but layer missing — create once.
+                        } else {
+                            Console.WriteLine("ERROR: Desktop WorkerW layer not found");
+                            return;
                         }
-                        System.Threading.Thread.Sleep(50);
                     }
 
-                    // If we couldn't identify the sibling WorkerW, default to shellWorkerW or Progman
-                    IntPtr targetParent = workerwToUse != IntPtr.Zero ? workerwToUse : (shellWorkerW != IntPtr.Zero ? shellWorkerW : progman);
+                    IntPtr progmanFallback = FindWindow("Progman", null);
+                    IntPtr targetParent = workerwToUse != IntPtr.Zero ? workerwToUse : (shellWorkerW != IntPtr.Zero ? shellWorkerW : progmanFallback);
 
-                    // 3. Ensure the sibling WorkerW container is visible (SW_SHOW = 5)
                     if (workerwToUse != IntPtr.Zero) {
-                        ShowWindow(workerwToUse, 5);
+                        HideOrphanDesktopWorkerW(workerwToUse);
+                        ExpandWorkerWToVirtualScreen(workerwToUse);
                     }
 
-                    // 4. Find the target borderless window (either by raw HWND number or title fallback)
+                    // Find the target borderless window (either by raw HWND number or title fallback)
                     IntPtr childHwnd = IntPtr.Zero;
                     long parsedHwnd;
                     if (long.TryParse(title, out parsedHwnd)) {
@@ -308,9 +389,9 @@ namespace Murmur {
                     // 8. Parent our window inside the target container
                     SetParent(childHwnd, targetParent);
 
-                    // 9. Apply extended styles (layered, non-activatable, transparent click-through)
+                    // 9. Apply extended styles (layered, non-activatable, transparent click-through, no taskbar entry)
                     int exStyle = GetWindowLong(childHwnd, GWL_EXSTYLE);
-                    SetWindowLong(childHwnd, GWL_EXSTYLE, exStyle | WS_EX_TRANSPARENT | WS_EX_LAYERED | WS_EX_NOACTIVATE);
+                    SetWindowLong(childHwnd, GWL_EXSTYLE, exStyle | WS_EX_TRANSPARENT | WS_EX_LAYERED | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW);
 
                     // 10. Position and resize the child window precisely at its parent-relative monitor slot
                     // HWND_TOP = 0

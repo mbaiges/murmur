@@ -7,9 +7,13 @@ import { IWallpaperRenderer } from '../../../core/ports/IWallpaperRenderer'
 
 const execAsync = promisify(exec)
 
+const helperExecOptions = { windowsHide: true } as const
+
 export class WinDesktopWallpaperAdapter implements IWallpaperRenderer {
   private wallpaperDir: string
   private backupFile: string
+  /** After the first successful inject, skip Progman 0x052C (prevents extra Explorer WorkerW windows). */
+  private desktopLayerReady = false
 
   constructor() {
     this.wallpaperDir = join(app.getPath('userData'), 'wallpapers')
@@ -68,7 +72,7 @@ export class WinDesktopWallpaperAdapter implements IWallpaperRenderer {
     try {
       const helperPath = this.getHelperPath()
       const cmd = `"${helperPath}" set ${index} "${filePath}"`
-      const { stdout } = await execAsync(cmd)
+      const { stdout } = await execAsync(cmd, helperExecOptions)
       console.log(`WinDesktopWallpaperAdapter: Native helper set output: ${stdout.trim()}`)
     } catch (error) {
       console.error(`WinDesktopWallpaperAdapter: Native helper set failed`, error)
@@ -83,7 +87,7 @@ export class WinDesktopWallpaperAdapter implements IWallpaperRenderer {
     try {
       const helperPath = this.getHelperPath()
       const cmd = `"${helperPath}" backup "${this.backupFile}"`
-      const { stdout } = await execAsync(cmd)
+      const { stdout } = await execAsync(cmd, helperExecOptions)
       console.log(`WinDesktopWallpaperAdapter: Native helper backup output: ${stdout.trim()}`)
     } catch (error) {
       console.error('WinDesktopWallpaperAdapter: Backup failed', error)
@@ -97,7 +101,7 @@ export class WinDesktopWallpaperAdapter implements IWallpaperRenderer {
     try {
       const helperPath = this.getHelperPath()
       const cmd = `"${helperPath}" restore "${this.backupFile}"`
-      const { stdout } = await execAsync(cmd)
+      const { stdout } = await execAsync(cmd, helperExecOptions)
       console.log(`WinDesktopWallpaperAdapter: Native helper restore output: ${stdout.trim()}`)
       
       try {
@@ -115,9 +119,14 @@ export class WinDesktopWallpaperAdapter implements IWallpaperRenderer {
 
     try {
       const helperPath = this.getHelperPath()
-      const cmd = `"${helperPath}" inject "${windowTitle}"`
-      const { stdout } = await execAsync(cmd)
-      console.log(`WinDesktopWallpaperAdapter: Native helper inject output: ${stdout.trim()}`)
+      const reuse = this.desktopLayerReady ? ' reuse' : ''
+      const cmd = `"${helperPath}" inject "${windowTitle}"${reuse}`
+      const { stdout } = await execAsync(cmd, helperExecOptions)
+      const out = stdout.trim()
+      console.log(`WinDesktopWallpaperAdapter: Native helper inject output: ${out}`)
+      if (out.includes('SUCCESS')) {
+        this.desktopLayerReady = true
+      }
     } catch (error) {
       console.error('WinDesktopWallpaperAdapter: Inject failed', error)
       throw error
