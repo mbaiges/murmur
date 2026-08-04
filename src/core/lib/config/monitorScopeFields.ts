@@ -23,7 +23,14 @@ const STYLE_KEYS = [
   'layoutStyle',
   'vignetteStyle',
   'audioFeedback',
-  'noiseIntensity'
+  'noiseIntensity',
+  'backgroundMode',
+  'backgroundPhotoRelPath',
+  'backgroundPresetId',
+  'customBackgroundPrompt',
+  'aiPhraseInImage',
+  'aiPhraseInImagePreset',
+  'showHeroPhrase'
 ] as const satisfies readonly (keyof MonitorProfile)[]
 
 export function scopeFieldKeys(scope: TabScope): readonly (keyof MonitorProfile)[] {

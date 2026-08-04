@@ -9,8 +9,10 @@ function baseConfig(): MurmurConfig {
   const a = createMonitorConfig('a', getDefaultMonitorProfile({ language: 'en' }))
   const b = createMonitorConfig('b', getDefaultMonitorProfile({ language: 'es' }))
   return {
-    configVersion: 2,
+    configVersion: 3,
     geminiApiKey: 'k',
+    cloudflareAccountId: '',
+    cloudflareApiToken: '',
     refreshIntervalMinutes: 60,
     launchAtLogin: false,
     monitors: [a, b]

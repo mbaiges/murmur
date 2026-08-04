@@ -13,6 +13,8 @@ type WallpaperPreviewContentProps = {
   displayHeightPx: number
   /** Last committed layout envelope (any monitor); used when draft layout matches. */
   committedLayoutEnvelope?: LayoutContentEnvelope | null
+  monitorId?: string
+  backgroundCacheKey?: string
 }
 
 export default function WallpaperPreviewContent({
@@ -22,7 +24,9 @@ export default function WallpaperPreviewContent({
   frameWidthPx,
   displayWidthPx,
   displayHeightPx,
-  committedLayoutEnvelope = null
+  committedLayoutEnvelope = null,
+  monitorId,
+  backgroundCacheKey
 }: WallpaperPreviewContentProps) {
   const displayW = displayWidthPx > 0 ? displayWidthPx : 1920
   const displayH = displayHeightPx > 0 ? displayHeightPx : 1080
@@ -50,6 +54,8 @@ export default function WallpaperPreviewContent({
             layoutEnvelope={layoutEnvelope}
             layoutWidthPx={displayW}
             staticFrame
+            monitorId={monitorId}
+            lastRefreshTime={backgroundCacheKey ?? null}
           />
         </div>
       </div>

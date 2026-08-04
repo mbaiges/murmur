@@ -19,7 +19,14 @@ export const DRAFT_FIELD_KEYS = [
   'enableItalic',
   'enableNewlines',
   'enableDifferentFonts',
-  'headlineSampleSize'
+  'headlineSampleSize',
+  'backgroundMode',
+  'backgroundPresetId',
+  'customBackgroundPrompt',
+  'backgroundPhotoRelPath',
+  'aiPhraseInImage',
+  'aiPhraseInImagePreset',
+  'showHeroPhrase'
 ] as const satisfies readonly (keyof MonitorProfile)[]
 
 export type DraftFieldKey = (typeof DRAFT_FIELD_KEYS)[number]
@@ -44,14 +51,22 @@ const VISUAL_SCALAR_KEYS = [
   'animation',
   'audioFeedback',
   'noiseIntensity',
-  'vignetteStyle'
+  'vignetteStyle',
+  'backgroundMode',
+  'backgroundPhotoRelPath',
+  'backgroundPresetId',
+  'customBackgroundPrompt',
+  'aiPhraseInImage',
+  'aiPhraseInImagePreset',
+  'showHeroPhrase'
 ] as const satisfies readonly (keyof MonitorProfile)[]
 
 function overlaysEqual(a: MonitorProfile['overlays'], b: MonitorProfile['overlays']): boolean {
   return (
     a.dateTime === b.dateTime &&
     a.sourceCredit === b.sourceCredit &&
-    a.inspiringHeadlines === b.inspiringHeadlines
+    a.inspiringHeadlines === b.inspiringHeadlines &&
+    a.phraseWidget === b.phraseWidget
   )
 }
 
@@ -99,6 +114,8 @@ function monitorMapsEqual(prev: MurmurConfig, next: MurmurConfig): boolean {
 export function classifyConfigDelta(prev: MurmurConfig, next: MurmurConfig): ConfigDeltaKind {
   if (
     prev.geminiApiKey !== next.geminiApiKey ||
+    prev.cloudflareAccountId !== next.cloudflareAccountId ||
+    prev.cloudflareApiToken !== next.cloudflareApiToken ||
     prev.refreshIntervalMinutes !== next.refreshIntervalMinutes ||
     prev.launchAtLogin !== next.launchAtLogin
   ) {
@@ -147,7 +164,14 @@ export function pickDraftFields(profile: MonitorProfile): Pick<MonitorProfile, D
     enableItalic: profile.enableItalic,
     enableNewlines: profile.enableNewlines,
     enableDifferentFonts: profile.enableDifferentFonts,
-    headlineSampleSize: profile.headlineSampleSize
+    headlineSampleSize: profile.headlineSampleSize,
+    backgroundMode: profile.backgroundMode,
+    backgroundPresetId: profile.backgroundPresetId,
+    customBackgroundPrompt: profile.customBackgroundPrompt,
+    backgroundPhotoRelPath: profile.backgroundPhotoRelPath,
+    aiPhraseInImage: profile.aiPhraseInImage,
+    aiPhraseInImagePreset: profile.aiPhraseInImagePreset,
+    showHeroPhrase: profile.showHeroPhrase
   }
 }
 
@@ -162,4 +186,28 @@ export function draftFieldsEqual(a: MonitorProfile, b: MonitorProfile): boolean 
     }
   }
   return true
+}
+
+const AI_BACKGROUND_KEYS = [
+  'backgroundMode',
+  'backgroundPresetId',
+  'customBackgroundPrompt',
+  'aiPhraseInImage',
+  'aiPhraseInImagePreset',
+  'showHeroPhrase'
+] as const satisfies readonly (keyof MonitorProfile)[]
+
+/** True when any monitor’s AI background settings changed (Apply should try FLUX, not only re-render). */
+export function hasAiBackgroundSettingsDelta(prev: MurmurConfig, next: MurmurConfig): boolean {
+  const ids = new Set([...prev.monitors.map((m) => m.id), ...next.monitors.map((m) => m.id)])
+  for (const id of ids) {
+    const p = prev.monitors.find((m) => m.id === id)
+    const n = next.monitors.find((m) => m.id === id)
+    if (!p || !n) continue
+    if (n.profile.backgroundMode !== 'ai') continue
+    for (const key of AI_BACKGROUND_KEYS) {
+      if (p.profile[key] !== n.profile[key]) return true
+    }
+  }
+  return false
 }

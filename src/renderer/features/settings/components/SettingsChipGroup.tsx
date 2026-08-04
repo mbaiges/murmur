@@ -1,6 +1,6 @@
 import React from 'react'
 
-export type ChipOption<T extends string> = { value: T; label: string }
+export type ChipOption<T extends string> = { value: T; label: string; testId?: string }
 
 type SettingsChipGroupProps<T extends string> = {
   options: ChipOption<T>[]
@@ -23,6 +23,7 @@ export default function SettingsChipGroup<T extends string>({
           <button
             key={opt.value}
             type="button"
+            data-testid={opt.testId}
             onClick={() => onChange(opt.value)}
             className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
               active

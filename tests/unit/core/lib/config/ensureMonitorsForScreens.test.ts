@@ -8,7 +8,7 @@ import type { MurmurConfig } from '../../../../../src/core/domain/types'
 
 function baseConfig(monitors: MurmurConfig['monitors']): MurmurConfig {
   return {
-    configVersion: 2,
+    configVersion: 3,
     geminiApiKey: 'k',
     refreshIntervalMinutes: 60,
     launchAtLogin: false,

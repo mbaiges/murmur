@@ -13,6 +13,11 @@ export interface MurmurWindowApi {
   getScreens: () => Promise<{ id: string; width: number; height: number }[]>
   getE2eGenerationCount?: () => Promise<number>
   resetE2eGenerationCount?: () => Promise<void>
+  getE2eBackgroundPipelineCounts?: () => Promise<{ imagePrompt: number; provider: number }>
+  resetE2eBackgroundPipelineCounts?: () => Promise<void>
+  pickBackgroundPhoto?: () => Promise<string | null>
+  importBackgroundPhoto?: (monitorId: string, sourcePath: string) => Promise<{ relPath: string }>
+  getBackgroundDataUrl?: (monitorId: string, kind: 'personal' | 'ai') => Promise<string | null>
   onStateUpdated: (callback: (state: MurmurState) => void) => () => void
   onConfigUpdated: (callback: (config: MurmurConfig) => void) => () => void
   openExternal: (url: string) => Promise<void>
@@ -21,6 +26,7 @@ export interface MurmurWindowApi {
   quitAndInstallUpdate: () => Promise<void>
   onUpdateStatus: (callback: (info: AppUpdateInfo) => void) => () => void
   onSettingsOpenTab: (callback: (tab: 'general') => void) => () => void
+  onSettingsToast: (callback: (payload: { message: string; type: 'success' | 'error' }) => void) => () => void
   e2eOpenSettingsTab?: (tab: 'general') => Promise<void>
 }
 

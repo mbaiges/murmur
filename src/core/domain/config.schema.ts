@@ -21,9 +21,10 @@ export const MonitorProfileSchema = z.object({
     .object({
       dateTime: z.boolean().default(true),
       sourceCredit: z.boolean().default(false),
-      inspiringHeadlines: z.boolean().default(false)
+      inspiringHeadlines: z.boolean().default(false),
+      phraseWidget: z.boolean().default(false)
     })
-    .default({ dateTime: true, sourceCredit: false, inspiringHeadlines: false }),
+    .default({ dateTime: true, sourceCredit: false, inspiringHeadlines: false, phraseWidget: false }),
   headlineSampleSize: z.number().int().min(5).max(50).default(15),
   fontFamily: z
     .enum(['EB Garamond', 'Playfair Display', 'Outfit', 'Garamond Bold', 'Monospace'])
@@ -54,7 +55,38 @@ export const MonitorProfileSchema = z.object({
   enableDifferentFonts: z.boolean().default(false),
   noiseIntensity: z.enum(['none', 'subtle', 'heavy']).default('none'),
   tonePreset: z.enum(['none', 'neutral', 'professional', 'vulgar', 'custom']).default('none'),
-  customToneText: z.string().default('')
+  customToneText: z.string().default(''),
+  backgroundMode: z.enum(['gradient', 'photo', 'ai']).default('gradient'),
+  backgroundPresetId: z
+    .enum([
+      'Abstract mood',
+      'Editorial paper',
+      'Warm film grain',
+      'Absurd connections',
+      'Cyberpunk neon haze',
+      'Zen mist',
+      'Gothic violet fog',
+      'Tabloid flash',
+      'Custom'
+    ])
+    .default('Abstract mood'),
+  customBackgroundPrompt: z.string().max(2048).default(''),
+  backgroundPhotoRelPath: z.string().default(''),
+  aiPhraseInImage: z.boolean().default(false),
+  aiPhraseInImagePreset: z
+    .enum([
+      'word-art',
+      'poem',
+      'book-quote',
+      'match-prompt-tone',
+      'neon-sign',
+      'newspaper-headline',
+      'graffiti-tag',
+      'minimalist-caption',
+      'cinematic-subtitle'
+    ])
+    .default('poem'),
+  showHeroPhrase: z.boolean().default(true)
 })
 
 export const MonitorConfigSchema = z.object({
@@ -68,8 +100,10 @@ export const MonitorConfigSchema = z.object({
 
 export const MurmurConfigSchema = z
   .object({
-    configVersion: z.literal(2).default(2),
+    configVersion: z.literal(3).default(3),
     geminiApiKey: z.string().default(''),
+    cloudflareAccountId: z.string().default(''),
+    cloudflareApiToken: z.string().default(''),
     refreshIntervalMinutes: z.number().int().min(5).max(1440).default(60),
     launchAtLogin: z.boolean().default(false),
     monitors: z.array(MonitorConfigSchema).default([])
@@ -89,6 +123,23 @@ export const MurmurConfigSchema = z
           code: z.ZodIssueCode.custom,
           path: ['monitors', i, 'profile', 'customToneText'],
           message: 'Custom tone requires non-empty text'
+        })
+      }
+      if (
+        m.profile.backgroundPresetId === 'Custom' &&
+        m.profile.customBackgroundPrompt.trim().length === 0
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['monitors', i, 'profile', 'customBackgroundPrompt'],
+          message: 'Custom background prompt requires non-empty text'
+        })
+      }
+      if (m.profile.backgroundMode === 'photo' && m.profile.backgroundPhotoRelPath.trim().length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['monitors', i, 'profile', 'backgroundPhotoRelPath'],
+          message: 'Photo background requires an imported image'
         })
       }
     }

@@ -1,8 +1,9 @@
 import { screen } from 'electron'
 import type { MurmurConfig } from '@core/domain/types'
 import type { MurmurState } from '@core/domain/types'
-import { classifyConfigDelta } from '@core/lib/presets/configDelta'
+import { classifyConfigDelta, hasAiBackgroundSettingsDelta } from '@core/lib/presets/configDelta'
 import { shouldRegeneratePhraseAfterConfigSave } from '@core/lib/presets/appearanceRegenerate'
+import { ensureMonitorsForScreens } from '@core/lib/config/monitorProfiles'
 import type { IConfigStore } from '@core/ports/IConfigStore'
 import type { IStartupIntegration } from '@core/ports/IStartupIntegration'
 import type { IWallpaperRenderer } from '@core/ports/IWallpaperRenderer'
@@ -36,7 +37,14 @@ export async function handleConfigSave(
 
   const prevConfig = await configStore.get()
   await configStore.set(config)
-  const newConfig = await configStore.get()
+  let newConfig = await configStore.get()
+
+  const screensForMonitors = await wallpaperRenderer.getScreens()
+  const ensured = ensureMonitorsForScreens(newConfig, screensForMonitors)
+  if (ensured.dirty) {
+    await configStore.set({ monitors: ensured.config.monitors })
+    newConfig = ensured.config
+  }
 
   if (newConfig.launchAtLogin !== prevConfig.launchAtLogin) {
     if (newConfig.launchAtLogin) {
@@ -88,19 +96,37 @@ export async function handleConfigSave(
   getSettingsWindow()?.webContents.send(IpcChannel.configUpdated, newConfig)
 
   const state = getState()
+  const deltaKind = classifyConfigDelta(prevConfig, newConfig)
+  const aiBgDelta = hasAiBackgroundSettingsDelta(prevConfig, newConfig)
+  const hasCachedPhrase = Object.values(state.lastPhrases || {}).some((p) => p && p.trim())
+
   if (newConfig.geminiApiKey) {
-    const deltaKind = classifyConfigDelta(prevConfig, newConfig)
     const needsRegeneration = shouldRegeneratePhraseAfterConfigSave(prevConfig, newConfig)
-    const hasCachedPhrase = Object.values(state.lastPhrases || {}).some((p) => p && p.trim())
 
     if (needsRegeneration) {
       await murmurService.refresh({ lastContent: state.lastContent, lastPhrases: state.lastPhrases })
-    } else if (deltaKind === 'visual') {
-      await murmurService.reRenderWallpapers(state)
-    } else if (allInstant && hasCachedPhrase) {
-      await murmurService.updateClockWallpapers(state)
-    } else if (!allInstant && deltaKind !== 'none') {
-      await murmurService.updateClockWallpapers(state)
+    } else {
+      if (aiBgDelta) {
+        const bgErr = await murmurService.regenerateAiBackgrounds(state)
+        if (bgErr) {
+          murmurService.reportUserError(getState(), bgErr)
+        }
+      }
+      if (deltaKind === 'visual' || aiBgDelta) {
+        await murmurService.reRenderWallpapers(getState())
+      } else if (allInstant && hasCachedPhrase) {
+        await murmurService.updateClockWallpapers(state)
+      } else if (!allInstant && deltaKind !== 'none') {
+        await murmurService.updateClockWallpapers(state)
+      }
     }
+  } else if (deltaKind === 'visual' || aiBgDelta) {
+    if (aiBgDelta) {
+      const bgErr = await murmurService.regenerateAiBackgrounds(state)
+      if (bgErr) {
+        murmurService.reportUserError(getState(), bgErr)
+      }
+    }
+    await murmurService.reRenderWallpapers(getState())
   }
 }

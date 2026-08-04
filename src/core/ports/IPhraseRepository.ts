@@ -17,7 +17,7 @@ export interface PhraseGenerationResult {
   payload: Record<string, string>
 }
 
-export interface IPhraseGenerator {
+export interface IPhraseRepository {
   generate(headlines: string[], language: string): Promise<string>
   generateStructured(request: PhraseGenerationRequest): Promise<PhraseGenerationResult>
 }

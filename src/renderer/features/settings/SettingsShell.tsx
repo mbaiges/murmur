@@ -56,7 +56,9 @@ export default function SettingsShell() {
     applyMoodToDraft,
     applyDraft,
     resetDraft,
-    handlePromptPresetChange
+    handlePromptPresetChange,
+    pendingPhotoSourcePath,
+    setPendingPhotoSourcePath
   } = useSettingsDraft({
     committed: config,
     monitorId: selectedMonitorId,
@@ -158,7 +160,11 @@ export default function SettingsShell() {
       setState(freshState)
       const screens = await api.getScreens()
       setScreenIds(screens.map((s) => s.id))
-      showToast('Wallpapers refreshed successfully!')
+      if (freshState.lastGenerationError) {
+        showToast(freshState.lastGenerationError, 'error')
+      } else {
+        showToast('Wallpapers refreshed successfully!')
+      }
     } catch (err: unknown) {
       console.error(err)
       showToast('Refresh failed. Check your API key and Internet.', 'error')
@@ -280,11 +286,20 @@ export default function SettingsShell() {
             previewLayoutEnvelope={previewLayoutEnvelope}
             displayWidth={displaySize.width}
             displayHeight={displaySize.height}
+            previewLayoutEnvelope={previewLayoutEnvelope}
             scrollContainerRef={scrollRef}
+            monitorId={selectedMonitorId}
+            backgroundCacheKey={state?.lastRefreshTime ?? undefined}
+            pendingPhotoSourcePath={pendingPhotoSourcePath}
+            setPendingPhotoSourcePath={setPendingPhotoSourcePath}
           />
         )}
         {uiState.activeTab === 'history' && (
-          <HistoryTab config={config} selectedMonitorId={selectedMonitorId} />
+          <HistoryTab
+            config={config}
+            selectedMonitorId={selectedMonitorId}
+            lastRefreshTime={state?.lastRefreshTime}
+          />
         )}
       </AppShell>
       {showApplyBar && (

@@ -19,6 +19,10 @@ type StyleTabProps = {
   displayHeight: number
   scrollContainerRef?: React.RefObject<HTMLElement | null>
   showSyncChip?: boolean
+  monitorId: string
+  pendingPhotoSourcePath: string | null
+  setPendingPhotoSourcePath: (path: string | null) => void
+  backgroundCacheKey?: string
 }
 
 export default function StyleTab({
@@ -32,7 +36,11 @@ export default function StyleTab({
   displayWidth,
   displayHeight,
   scrollContainerRef,
-  showSyncChip = false
+  showSyncChip = false,
+  monitorId,
+  pendingPhotoSourcePath,
+  setPendingPhotoSourcePath,
+  backgroundCacheKey
 }: StyleTabProps) {
   return (
     <div className="w-full max-w-5xl space-y-6 pb-16">
@@ -61,12 +69,19 @@ export default function StyleTab({
         displayHeight={displayHeight}
         committedLayoutEnvelope={previewLayoutEnvelope}
         scrollContainerRef={scrollContainerRef}
+        monitorId={monitorId}
+        backgroundCacheKey={backgroundCacheKey}
       />
 
       <MoodGallery config={config} onMoodChange={onMoodChange} />
 
       <div className="w-full space-y-6">
-        <StyleBackgroundCard config={config} patchDraft={patchDraft} />
+        <StyleBackgroundCard
+          config={config}
+          patchDraft={patchDraft}
+          pendingPhotoSourcePath={pendingPhotoSourcePath}
+          setPendingPhotoSourcePath={setPendingPhotoSourcePath}
+        />
         <StylePhraseCard config={config} patchDraft={patchDraft} />
         <StyleWidgetsCard config={config} patchDraft={patchDraft} />
       </div>

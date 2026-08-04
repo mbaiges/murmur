@@ -22,7 +22,7 @@ There is **no bundled HTTP API** in v1; all IO is local (filesystem, RSS, Gemini
 src/
 ├── core/
 │   ├── domain/          # MurmurService, Scheduler, types, config.schema, prompts
-│   ├── ports/           # IConfigStore, IWallpaperRenderer, IPhraseGenerator, …
+│   ├── ports/           # IConfigStore, IWallpaperRenderer, IPhraseRepository, ILlmRepository, IRssRepository, …
 │   └── lib/
 │       ├── layout/      # layoutContentSpecs, parse, preview, Zod validation
 │       ├── phrase/      # plain text, markup flags, layout split
@@ -225,7 +225,7 @@ Use `e2eScreenshotPath()` from `tests/e2e/helpers/screenshotPaths.ts`. The `arti
 
 ## Structured phrase content
 
-Layout-aware generation: registry in `core/lib/layout/layoutContentSpecs.ts`, validation in `layoutSpecToZod.ts`, prompts in `StructuredPhrasePromptBuilder.ts`. `MurmurService` uses `IPhraseGenerator.generateStructured`. State holds `lastContent` per monitor; history stores JSON envelopes (legacy plain strings still parse).
+Layout-aware generation: registry in `core/lib/layout/layoutContentSpecs.ts`, validation in `layoutSpecToZod.ts`, prompts in `StructuredPhrasePromptBuilder.ts`. `MurmurService` uses `IPhraseRepository.generateStructured`. Remote integrations use **`*Repository`** ports (e.g. `GeminiPhraseRepository`, `FastXmlRssRepository`) in `main/infrastructure/`; local JSON/filesystem persistence stays **`*Store`**. State holds `lastContent` per monitor; history stores JSON envelopes (legacy plain strings still parse).
 
 Product specs: [features/structured-phrase-generation/](features/structured-phrase-generation/).
 

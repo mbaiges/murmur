@@ -91,6 +91,35 @@ export default function GeneralTab({ config, state, saveConfig }: GeneralTabProp
         </div>
       </div>
 
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4" data-testid="general-cloudflare-section">
+        <h3 className="text-sm font-bold text-white">AI background (Cloudflare)</h3>
+        <p className="text-xs text-slate-500">
+          Used when a display’s background mode is AI image. Workers AI FLUX runs on your Cloudflare account.
+        </p>
+        <div>
+          <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Account ID</label>
+          <input
+            type="text"
+            data-testid="general-cloudflare-account-id"
+            className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg px-3 py-1.5 text-sm text-slate-100 outline-none transition-all"
+            value={config.cloudflareAccountId ?? ''}
+            onChange={(e) => saveConfig({ cloudflareAccountId: e.target.value })}
+            placeholder="Cloudflare account ID"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">API token</label>
+          <input
+            type="password"
+            data-testid="general-cloudflare-api-token"
+            className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg px-3 py-1.5 text-sm text-slate-100 outline-none transition-all"
+            value={config.cloudflareApiToken ?? ''}
+            onChange={(e) => saveConfig({ cloudflareApiToken: e.target.value })}
+            placeholder="Workers AI token"
+          />
+        </div>
+      </div>
+
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4">
         <h3 className="text-sm font-bold text-white">Schedule</h3>
         <div>

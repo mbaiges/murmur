@@ -1,4 +1,5 @@
 import { RssItem } from '../domain/types'
-export interface IRssFetcher {
+
+export interface IRssRepository {
   fetchAll(feeds: string[]): Promise<RssItem[]>
 }

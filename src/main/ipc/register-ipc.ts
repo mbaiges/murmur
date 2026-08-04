@@ -7,17 +7,25 @@ import { IpcChannel } from '@shared/ipc'
 import { handleConfigSave, type ConfigSaveHandlerDeps } from './handlers/config-save'
 import { handleOpenExternal } from './handlers/open-external'
 import { getSettingsWindow, showSettingsWindow } from '../windows/settings-window'
-import { getE2eGenerationCallCount, resetE2eGenerationCallCount } from '../e2e/e2eGenerationCounter'
+import type { IBackgroundAssetStore } from '@core/ports/IBackgroundAssetStore'
+import { getE2eGenerationCallCount, resetE2eGenerationCallCount, getE2eBackgroundPipelineCounts, resetE2eBackgroundPipelineCounts } from '../e2e/e2eGenerationCounter'
 import { isMurmurE2eMode } from '../bootstrap/e2e-overrides'
+import {
+  importBackgroundPhotoForMonitor,
+  pickBackgroundPhotoSourcePath
+} from './handlers/background-photo'
+import { readBackgroundDataUrl, type BackgroundImageKind } from './handlers/background-data-url'
 
 export type RegisterIpcDeps = ConfigSaveHandlerDeps & {
   historyStore: IHistoryStore
   murmurService: MurmurService
+  backgroundAssetStore: IBackgroundAssetStore
   getState: () => MurmurState
 }
 
 export function registerIpcHandlers(deps: RegisterIpcDeps): void {
-  const { configStore, historyStore, murmurService, getState, wallpaperRenderer } = deps
+  const { configStore, historyStore, murmurService, getState, wallpaperRenderer, backgroundAssetStore } =
+    deps
 
   ipcMain.handle(IpcChannel.configGet, () => configStore.get())
   ipcMain.handle(IpcChannel.configSave, (_event, config) => handleConfigSave(deps, config))
@@ -38,10 +46,21 @@ export function registerIpcHandlers(deps: RegisterIpcDeps): void {
     ipcMain.handle(IpcChannel.e2eGenerationCountReset, () => {
       resetE2eGenerationCallCount()
     })
+    ipcMain.handle(IpcChannel.e2eBackgroundPipelineCountsGet, () => getE2eBackgroundPipelineCounts())
+    ipcMain.handle(IpcChannel.e2eBackgroundPipelineCountsReset, () => {
+      resetE2eBackgroundPipelineCounts()
+    })
     ipcMain.handle(IpcChannel.e2eSettingsOpenTab, (_event, tab: 'general') => {
       showSettingsWindow()
       getSettingsWindow()?.webContents.send(IpcChannel.settingsOpenTab, tab)
     })
   }
+  ipcMain.handle(IpcChannel.backgroundPickPhoto, () => pickBackgroundPhotoSourcePath())
+  ipcMain.handle(IpcChannel.backgroundImportPhoto, (_event, monitorId: string, sourcePath: string) =>
+    importBackgroundPhotoForMonitor(configStore, backgroundAssetStore, monitorId, sourcePath)
+  )
+  ipcMain.handle(IpcChannel.backgroundDataUrlGet, (_event, monitorId: string, kind: BackgroundImageKind) =>
+    readBackgroundDataUrl(configStore, backgroundAssetStore, monitorId, kind)
+  )
   ipcMain.handle(IpcChannel.shellOpenExternal, (_event, url: string) => handleOpenExternal(url))
 }

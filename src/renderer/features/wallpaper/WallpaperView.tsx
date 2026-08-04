@@ -92,6 +92,7 @@ export default function WallpaperView() {
       lastHeadlines={state.lastHeadlines?.[monitorId]}
       lastSources={state.lastSources?.[monitorId]}
       isFadingOut={isFadingOut}
+      monitorId={monitorId}
     />
   )
 }

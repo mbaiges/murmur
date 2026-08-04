@@ -3,6 +3,11 @@ import { getDefaultMonitorProfile } from './defaultMonitorProfile'
 
 type LegacyRoot = Record<string, unknown>
 
+export type MurmurConfigV2Shape = Omit<
+  MurmurConfig,
+  'configVersion' | 'cloudflareAccountId' | 'cloudflareApiToken'
+> & { configVersion: 2 }
+
 function normalizeTonePreset(value: unknown): MonitorProfile['tonePreset'] | undefined {
   if (value === 'villero' || value === 'turro') return 'vulgar'
   if (
@@ -75,11 +80,14 @@ function migrateMonitorRow(raw: Record<string, unknown>, legacyProfile: MonitorP
   }
 }
 
-/** Normalize raw JSON (v1 flat or partial v2) into v2 shape before Zod parse. */
-export function migrateRawConfigToV2(parsed: LegacyRoot): MurmurConfig {
+/** Normalize raw JSON (v1 flat or partial v2) into v2 shape. */
+export function migrateRawConfigToV2(parsed: LegacyRoot): MurmurConfigV2Shape {
   const legacyProfile = legacyProfileFromRoot(parsed)
 
-  if (parsed.configVersion === 2 && Array.isArray(parsed.monitors)) {
+  if (
+    (parsed.configVersion === 2 || parsed.configVersion === 3) &&
+    Array.isArray(parsed.monitors)
+  ) {
     const monitors = (parsed.monitors as Record<string, unknown>[]).map((m) => migrateMonitorRow(m, legacyProfile))
     return {
       configVersion: 2,
@@ -103,4 +111,35 @@ export function migrateRawConfigToV2(parsed: LegacyRoot): MurmurConfig {
     launchAtLogin: parsed.launchAtLogin === true,
     monitors
   }
+}
+
+export function migrateConfigV2ToV3(v2: MurmurConfigV2Shape): MurmurConfig {
+  return {
+    configVersion: 3,
+    geminiApiKey: v2.geminiApiKey,
+    cloudflareAccountId: '',
+    cloudflareApiToken: '',
+    refreshIntervalMinutes: v2.refreshIntervalMinutes,
+    launchAtLogin: v2.launchAtLogin,
+    monitors: v2.monitors.map((m) => ({
+      ...m,
+      profile: { ...getDefaultMonitorProfile(), ...m.profile }
+    }))
+  }
+}
+
+/** Normalize raw JSON through v2 then v3 before Zod parse. */
+export function migrateRawConfigToLatest(parsed: LegacyRoot): MurmurConfig {
+  const v2 = migrateRawConfigToV2(parsed)
+  const v3 = migrateConfigV2ToV3(v2)
+  if (parsed.configVersion === 3) {
+    return {
+      ...v3,
+      cloudflareAccountId:
+        typeof parsed.cloudflareAccountId === 'string' ? parsed.cloudflareAccountId : '',
+      cloudflareApiToken:
+        typeof parsed.cloudflareApiToken === 'string' ? parsed.cloudflareApiToken : ''
+    }
+  }
+  return v3
 }

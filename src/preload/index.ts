@@ -17,6 +17,17 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.invoke(IpcChannel.screensGet),
   getE2eGenerationCount: (): Promise<number> => ipcRenderer.invoke(IpcChannel.e2eGenerationCountGet),
   resetE2eGenerationCount: (): Promise<void> => ipcRenderer.invoke(IpcChannel.e2eGenerationCountReset),
+  getE2eBackgroundPipelineCounts: (): Promise<{ imagePrompt: number; provider: number }> =>
+    ipcRenderer.invoke(IpcChannel.e2eBackgroundPipelineCountsGet),
+  resetE2eBackgroundPipelineCounts: (): Promise<void> =>
+    ipcRenderer.invoke(IpcChannel.e2eBackgroundPipelineCountsReset),
+  pickBackgroundPhoto: (): Promise<string | null> => ipcRenderer.invoke(IpcChannel.backgroundPickPhoto),
+  importBackgroundPhoto: (monitorId: string, sourcePath: string): Promise<{ relPath: string }> =>
+    ipcRenderer.invoke(IpcChannel.backgroundImportPhoto, monitorId, sourcePath),
+  getBackgroundDataUrl: (
+    monitorId: string,
+    kind: 'personal' | 'ai'
+  ): Promise<string | null> => ipcRenderer.invoke(IpcChannel.backgroundDataUrlGet, monitorId, kind),
   onStateUpdated: (callback: (state: MurmurState) => void) => {
     const listener = (_event: any, state: MurmurState) => callback(state)
     ipcRenderer.on(IpcChannel.stateUpdated, listener)
@@ -40,6 +51,12 @@ contextBridge.exposeInMainWorld('api', {
     const listener = (_event: unknown, tab: 'general') => callback(tab)
     ipcRenderer.on(IpcChannel.settingsOpenTab, listener)
     return () => ipcRenderer.removeListener(IpcChannel.settingsOpenTab, listener)
+  },
+  onSettingsToast: (callback: (payload: { message: string; type: 'success' | 'error' }) => void) => {
+    const listener = (_event: unknown, payload: { message: string; type: 'success' | 'error' }) =>
+      callback(payload)
+    ipcRenderer.on(IpcChannel.settingsToast, listener)
+    return () => ipcRenderer.removeListener(IpcChannel.settingsToast, listener)
   },
   e2eOpenSettingsTab: (tab: 'general'): Promise<void> =>
     ipcRenderer.invoke(IpcChannel.e2eSettingsOpenTab, tab)

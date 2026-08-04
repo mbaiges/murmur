@@ -1,8 +1,8 @@
 import { XMLParser } from 'fast-xml-parser'
-import { IRssFetcher } from '../../../core/ports/IRssFetcher'
+import { IRssRepository } from '../../../core/ports/IRssRepository'
 import { RssItem } from '../../../core/domain/types'
 
-export class FastXmlRssFetcherAdapter implements IRssFetcher {
+export class FastXmlRssRepository implements IRssRepository {
   private parser = new XMLParser({
     ignoreAttributes: false,
     attributeNamePrefix: '@_'
@@ -15,7 +15,7 @@ export class FastXmlRssFetcherAdapter implements IRssFetcher {
       try {
         const response = await fetch(url)
         if (!response.ok) {
-          console.warn(`FastXmlRssFetcherAdapter: Failed to fetch feed ${url} (status: ${response.status})`)
+          console.warn(`FastXmlRssRepository: Failed to fetch feed ${url} (status: ${response.status})`)
           continue
         }
         const xml = await response.text()
@@ -23,12 +23,12 @@ export class FastXmlRssFetcherAdapter implements IRssFetcher {
 
         const channel = parsed.rss?.channel
         if (!channel) {
-          console.warn(`FastXmlRssFetcherAdapter: Invalid RSS format for ${url}`)
+          console.warn(`FastXmlRssRepository: Invalid RSS format for ${url}`)
           continue
         }
 
         const source = channel.title || new URL(url).hostname
-        const items = Array.isArray(channel.item) ? channel.item : (channel.item ? [channel.item] : [])
+        const items = Array.isArray(channel.item) ? channel.item : channel.item ? [channel.item] : []
 
         for (const item of items) {
           const title = item.title ? String(item.title).trim() : ''
@@ -41,7 +41,7 @@ export class FastXmlRssFetcherAdapter implements IRssFetcher {
           }
         }
       } catch (error) {
-        console.error(`FastXmlRssFetcherAdapter: Error fetching/parsing ${url}`, error)
+        console.error(`FastXmlRssRepository: Error fetching/parsing ${url}`, error)
       }
     }
 

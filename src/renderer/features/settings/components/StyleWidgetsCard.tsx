@@ -13,11 +13,12 @@ const WIDGETS: {
 }[] = [
   { key: 'dateTime', label: 'Date & time', hint: 'Corner clock' },
   { key: 'sourceCredit', label: 'Source credits', hint: 'Bottom-right' },
-  { key: 'inspiringHeadlines', label: 'Concepts sampled', hint: 'Bottom-left list' }
+  { key: 'inspiringHeadlines', label: 'Concepts sampled', hint: 'Bottom-left list' },
+  { key: 'phraseWidget', label: 'Phrase caption', hint: 'Bottom center' }
 ]
 
 export default function StyleWidgetsCard({ config, patchDraft }: StyleWidgetsCardProps) {
-  const toggle = (key: keyof MurmurConfig['overlays']) => {
+  const toggle = (key: keyof MonitorProfile['overlays']) => {
     patchDraft({
       overlays: { ...config.overlays, [key]: !config.overlays[key] }
     })

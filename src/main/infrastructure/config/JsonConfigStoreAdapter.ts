@@ -4,7 +4,7 @@ import { readFileSync, writeFileSync, existsSync } from 'fs'
 import { IConfigStore } from '../../../core/ports/IConfigStore'
 import { MurmurConfig } from '../../../core/domain/types'
 import { MurmurConfigSchema } from '../../../core/domain/config.schema'
-import { migrateRawConfigToV2 } from '../../../core/lib/config/configMigrate'
+import { migrateRawConfigToLatest } from '../../../core/lib/config/configMigrate'
 import { isClickbaitPressProfile, preferredClickbaitAnimation } from '../../../core/lib/presets/clickbaitPreset'
 
 export class JsonConfigStoreAdapter implements IConfigStore {
@@ -17,8 +17,10 @@ export class JsonConfigStoreAdapter implements IConfigStore {
 
   private getDefaultConfig(): MurmurConfig {
     return {
-      configVersion: 2,
+      configVersion: 3,
       geminiApiKey: '',
+      cloudflareAccountId: '',
+      cloudflareApiToken: '',
       refreshIntervalMinutes: 60,
       launchAtLogin: false,
       monitors: []
@@ -46,8 +48,8 @@ export class JsonConfigStoreAdapter implements IConfigStore {
         delete parsed.vignette
       }
 
-      const migrated = migrateRawConfigToV2(parsed)
-      let dirty = parsed.configVersion !== 2
+      const migrated = migrateRawConfigToLatest(parsed)
+      let dirty = parsed.configVersion !== 3
 
       for (const m of migrated.monitors) {
         if (isClickbaitPressProfile(m.profile) && m.profile.animation === 'Instant') {
@@ -59,7 +61,7 @@ export class JsonConfigStoreAdapter implements IConfigStore {
       const validated = MurmurConfigSchema.parse(migrated) as MurmurConfig
       this.cachedConfig = validated
 
-      if (dirty || parsed.configVersion !== 2) {
+      if (dirty || parsed.configVersion !== 3) {
         writeFileSync(this.filePath, JSON.stringify(this.cachedConfig, null, 2), 'utf8')
       }
       return this.cachedConfig

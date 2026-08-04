@@ -7,9 +7,11 @@ import { getMonitorProfile } from '@core/lib/config/monitorProfiles'
 export type HistoryTabProps = {
   config: MurmurConfig
   selectedMonitorId: string
+  /** Bumps after each successful refresh so we reload persisted history. */
+  lastRefreshTime?: string
 }
 
-export default function HistoryTab({ config, selectedMonitorId }: HistoryTabProps) {
+export default function HistoryTab({ config, selectedMonitorId, lastRefreshTime }: HistoryTabProps) {
   const [historyPhrases, setHistoryPhrases] = useState<string[]>([])
   const [historyViewMode, setHistoryViewMode] = useState<'preview' | 'raw'>('preview')
 
@@ -20,7 +22,7 @@ export default function HistoryTab({ config, selectedMonitorId }: HistoryTabProp
     if (api && selectedMonitorId) {
       api.getHistory(selectedMonitorId).then(setHistoryPhrases).catch(console.error)
     }
-  }, [selectedMonitorId])
+  }, [selectedMonitorId, lastRefreshTime])
 
   return (
     <div className="w-full max-w-5xl space-y-6">
