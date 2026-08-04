@@ -1,6 +1,18 @@
 export type ThemeName = 'Midnight' | 'Drift' | 'Parchment' | 'Blanc' | 'Static' | 'Forest' | 'Crimson' | 'Cyberpunk' | 'WarmGlow'
 export type AnimationName = 'Fade' | 'DriftIn' | 'Typewriter' | 'Morph' | 'Instant' | 'Glitch'
 
+export type BackgroundMode = 'gradient' | 'photo' | 'ai'
+
+export type BackgroundPresetId =
+  | 'Abstract mood'
+  | 'Editorial paper'
+  | 'Warm film grain'
+  | 'Cyberpunk neon haze'
+  | 'Zen mist'
+  | 'Gothic violet fog'
+  | 'Tabloid flash'
+  | 'Custom'
+
 export type TonePreset = 'none' | 'neutral' | 'professional' | 'vulgar' | 'custom'
 
 export type LayoutStyleName =
@@ -43,6 +55,10 @@ export interface MonitorProfile {
   noiseIntensity: 'none' | 'subtle' | 'heavy'
   tonePreset: TonePreset
   customToneText: string
+  backgroundMode: BackgroundMode
+  backgroundPresetId: BackgroundPresetId
+  customBackgroundPrompt: string
+  backgroundPhotoRelPath: string
 }
 
 export interface MonitorConfig {
@@ -55,8 +71,10 @@ export interface MonitorConfig {
 }
 
 export interface MurmurConfig {
-  configVersion: 2
+  configVersion: 3
   geminiApiKey: string
+  cloudflareAccountId: string
+  cloudflareApiToken: string
   refreshIntervalMinutes: number
   launchAtLogin: boolean
   monitors: MonitorConfig[]
@@ -78,6 +96,8 @@ export interface PaintOptions {
   phrase: string
   layoutContent?: LayoutContentEnvelope
   theme: ThemeName
+  backgroundMode?: BackgroundMode
+  baseImagePath?: string
   fontFamily: string
   animation: AnimationName
   overlays: OverlayConfig

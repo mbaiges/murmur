@@ -54,7 +54,22 @@ export const MonitorProfileSchema = z.object({
   enableDifferentFonts: z.boolean().default(false),
   noiseIntensity: z.enum(['none', 'subtle', 'heavy']).default('none'),
   tonePreset: z.enum(['none', 'neutral', 'professional', 'vulgar', 'custom']).default('none'),
-  customToneText: z.string().default('')
+  customToneText: z.string().default(''),
+  backgroundMode: z.enum(['gradient', 'photo', 'ai']).default('gradient'),
+  backgroundPresetId: z
+    .enum([
+      'Abstract mood',
+      'Editorial paper',
+      'Warm film grain',
+      'Cyberpunk neon haze',
+      'Zen mist',
+      'Gothic violet fog',
+      'Tabloid flash',
+      'Custom'
+    ])
+    .default('Abstract mood'),
+  customBackgroundPrompt: z.string().max(2048).default(''),
+  backgroundPhotoRelPath: z.string().default('')
 })
 
 export const MonitorConfigSchema = z.object({
@@ -68,8 +83,10 @@ export const MonitorConfigSchema = z.object({
 
 export const MurmurConfigSchema = z
   .object({
-    configVersion: z.literal(2).default(2),
+    configVersion: z.literal(3).default(3),
     geminiApiKey: z.string().default(''),
+    cloudflareAccountId: z.string().default(''),
+    cloudflareApiToken: z.string().default(''),
     refreshIntervalMinutes: z.number().int().min(5).max(1440).default(60),
     launchAtLogin: z.boolean().default(false),
     monitors: z.array(MonitorConfigSchema).default([])
@@ -89,6 +106,23 @@ export const MurmurConfigSchema = z
           code: z.ZodIssueCode.custom,
           path: ['monitors', i, 'profile', 'customToneText'],
           message: 'Custom tone requires non-empty text'
+        })
+      }
+      if (
+        m.profile.backgroundPresetId === 'Custom' &&
+        m.profile.customBackgroundPrompt.trim().length === 0
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['monitors', i, 'profile', 'customBackgroundPrompt'],
+          message: 'Custom background prompt requires non-empty text'
+        })
+      }
+      if (m.profile.backgroundMode === 'photo' && m.profile.backgroundPhotoRelPath.trim().length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['monitors', i, 'profile', 'backgroundPhotoRelPath'],
+          message: 'Photo background requires an imported image'
         })
       }
     }

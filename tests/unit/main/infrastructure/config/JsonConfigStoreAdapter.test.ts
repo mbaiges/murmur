@@ -25,7 +25,7 @@ describe('JsonConfigStoreAdapter', () => {
     const config = await store.get()
 
     expect(existsSync(filePath)).toBe(true)
-    expect(config.configVersion).toBe(2)
+    expect(config.configVersion).toBe(3)
     expect(config.refreshIntervalMinutes).toBe(60)
     expect(config.monitors).toEqual([])
   })

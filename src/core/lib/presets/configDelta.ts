@@ -19,7 +19,11 @@ export const DRAFT_FIELD_KEYS = [
   'enableItalic',
   'enableNewlines',
   'enableDifferentFonts',
-  'headlineSampleSize'
+  'headlineSampleSize',
+  'backgroundMode',
+  'backgroundPresetId',
+  'customBackgroundPrompt',
+  'backgroundPhotoRelPath'
 ] as const satisfies readonly (keyof MonitorProfile)[]
 
 export type DraftFieldKey = (typeof DRAFT_FIELD_KEYS)[number]
@@ -44,7 +48,11 @@ const VISUAL_SCALAR_KEYS = [
   'animation',
   'audioFeedback',
   'noiseIntensity',
-  'vignetteStyle'
+  'vignetteStyle',
+  'backgroundMode',
+  'backgroundPhotoRelPath',
+  'backgroundPresetId',
+  'customBackgroundPrompt'
 ] as const satisfies readonly (keyof MonitorProfile)[]
 
 function overlaysEqual(a: MonitorProfile['overlays'], b: MonitorProfile['overlays']): boolean {
@@ -99,6 +107,8 @@ function monitorMapsEqual(prev: MurmurConfig, next: MurmurConfig): boolean {
 export function classifyConfigDelta(prev: MurmurConfig, next: MurmurConfig): ConfigDeltaKind {
   if (
     prev.geminiApiKey !== next.geminiApiKey ||
+    prev.cloudflareAccountId !== next.cloudflareAccountId ||
+    prev.cloudflareApiToken !== next.cloudflareApiToken ||
     prev.refreshIntervalMinutes !== next.refreshIntervalMinutes ||
     prev.launchAtLogin !== next.launchAtLogin
   ) {
@@ -147,7 +157,11 @@ export function pickDraftFields(profile: MonitorProfile): Pick<MonitorProfile, D
     enableItalic: profile.enableItalic,
     enableNewlines: profile.enableNewlines,
     enableDifferentFonts: profile.enableDifferentFonts,
-    headlineSampleSize: profile.headlineSampleSize
+    headlineSampleSize: profile.headlineSampleSize,
+    backgroundMode: profile.backgroundMode,
+    backgroundPresetId: profile.backgroundPresetId,
+    customBackgroundPrompt: profile.customBackgroundPrompt,
+    backgroundPhotoRelPath: profile.backgroundPhotoRelPath
   }
 }
 

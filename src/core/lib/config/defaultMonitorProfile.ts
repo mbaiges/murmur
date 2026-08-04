@@ -23,6 +23,10 @@ export function getDefaultMonitorProfile(overrides?: Partial<MonitorProfile>): M
     noiseIntensity: 'none',
     tonePreset: 'none',
     customToneText: '',
+    backgroundMode: 'gradient',
+    backgroundPresetId: 'Abstract mood',
+    customBackgroundPrompt: '',
+    backgroundPhotoRelPath: '',
     ...overrides
   }
 }

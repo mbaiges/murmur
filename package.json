@@ -31,6 +31,7 @@
     "test:e2e:settings-ui-reorg": "playwright test tests/e2e/settings-ui-reorg.spec.ts",
     "test:e2e:style-voice-settings-polish": "playwright test tests/e2e/style-voice-settings-polish.spec.ts",
     "test:e2e:per-monitor-settings": "playwright test tests/e2e/per-monitor-settings.spec.ts",
+    "test:e2e:background-image": "playwright test tests/e2e/background-image.spec.ts",
     "test:e2e:brand-assets": "playwright test tests/e2e/brand-assets.spec.ts",
     "test:e2e:app-auto-update": "playwright test tests/e2e/app-auto-update.spec.ts",
     "test:e2e:magazine-layouts": "playwright test tests/e2e/magazine-layouts.spec.ts tests/e2e/magazine-layouts-editorial.spec.ts tests/e2e/magazine-layouts-live-phrase.spec.ts",

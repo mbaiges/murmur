@@ -10,8 +10,10 @@ export function testMonitorConfigV2(overrides?: Partial<MurmurConfig>): MurmurCo
     systemPrompt: 'test prompt'
   })
   return {
-    configVersion: 2,
+    configVersion: 3,
     geminiApiKey: 'test-api-key',
+    cloudflareAccountId: '',
+    cloudflareApiToken: '',
     refreshIntervalMinutes: 60,
     launchAtLogin: false,
     monitors: [
