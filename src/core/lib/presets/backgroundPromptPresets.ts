@@ -6,6 +6,7 @@ export type BackgroundPresetId =
   | 'Editorial paper'
   | 'Warm film grain'
   | 'Absurd connections'
+  | 'Peppa pig episode'
   | 'Cyberpunk neon haze'
   | 'Zen mist'
   | 'Gothic violet fog'
@@ -112,6 +113,14 @@ export const STANDALONE_BACKGROUND_PRESETS: BackgroundPresetDefinition[] = [
     variables: ['phrase', 'samples'],
     template:
       'Read the on-screen phrase and extract its main concepts (people, places, objects, actions, institutions, emotions). Design a desktop wallpaper that connects those concepts in an absurd, surreal, dream-logic way — unexpected juxtapositions, wrong scale, silly metaphors, visual puns. Let headline mood optionally add tension: {{samples}}. Phrase to mine for concepts (never render as readable text): {{phrase}}. Purely visual scene, no text, no logos, no watermarks.'
+  },
+  {
+    id: 'Peppa pig episode',
+    label: 'Peppa pig episode',
+    description: 'Cartoon Peppa Pig scene themed by headlines and phrase mood',
+    variables: ['samples', 'phrase'],
+    template:
+      'Cartoony wallpaper for a desktop. Let headline themes {{samples}} and the on-screen phrase mood {{phrase}} subtly influence the scene and metaphor (do not quote verbatim). Image of a peppa pig, influenced by the given phrase. Peppa pig on an episode of the phrase, no quotes, no text.'
   }
 ]
 

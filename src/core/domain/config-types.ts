@@ -8,6 +8,7 @@ export type BackgroundPresetId =
   | 'Editorial paper'
   | 'Warm film grain'
   | 'Absurd connections'
+  | 'Peppa pig episode'
   | 'Cyberpunk neon haze'
   | 'Zen mist'
   | 'Gothic violet fog'
