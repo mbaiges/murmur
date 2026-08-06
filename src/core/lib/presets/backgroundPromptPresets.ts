@@ -6,14 +6,22 @@ export type BackgroundPresetId =
   | 'Editorial paper'
   | 'Warm film grain'
   | 'Absurd connections'
-  | 'Peppa pig episode'
+  | 'Character episode'
   | 'Cyberpunk neon haze'
   | 'Zen mist'
   | 'Gothic violet fog'
   | 'Tabloid flash'
   | 'Custom'
 
-export type BackgroundTemplateVariable = 'samples' | 'phrase'
+/** Filled automatically on each phrase refresh from headlines / generated phrase. */
+export type BackgroundRefreshTemplateVariable = 'samples' | 'phrase'
+
+/** @deprecated use BackgroundRefreshTemplateVariable */
+export type BackgroundTemplateVariable = BackgroundRefreshTemplateVariable
+
+export const BACKGROUND_REFRESH_TEMPLATE_VARS = new Set<string>(['samples', 'phrase'])
+
+const PLACEHOLDER_RE = /\{\{(\w+)\}\}/g
 
 /** Appended to every preset/custom template so FLUX never bakes in phrase typography. */
 export const BACKGROUND_NO_TEXT_CLAUSE =
@@ -32,14 +40,36 @@ export function ensureBackgroundNoTextClause(template: string): string {
   return `${t} ${BACKGROUND_NO_TEXT_CLAUSE}`
 }
 
+export function listBackgroundTemplatePlaceholderNames(template: string): string[] {
+  const names = new Set<string>()
+  for (const m of template.matchAll(PLACEHOLDER_RE)) {
+    names.add(m[1]!)
+  }
+  return [...names]
+}
+
+/** Placeholders the user sets in Settings (not samples/phrase). */
+export function listUserBackgroundTemplateVars(template: string): string[] {
+  return listBackgroundTemplatePlaceholderNames(template).filter(
+    (name) => !BACKGROUND_REFRESH_TEMPLATE_VARS.has(name)
+  )
+}
+
+export function formatBackgroundUserVarLabel(key: string): string {
+  const spaced = key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').trim()
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1)
+}
+
 export interface BackgroundPresetDefinition {
   id: Exclude<BackgroundPresetId, 'Custom'>
   label: string
   description: string
-  /** Preset prompt template; may include `{{samples}}` and/or `{{phrase}}`. */
+  /** Preset prompt template; may include `{{samples}}`, `{{phrase}}`, and user `{{var}}` placeholders. */
   template: string
-  /** Which context variables are sent for this preset (substituted into template). */
-  variables: BackgroundTemplateVariable[]
+  /** Which refresh-time variables this preset uses. */
+  variables: BackgroundRefreshTemplateVariable[]
+  /** Default values for user-editable placeholders when selecting this preset. */
+  defaultUserVariables?: Record<string, string>
   moodName?: AestheticMoodId
 }
 
@@ -115,12 +145,13 @@ export const STANDALONE_BACKGROUND_PRESETS: BackgroundPresetDefinition[] = [
       'Read the on-screen phrase and extract its main concepts (people, places, objects, actions, institutions, emotions). Design a desktop wallpaper that connects those concepts in an absurd, surreal, dream-logic way — unexpected juxtapositions, wrong scale, silly metaphors, visual puns. Let headline mood optionally add tension: {{samples}}. Phrase to mine for concepts (never render as readable text): {{phrase}}. Purely visual scene, no text, no logos, no watermarks.'
   },
   {
-    id: 'Peppa pig episode',
-    label: 'Peppa pig episode',
-    description: 'Cartoon Peppa Pig scene themed by headlines and phrase mood',
+    id: 'Character episode',
+    label: 'Character episode',
+    description: 'Cartoon scene in the art style of a franchise you name',
     variables: ['samples', 'phrase'],
+    defaultUserVariables: { characterName: 'Peppa Pig' },
     template:
-      'Cartoony wallpaper for a desktop. Let headline themes {{samples}} and the on-screen phrase mood {{phrase}} subtly influence the scene and metaphor (do not quote verbatim). Image of a peppa pig, influenced by the given phrase. Peppa pig on an episode of the phrase, no quotes, no text.'
+      'Cartoony wallpaper for a desktop. Let headline themes {{samples}} and the on-screen phrase mood {{phrase}} subtly influence the scene and metaphor (do not quote verbatim). The entire image must match the visual style, color palette, line work, shading, and character design of {{characterName}} — cohesive as if a single frame from that show or franchise, not a generic cartoon pasted on a photo background. Scene inspired by the phrase mood featuring {{characterName}} (never render the phrase as readable text). No quotes, no logos, no watermarks.'
   }
 ]
 
@@ -135,6 +166,8 @@ export function getBackgroundPresetById(id: string): BackgroundPresetDefinition 
 
 export function backgroundPresetIdFromProfile(profile: MonitorProfile): BackgroundPresetId {
   if (profile.backgroundPresetId === 'Custom') return 'Custom'
+  const id = profile.backgroundPresetId as string
+  if (id === 'Peppa pig episode' || id === 'Character Cartoon') return 'Character episode'
   return getBackgroundPresetById(profile.backgroundPresetId)?.id ?? 'Abstract mood'
 }
 
@@ -142,21 +175,23 @@ export function resolveBackgroundTemplateSource(profile: MonitorProfile): string
   if (profile.backgroundPresetId === 'Custom') {
     return profile.customBackgroundPrompt.trim()
   }
-  const preset = getBackgroundPresetById(profile.backgroundPresetId)
+  const presetId = backgroundPresetIdFromProfile(profile)
+  if (presetId === 'Custom') return profile.customBackgroundPrompt.trim()
+  const preset = getBackgroundPresetById(presetId)
   return preset?.template ?? STANDALONE_BACKGROUND_PRESETS[0].template
 }
 
-/** Which variables to substitute for this profile (custom: any placeholders present in text). */
-export function resolveBackgroundTemplateVariables(profile: MonitorProfile): BackgroundTemplateVariable[] {
-  if (profile.backgroundPresetId === 'Custom') {
-    const t = profile.customBackgroundPrompt
-    const vars: BackgroundTemplateVariable[] = []
-    if (t.includes('{{samples}}')) vars.push('samples')
-    if (t.includes('{{phrase}}')) vars.push('phrase')
-    return vars
-  }
-  const preset = getBackgroundPresetById(profile.backgroundPresetId)
-  return preset?.variables ?? STANDALONE_BACKGROUND_PRESETS[0].variables
+export function listUserBackgroundTemplateVarsForProfile(profile: MonitorProfile): string[] {
+  return listUserBackgroundTemplateVars(resolveBackgroundTemplateSource(profile))
+}
+
+/** Which refresh variables to substitute for this profile (custom: any placeholders present in text). */
+export function resolveBackgroundTemplateVariables(profile: MonitorProfile): BackgroundRefreshTemplateVariable[] {
+  const template = resolveBackgroundTemplateSource(profile)
+  const vars: BackgroundRefreshTemplateVariable[] = []
+  if (template.includes('{{samples}}')) vars.push('samples')
+  if (template.includes('{{phrase}}')) vars.push('phrase')
+  return vars
 }
 
 export function formatSamplesBlock(sampleTitles: string[]): string {
@@ -166,22 +201,40 @@ export function formatSamplesBlock(sampleTitles: string[]): string {
 
 export function applyBackgroundTemplate(
   template: string,
-  variables: BackgroundTemplateVariable[],
-  context: { sampleTitles: string[]; phrase: string }
+  refreshVariables: BackgroundRefreshTemplateVariable[],
+  context: { sampleTitles: string[]; phrase: string },
+  userVariables: Record<string, string> = {}
 ): string {
   let out = template
-  if (variables.includes('samples')) {
+  if (refreshVariables.includes('samples')) {
     out = out.replaceAll('{{samples}}', formatSamplesBlock(context.sampleTitles))
   } else {
     out = out.replaceAll('{{samples}}', '')
   }
-  if (variables.includes('phrase')) {
+  if (refreshVariables.includes('phrase')) {
     const phrase = context.phrase.trim() || '(No phrase yet.)'
     out = out.replaceAll('{{phrase}}', phrase)
   } else {
     out = out.replaceAll('{{phrase}}', '')
   }
+
+  for (const name of listUserBackgroundTemplateVars(template)) {
+    const value = userVariables[name]?.trim() || `(unset: ${name})`
+    out = out.replaceAll(`{{${name}}}`, value)
+  }
+
   return out.replace(/\n{3,}/g, '\n\n').trim()
+}
+
+/** Merge preset defaults when user picks a new background preset in Settings. */
+export function backgroundTemplateVarsForPresetSelection(
+  presetId: BackgroundPresetId,
+  existing: Record<string, string> | undefined
+): Record<string, string> {
+  if (presetId === 'Custom') return { ...(existing ?? {}) }
+  const preset = getBackgroundPresetById(presetId)
+  if (!preset?.defaultUserVariables) return { ...(existing ?? {}) }
+  return { ...(existing ?? {}), ...preset.defaultUserVariables }
 }
 
 /** @deprecated use resolveBackgroundTemplateSource + applyBackgroundTemplate */
@@ -189,6 +242,7 @@ export function resolveBackgroundInstructions(profile: MonitorProfile): string {
   return applyBackgroundTemplate(
     resolveBackgroundTemplateSource(profile),
     resolveBackgroundTemplateVariables(profile),
-    { sampleTitles: [], phrase: '' }
+    { sampleTitles: [], phrase: '' },
+    profile.backgroundTemplateVars ?? {}
   )
 }

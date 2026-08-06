@@ -24,6 +24,7 @@ export const DRAFT_FIELD_KEYS = [
   'backgroundPresetId',
   'customBackgroundPrompt',
   'backgroundPhotoRelPath',
+  'backgroundTemplateVars',
   'aiPhraseInImage',
   'aiPhraseInImagePreset',
   'showHeroPhrase'
@@ -70,11 +71,24 @@ function overlaysEqual(a: MonitorProfile['overlays'], b: MonitorProfile['overlay
   )
 }
 
+function backgroundTemplateVarsEqual(
+  a: MonitorProfile['backgroundTemplateVars'],
+  b: MonitorProfile['backgroundTemplateVars']
+): boolean {
+  const keys = new Set([...Object.keys(a ?? {}), ...Object.keys(b ?? {})])
+  for (const key of keys) {
+    if ((a?.[key] ?? '') !== (b?.[key] ?? '')) return false
+  }
+  return true
+}
+
 function profilesEqual(a: MonitorProfile, b: MonitorProfile): boolean {
   if (a.feeds.length !== b.feeds.length || a.feeds.some((f, i) => f !== b.feeds[i])) return false
   for (const key of DRAFT_FIELD_KEYS) {
     if (key === 'overlays') {
       if (!overlaysEqual(a.overlays, b.overlays)) return false
+    } else if (key === 'backgroundTemplateVars') {
+      if (!backgroundTemplateVarsEqual(a.backgroundTemplateVars, b.backgroundTemplateVars)) return false
     } else if (a[key] !== b[key]) {
       return false
     }
@@ -94,6 +108,7 @@ function hasVisualDeltaProfile(prev: MonitorProfile, next: MonitorProfile): bool
     if (prev[key] !== next[key]) return true
   }
   if (!overlaysEqual(prev.overlays, next.overlays)) return true
+  if (!backgroundTemplateVarsEqual(prev.backgroundTemplateVars, next.backgroundTemplateVars)) return true
   return false
 }
 
@@ -169,6 +184,7 @@ export function pickDraftFields(profile: MonitorProfile): Pick<MonitorProfile, D
     backgroundPresetId: profile.backgroundPresetId,
     customBackgroundPrompt: profile.customBackgroundPrompt,
     backgroundPhotoRelPath: profile.backgroundPhotoRelPath,
+    backgroundTemplateVars: { ...(profile.backgroundTemplateVars ?? {}) },
     aiPhraseInImage: profile.aiPhraseInImage,
     aiPhraseInImagePreset: profile.aiPhraseInImagePreset,
     showHeroPhrase: profile.showHeroPhrase
@@ -181,6 +197,8 @@ export function draftFieldsEqual(a: MonitorProfile, b: MonitorProfile): boolean 
   for (const key of DRAFT_FIELD_KEYS) {
     if (key === 'overlays') {
       if (!overlaysEqual(pa.overlays, pb.overlays)) return false
+    } else if (key === 'backgroundTemplateVars') {
+      if (!backgroundTemplateVarsEqual(pa.backgroundTemplateVars, pb.backgroundTemplateVars)) return false
     } else if (pa[key] !== pb[key]) {
       return false
     }
@@ -192,6 +210,7 @@ const AI_BACKGROUND_KEYS = [
   'backgroundMode',
   'backgroundPresetId',
   'customBackgroundPrompt',
+  'backgroundTemplateVars',
   'aiPhraseInImage',
   'aiPhraseInImagePreset',
   'showHeroPhrase'
@@ -206,7 +225,11 @@ export function hasAiBackgroundSettingsDelta(prev: MurmurConfig, next: MurmurCon
     if (!p || !n) continue
     if (n.profile.backgroundMode !== 'ai') continue
     for (const key of AI_BACKGROUND_KEYS) {
-      if (p.profile[key] !== n.profile[key]) return true
+      if (key === 'backgroundTemplateVars') {
+        if (!backgroundTemplateVarsEqual(p.profile.backgroundTemplateVars, n.profile.backgroundTemplateVars)) {
+          return true
+        }
+      } else if (p.profile[key] !== n.profile[key]) return true
     }
   }
   return false

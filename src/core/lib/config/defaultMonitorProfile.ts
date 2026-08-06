@@ -27,6 +27,7 @@ export function getDefaultMonitorProfile(overrides?: Partial<MonitorProfile>): M
     backgroundPresetId: 'Abstract mood',
     customBackgroundPrompt: '',
     backgroundPhotoRelPath: '',
+    backgroundTemplateVars: {},
     aiPhraseInImage: false,
     aiPhraseInImagePreset: 'poem',
     showHeroPhrase: true,

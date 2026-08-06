@@ -63,7 +63,7 @@ export const MonitorProfileSchema = z.object({
       'Editorial paper',
       'Warm film grain',
       'Absurd connections',
-      'Peppa pig episode',
+      'Character episode',
       'Cyberpunk neon haze',
       'Zen mist',
       'Gothic violet fog',
@@ -73,6 +73,7 @@ export const MonitorProfileSchema = z.object({
     .default('Abstract mood'),
   customBackgroundPrompt: z.string().max(2048).default(''),
   backgroundPhotoRelPath: z.string().default(''),
+  backgroundTemplateVars: z.record(z.string(), z.string()).default({}),
   aiPhraseInImage: z.boolean().default(false),
   aiPhraseInImagePreset: z
     .enum([

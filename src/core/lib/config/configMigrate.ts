@@ -123,8 +123,22 @@ export function migrateConfigV2ToV3(v2: MurmurConfigV2Shape): MurmurConfig {
     launchAtLogin: v2.launchAtLogin,
     monitors: v2.monitors.map((m) => ({
       ...m,
-      profile: { ...getDefaultMonitorProfile(), ...m.profile }
+      profile: normalizeLegacyBackgroundProfile({ ...getDefaultMonitorProfile(), ...m.profile })
     }))
+  }
+}
+
+/** Rename retired presets and seed new template vars. */
+export function normalizeLegacyBackgroundProfile(profile: MonitorProfile): MonitorProfile {
+  const presetId = profile.backgroundPresetId as string
+  if (presetId !== 'Peppa pig episode' && presetId !== 'Character Cartoon') return profile
+  return {
+    ...profile,
+    backgroundPresetId: 'Character episode',
+    backgroundTemplateVars: {
+      ...(profile.backgroundTemplateVars ?? {}),
+      characterName: profile.backgroundTemplateVars?.characterName?.trim() || 'Peppa Pig'
+    }
   }
 }
 
@@ -133,8 +147,13 @@ export function migrateRawConfigToLatest(parsed: LegacyRoot): MurmurConfig {
   const v2 = migrateRawConfigToV2(parsed)
   const v3 = migrateConfigV2ToV3(v2)
   if (parsed.configVersion === 3) {
+    const monitors = v3.monitors.map((m) => ({
+      ...m,
+      profile: normalizeLegacyBackgroundProfile(m.profile)
+    }))
     return {
       ...v3,
+      monitors,
       cloudflareAccountId:
         typeof parsed.cloudflareAccountId === 'string' ? parsed.cloudflareAccountId : '',
       cloudflareApiToken:

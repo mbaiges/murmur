@@ -8,7 +8,7 @@ export type BackgroundPresetId =
   | 'Editorial paper'
   | 'Warm film grain'
   | 'Absurd connections'
-  | 'Peppa pig episode'
+  | 'Character episode'
   | 'Cyberpunk neon haze'
   | 'Zen mist'
   | 'Gothic violet fog'
@@ -73,6 +73,8 @@ export interface MonitorProfile {
   backgroundPresetId: BackgroundPresetId
   customBackgroundPrompt: string
   backgroundPhotoRelPath: string
+  /** User values for `{{name}}` placeholders in AI background templates (excludes samples/phrase). */
+  backgroundTemplateVars: Record<string, string>
   aiPhraseInImage: boolean
   aiPhraseInImagePreset: AiPhraseInImagePreset
   /** When false, Murmur does not draw the large center headline (AI art-only layouts). */

@@ -59,7 +59,10 @@ export function useSettingsDraft({
         ? {
             ...prev,
             ...partial,
-            overlays: partial.overlays ? { ...prev.overlays, ...partial.overlays } : prev.overlays
+            overlays: partial.overlays ? { ...prev.overlays, ...partial.overlays } : prev.overlays,
+            backgroundTemplateVars: partial.backgroundTemplateVars
+              ? { ...(prev.backgroundTemplateVars ?? {}), ...partial.backgroundTemplateVars }
+              : prev.backgroundTemplateVars
           }
         : prev
     )

@@ -4,6 +4,9 @@ import {
   MOOD_LINKED_BACKGROUND_PRESETS,
   STANDALONE_BACKGROUND_PRESETS,
   backgroundPresetIdFromProfile,
+  backgroundTemplateVarsForPresetSelection,
+  formatBackgroundUserVarLabel,
+  listUserBackgroundTemplateVarsForProfile,
   resolveBackgroundTemplateSource,
   type BackgroundPresetId
 } from '@core/lib/presets/backgroundPromptPresets'
@@ -56,6 +59,20 @@ export default function StyleBackgroundCard({
   const promptPreview = isCustomPreset
     ? config.customBackgroundPrompt
     : resolveBackgroundTemplateSource(config)
+  const userTemplateVars = listUserBackgroundTemplateVarsForProfile(config)
+
+  const onPresetChange = (id: BackgroundPresetId) => {
+    patchDraft({
+      backgroundPresetId: id,
+      backgroundTemplateVars: backgroundTemplateVarsForPresetSelection(id, config.backgroundTemplateVars)
+    })
+  }
+
+  const setUserTemplateVar = (name: string, value: string) => {
+    patchDraft({
+      backgroundTemplateVars: { ...(config.backgroundTemplateVars ?? {}), [name]: value }
+    })
+  }
 
   return (
     <section
@@ -127,8 +144,10 @@ export default function StyleBackgroundCard({
       {config.backgroundMode === 'ai' && (
         <div className="space-y-4" data-testid="style-background-ai-panel">
           <p className="text-xs text-slate-500">
-            On each phrase refresh, Murmur sends the preset below (with <code className="text-slate-400">{'{{samples}}'}</code>{' '}
-            and/or <code className="text-slate-400">{'{{phrase}}'}</code> when the preset uses them)             through the same text model as phrase generation, then Cloudflare FLUX paints the wallpaper.
+            On each phrase refresh, Murmur fills <code className="text-slate-400">{'{{samples}}'}</code> and{' '}
+            <code className="text-slate-400">{'{{phrase}}'}</code> from headlines and your phrase. Other{' '}
+            <code className="text-slate-400">{'{{variables}}'}</code> are set below, then Gemini + Cloudflare FLUX paint
+            the wallpaper.
           </p>
           <div className="flex flex-wrap justify-between items-center gap-2">
             <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Image prompt preset</label>
@@ -137,10 +156,7 @@ export default function StyleBackgroundCard({
               selectSize="sm"
               className="max-w-[240px]"
               value={backgroundPresetIdFromProfile(config)}
-              onChange={(e) => {
-                const id = e.target.value as BackgroundPresetId
-                patchDraft({ backgroundPresetId: id })
-              }}
+              onChange={(e) => onPresetChange(e.target.value as BackgroundPresetId)}
             >
               <optgroup label="Standalone">
                 {STANDALONE_BACKGROUND_PRESETS.map((preset) => (
@@ -159,6 +175,30 @@ export default function StyleBackgroundCard({
               <option value="Custom">Custom</option>
             </SettingsSelect>
           </div>
+
+          {userTemplateVars.length > 0 && (
+            <div
+              className="flex flex-wrap gap-x-3 gap-y-2 p-3 rounded-lg border border-slate-800 bg-slate-950/80"
+              data-testid="style-background-template-vars"
+            >
+              {userTemplateVars.map((name) => (
+                <label key={name} className="flex flex-col min-w-[7rem] flex-1 max-w-[11rem]">
+                  <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">
+                    {formatBackgroundUserVarLabel(name)}
+                  </span>
+                  <input
+                    type="text"
+                    data-testid={`style-background-var-${name}`}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-md px-2 py-1.5 text-xs text-slate-100 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+                    value={config.backgroundTemplateVars?.[name] ?? ''}
+                    placeholder={`{{${name}}}`}
+                    onChange={(e) => setUserTemplateVar(name, e.target.value)}
+                  />
+                </label>
+              ))}
+            </div>
+          )}
+
           <div>
             <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
               {isCustomPreset ? 'Custom template' : 'Preset template'}
@@ -176,7 +216,7 @@ export default function StyleBackgroundCard({
               }
               placeholder={
                 isCustomPreset
-                  ? 'Describe the wallpaper. Use {{samples}} and/or {{phrase}} where helpful…'
+                  ? 'Describe the wallpaper. Use {{samples}}, {{phrase}}, or {{yourVariable}}…'
                   : undefined
               }
             />
@@ -184,7 +224,7 @@ export default function StyleBackgroundCard({
               <p className="text-[10px] text-slate-600 mt-1">{config.customBackgroundPrompt.length}/2048</p>
             ) : (
               <p className="text-[10px] text-slate-600 mt-1">
-                Variables in this preset are filled on refresh; choose Custom to edit.
+                {'{{samples}}'} and {'{{phrase}}'} fill on refresh; other placeholders use the fields above.
               </p>
             )}
           </div>

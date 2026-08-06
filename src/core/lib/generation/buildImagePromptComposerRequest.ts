@@ -23,7 +23,12 @@ export function buildResolvedBackgroundPromptText(
 ): string {
   const template = resolveBackgroundTemplateSource(profile)
   const variables = resolveBackgroundTemplateVariables(profile)
-  const resolved = applyBackgroundTemplate(template, variables, context)
+  const resolved = applyBackgroundTemplate(
+    template,
+    variables,
+    context,
+    profile.backgroundTemplateVars ?? {}
+  )
   if (isAiPhraseIntegrated(profile)) {
     return resolved.trim()
   }

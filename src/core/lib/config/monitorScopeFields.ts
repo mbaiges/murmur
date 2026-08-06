@@ -28,6 +28,7 @@ const STYLE_KEYS = [
   'backgroundPhotoRelPath',
   'backgroundPresetId',
   'customBackgroundPrompt',
+  'backgroundTemplateVars',
   'aiPhraseInImage',
   'aiPhraseInImagePreset',
   'showHeroPhrase'
@@ -59,6 +60,9 @@ export function mergeProfilePatch(profile: MonitorProfile, patch: Partial<Monito
   const next = { ...profile, ...patch }
   if (patch.overlays) {
     next.overlays = { ...profile.overlays, ...patch.overlays }
+  }
+  if (patch.backgroundTemplateVars) {
+    next.backgroundTemplateVars = { ...profile.backgroundTemplateVars, ...patch.backgroundTemplateVars }
   }
   return next
 }

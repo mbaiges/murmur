@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   applyBackgroundTemplate,
+  listUserBackgroundTemplateVars,
   resolveBackgroundTemplateSource,
   resolveBackgroundTemplateVariables
 } from '../../../../../src/core/lib/presets/backgroundPromptPresets'
@@ -42,7 +43,7 @@ describe('backgroundPromptPresets', () => {
 
   it('Absurd connections preset substitutes phrase for concept extraction', () => {
     const profile = getDefaultMonitorProfile({ backgroundPresetId: 'Absurd connections' })
-    expect(resolveBackgroundTemplateVariables(profile)).toEqual(['phrase', 'samples'])
+    expect(resolveBackgroundTemplateVariables(profile).sort()).toEqual(['phrase', 'samples'].sort())
     const resolved = applyBackgroundTemplate(resolveBackgroundTemplateSource(profile), ['phrase', 'samples'], {
       sampleTitles: ['Election news'],
       phrase: 'Lions at a wedding in Japan'
@@ -50,6 +51,23 @@ describe('backgroundPromptPresets', () => {
     expect(resolved).toContain('Lions at a wedding in Japan')
     expect(resolved).toContain('Election news')
     expect(resolved).toContain('absurd')
+  })
+
+  it('Character episode substitutes characterName from profile vars', () => {
+    const profile = getDefaultMonitorProfile({
+      backgroundPresetId: 'Character episode',
+      backgroundTemplateVars: { characterName: 'The Simpsons' }
+    })
+    expect(listUserBackgroundTemplateVars(resolveBackgroundTemplateSource(profile))).toEqual(['characterName'])
+    const resolved = applyBackgroundTemplate(
+      resolveBackgroundTemplateSource(profile),
+      resolveBackgroundTemplateVariables(profile),
+      { sampleTitles: ['News'], phrase: 'Homer energy' },
+      profile.backgroundTemplateVars
+    )
+    expect(resolved).toContain('The Simpsons')
+    expect(resolved).toContain('visual style')
+    expect(resolved).toContain('Homer energy')
   })
 
   it('buildImagePromptComposeUserMessage includes resolved template', () => {
