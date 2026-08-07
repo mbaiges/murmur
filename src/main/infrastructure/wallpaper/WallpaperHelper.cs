@@ -114,18 +114,41 @@ namespace Murmur {
 
         private const int WS_EX_TRANSPARENT = 0x20;
         private const int WS_EX_NOACTIVATE = 0x08000000;
-        private const int WS_EX_LAYERED = 0x80000;
         private const int WS_EX_TOOLWINDOW = 0x00000080;
+        private const int WS_EX_APPWINDOW = 0x00040000;
 
         private const int SW_HIDE = 0;
         private const int SW_SHOWNOACTIVATE = 4;
 
-        private static readonly IntPtr HWND_BOTTOM = new IntPtr(1);
+        private const uint SWP_NOSIZE = 0x0001;
+        private const uint SWP_NOMOVE = 0x0002;
+        private const uint SWP_NOZORDER = 0x0004;
+        private const uint SWP_NOACTIVATE = 0x0010;
+        private const uint SWP_FRAMECHANGED = 0x0020;
 
-        private const int SM_XVIRTUALSCREEN = 76;
-        private const int SM_YVIRTUALSCREEN = 77;
-        private const int SM_CXVIRTUALSCREEN = 78;
-        private const int SM_CYVIRTUALSCREEN = 79;
+        /// <summary>
+        /// Electron/Chromium must not use WS_EX_LAYERED here — it freezes repaints and CSS animation.
+        /// Strip WS_EX_APPWINDOW so reparented HWNDs do not appear on the taskbar as ghost entries.
+        /// </summary>
+        private static void ApplyChildDesktopStyles(IntPtr childHwnd) {
+            if (childHwnd == IntPtr.Zero) {
+                return;
+            }
+            int exStyle = GetWindowLong(childHwnd, GWL_EXSTYLE);
+            exStyle &= ~WS_EX_APPWINDOW;
+            exStyle &= ~0x80000; // WS_EX_LAYERED
+            exStyle |= WS_EX_TRANSPARENT | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW;
+            SetWindowLong(childHwnd, GWL_EXSTYLE, exStyle);
+            SetWindowPos(
+                childHwnd,
+                IntPtr.Zero,
+                0,
+                0,
+                0,
+                0,
+                SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED
+            );
+        }
 
         private static bool IsWorkerWWithoutShellView(IntPtr hwnd) {
             StringBuilder className = new StringBuilder(256);
@@ -153,8 +176,8 @@ namespace Murmur {
             }
 
             for (int attempt = 0; attempt < 10; attempt++) {
-                shellWorkerW = IntPtr.Zero;
-                desktopWorkerW = IntPtr.Zero;
+                IntPtr foundShell = IntPtr.Zero;
+                IntPtr foundDesktop = IntPtr.Zero;
 
                 EnumWindows(new EnumWindowsProc((tophwnd, lparam) => {
                     StringBuilder className = new StringBuilder(256);
@@ -162,13 +185,16 @@ namespace Murmur {
                     if (className.ToString() == "WorkerW") {
                         IntPtr shellDll = FindWindowEx(tophwnd, IntPtr.Zero, "SHELLDLL_DefView", null);
                         if (shellDll != IntPtr.Zero) {
-                            shellWorkerW = tophwnd;
+                            foundShell = tophwnd;
                         } else {
-                            desktopWorkerW = tophwnd;
+                            foundDesktop = tophwnd;
                         }
                     }
                     return true;
                 }), IntPtr.Zero);
+
+                shellWorkerW = foundShell;
+                desktopWorkerW = foundDesktop;
 
                 if (spawnLayer) {
                     if (shellWorkerW != IntPtr.Zero && desktopWorkerW != IntPtr.Zero) {
@@ -188,6 +214,7 @@ namespace Murmur {
 
         /// <summary>
         /// Hides stale empty WorkerW hosts Explorer creates when 0x052C runs more than once.
+        /// Only call when we just spawned a new desktop layer (first inject).
         /// </summary>
         private static void HideOrphanDesktopWorkerW(IntPtr keepWorkerW) {
             EnumWindows(new EnumWindowsProc((tophwnd, lparam) => {
@@ -199,19 +226,6 @@ namespace Murmur {
                 }
                 return true;
             }), IntPtr.Zero);
-        }
-
-        private static void ExpandWorkerWToVirtualScreen(IntPtr workerW) {
-            if (workerW == IntPtr.Zero) {
-                return;
-            }
-            int x = GetSystemMetrics(SM_XVIRTUALSCREEN);
-            int y = GetSystemMetrics(SM_YVIRTUALSCREEN);
-            int width = GetSystemMetrics(SM_CXVIRTUALSCREEN);
-            int height = GetSystemMetrics(SM_CYVIRTUALSCREEN);
-            // SWP_NOACTIVATE | SWP_SHOWWINDOW — size the host layer without stealing focus or showing a frame.
-            SetWindowPos(workerW, HWND_BOTTOM, x, y, width, height, 0x0010 | 0x0040);
-            ShowWindow(workerW, SW_SHOWNOACTIVATE);
         }
 
         static void Main(string[] args) {
@@ -339,8 +353,10 @@ namespace Murmur {
                     IntPtr targetParent = workerwToUse != IntPtr.Zero ? workerwToUse : (shellWorkerW != IntPtr.Zero ? shellWorkerW : progmanFallback);
 
                     if (workerwToUse != IntPtr.Zero) {
-                        HideOrphanDesktopWorkerW(workerwToUse);
-                        ExpandWorkerWToVirtualScreen(workerwToUse);
+                        if (spawnLayer) {
+                            HideOrphanDesktopWorkerW(workerwToUse);
+                        }
+                        ShowWindow(workerwToUse, SW_SHOWNOACTIVATE);
                     }
 
                     // Find the target borderless window (either by raw HWND number or title fallback)
@@ -389,18 +405,34 @@ namespace Murmur {
                     // 8. Parent our window inside the target container
                     SetParent(childHwnd, targetParent);
 
-                    // 9. Apply extended styles (layered, non-activatable, transparent click-through, no taskbar entry)
-                    int exStyle = GetWindowLong(childHwnd, GWL_EXSTYLE);
-                    SetWindowLong(childHwnd, GWL_EXSTYLE, exStyle | WS_EX_TRANSPARENT | WS_EX_LAYERED | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW);
+                    ApplyChildDesktopStyles(childHwnd);
 
                     // 10. Position and resize the child window precisely at its parent-relative monitor slot
                     // HWND_TOP = 0
                     // SWP_NOACTIVATE = 0x0010, SWP_SHOWWINDOW = 0x0040, SWP_FRAMECHANGED = 0x0020
-                    SetWindowPos(childHwnd, IntPtr.Zero, relativeX, relativeY, childWidth, childHeight, 0x0010 | 0x0040 | 0x0020);
+                    SetWindowPos(childHwnd, IntPtr.Zero, relativeX, relativeY, childWidth, childHeight, SWP_NOACTIVATE | 0x0040 | SWP_FRAMECHANGED);
+
+                    ApplyChildDesktopStyles(childHwnd);
 
                     Console.WriteLine("SUCCESS");
                 } catch (Exception ex) {
                     Console.WriteLine("ERROR: Injection failed. " + ex.Message);
+                }
+            } else if (action == "stylechild") {
+                if (args.Length < 2) {
+                    Console.WriteLine("ERROR: Missing window handle");
+                    return;
+                }
+                try {
+                    long parsedHwnd;
+                    if (!long.TryParse(args[1], out parsedHwnd)) {
+                        Console.WriteLine("ERROR: Invalid HWND");
+                        return;
+                    }
+                    ApplyChildDesktopStyles(new IntPtr(parsedHwnd));
+                    Console.WriteLine("SUCCESS");
+                } catch (Exception ex) {
+                    Console.WriteLine("ERROR: stylechild failed. " + ex.Message);
                 }
             }
         }

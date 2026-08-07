@@ -60,7 +60,8 @@ export function createBackgroundWindow(
     title: windowTitle,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      sandbox: false,
+      backgroundThrottling: false
     }
   })
 
@@ -81,6 +82,7 @@ export function createBackgroundWindow(
   bgWindow.once('ready-to-show', async () => {
     bgWindow.show()
     bgWindow.setIgnoreMouseEvents(true)
+    bgWindow.webContents.setBackgroundThrottling(false)
 
     try {
       if (
@@ -99,6 +101,11 @@ export function createBackgroundWindow(
         await (wallpaperRenderer as { inject: (h: string) => Promise<void> }).inject(hwndVal)
         if (display) {
           bgWindow.setBounds(wallpaperWindowBounds(display))
+        }
+        bgWindow.setSkipTaskbar(true)
+        const styleChild = (wallpaperRenderer as { styleChild?: (h: string) => Promise<void> }).styleChild
+        if (styleChild) {
+          await styleChild(hwndVal)
         }
       }
     } catch (err) {

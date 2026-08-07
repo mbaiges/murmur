@@ -132,4 +132,18 @@ export class WinDesktopWallpaperAdapter implements IWallpaperRenderer {
       throw error
     }
   }
+
+  /** Re-apply desktop child styles after Electron resizes the HWND (avoids taskbar ghosts + frozen paints). */
+  public async styleChild(hwnd: string): Promise<void> {
+    if (process.platform !== 'win32') return
+
+    try {
+      const helperPath = this.getHelperPath()
+      const cmd = `"${helperPath}" stylechild "${hwnd}"`
+      const { stdout } = await execAsync(cmd, helperExecOptions)
+      console.log(`WinDesktopWallpaperAdapter: Native helper stylechild output: ${stdout.trim()}`)
+    } catch (error) {
+      console.error('WinDesktopWallpaperAdapter: stylechild failed', error)
+    }
+  }
 }
